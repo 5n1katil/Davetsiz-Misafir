@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import React, { useEffect, useRef } from "react";
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
@@ -67,7 +68,10 @@ export default function VoteScreen() {
           return (
             <Pressable
               key={p.id}
-              onPress={() => emit("castVote", { targetId: p.id })}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                emit("castVote", { targetId: p.id });
+              }}
               style={({ pressed }) => [
                 styles.row,
                 {
