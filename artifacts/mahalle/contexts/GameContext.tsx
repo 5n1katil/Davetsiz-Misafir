@@ -78,6 +78,7 @@ export interface GameState {
 export interface SystemToast {
   message: string;
   id: number;
+  icon?: string;
 }
 
 interface GameCtx {
@@ -250,6 +251,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setSystemToast({
         message: next ? "Ses kapatıldı" : "Ses açıldı",
         id: Date.now(),
+        icon: next ? "volume-x" : "volume-2",
       });
       return next;
     });
@@ -263,6 +265,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       setSystemToast({
         message: next ? "Titreşim açıldı" : "Titreşim kapatıldı",
         id: Date.now(),
+        icon: "smartphone",
       });
       return next;
     });

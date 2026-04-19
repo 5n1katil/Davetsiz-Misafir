@@ -64,7 +64,7 @@ export default function SystemToast() {
         },
       ]}
     >
-      <Feather name="award" size={16} color="#F5C842" style={{ marginRight: 8 }} />
+      <Feather name={(systemToast.icon as any) ?? "award"} size={16} color="#F5C842" style={{ marginRight: 8 }} />
       <Text style={styles.text} numberOfLines={2}>
         {systemToast.message}
       </Text>
