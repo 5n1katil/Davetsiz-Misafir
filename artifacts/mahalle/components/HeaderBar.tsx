@@ -1,14 +1,39 @@
 import { Feather } from "@expo/vector-icons";
-import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
 import { useGame } from "@/contexts/GameContext";
+
+function PausedBadge() {
+  const c = useColors();
+  const opacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, { toValue: 0.3, duration: 700, useNativeDriver: true }),
+        Animated.timing(opacity, { toValue: 1, duration: 700, useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [opacity]);
+
+  return (
+    <Animated.View style={[styles.pausedBadge, { borderColor: c.primary, opacity }]}>
+      <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1.2 }}>
+        ⏸ DURAKLATILDI
+      </Text>
+    </Animated.View>
+  );
+}
 
 export function HeaderBar({ title, subtitle }: { title: string; subtitle?: string }) {
   const c = useColors();
   const { connected, voiceMuted, toggleVoice, state, myPlayerId } = useGame();
   const isHost = state && myPlayerId === state.hostId;
+  const isPaused = state?.paused === true;
 
   return (
     <View
@@ -29,6 +54,7 @@ export function HeaderBar({ title, subtitle }: { title: string; subtitle?: strin
         ) : null}
       </View>
       <View style={styles.right}>
+        {isPaused ? <PausedBadge /> : null}
         {isHost ? (
           <>
             <View style={[styles.hostBadge, { borderColor: c.primary }]}>
@@ -84,6 +110,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   hostBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  pausedBadge: {
     paddingHorizontal: 7,
     paddingVertical: 3,
     borderRadius: 4,
