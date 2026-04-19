@@ -3,11 +3,13 @@ import React, { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Btn } from "@/components/Btn";
+import { GhostActivityBadge } from "@/components/GhostActivityBadge";
 import { GraveyardChat } from "@/components/GraveyardChat";
 import { ROLE_DEFS } from "@/constants/roles";
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
 import { useCountdown } from "@/hooks/useCountdown";
+import { useGhostActivity } from "@/hooks/useGhostActivity";
 
 const ROLE_LABELS: Record<string, string> = {
   _cete: "Davetsiz Misafir",
@@ -25,6 +27,7 @@ export default function NightScreen() {
   const me = state?.players.find((p) => p.id === myPlayerId);
   const isHost = state && me && me.id === state.hostId;
   const isDead = !me?.isAlive;
+  const ghostActive = useGhostActivity();
 
   const moonAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(0)).current;
@@ -85,6 +88,11 @@ export default function NightScreen() {
         <Text style={{ color: "#9B7FD4", marginTop: 8, fontFamily: "Inter_400Regular", textAlign: "center" }}>
           Gözlerinizi kapatın
         </Text>
+        {ghostActive ? (
+          <View style={{ marginTop: 12 }}>
+            <GhostActivityBadge />
+          </View>
+        ) : null}
         {isHost ? (
           <Btn
             label="▶ Devam Et"
@@ -114,6 +122,11 @@ export default function NightScreen() {
         <Text style={{ color: "#9B7FD4", marginTop: 8, fontFamily: "Inter_400Regular", textAlign: "center" }}>
           Sen uyu. Aksiyon başkasına ait.
         </Text>
+        {ghostActive ? (
+          <View style={{ marginTop: 12 }}>
+            <GhostActivityBadge />
+          </View>
+        ) : null}
         <Text style={{ color: "#F5C842", fontFamily: "Inter_700Bold", fontSize: 34, marginTop: 28, fontVariant: ["tabular-nums"] }}>
           {remaining}s
         </Text>
@@ -141,6 +154,11 @@ export default function NightScreen() {
         <Text style={{ color: "#F5C842", fontFamily: "Inter_700Bold", fontSize: 34, marginTop: 8, fontVariant: ["tabular-nums"] }}>
           {remaining}s
         </Text>
+        {ghostActive ? (
+          <View style={{ marginTop: 8 }}>
+            <GhostActivityBadge />
+          </View>
+        ) : null}
       </View>
       <Text style={{ color: "#9B7FD4", fontFamily: "Inter_400Regular", textAlign: "center", marginBottom: 14 }}>
         {step.roleId === "_cete"
