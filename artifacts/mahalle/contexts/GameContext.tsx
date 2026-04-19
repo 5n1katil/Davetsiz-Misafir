@@ -210,14 +210,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       state?.phase !== undefined &&
       state.phase !== "LOBBY" &&
       state.phase !== "ENDED";
-    if (keepAwake && isActivePhase) {
+    const me = state?.players.find((p) => p.id === myPlayerId);
+    const isParticipating = me ? me.isAlive || me.isHost : true;
+    if (keepAwake && isActivePhase && isParticipating) {
       activateKeepAwakeAsync();
       keepAwakeActiveRef.current = true;
     } else if (keepAwakeActiveRef.current) {
       deactivateKeepAwake();
       keepAwakeActiveRef.current = false;
     }
-  }, [keepAwake, state?.phase]);
+  }, [keepAwake, state?.phase, state?.players, myPlayerId]);
 
   useEffect(() => {
     if (myNickname === null) return;
