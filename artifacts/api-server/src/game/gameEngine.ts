@@ -211,7 +211,7 @@ export function joinRoom(
 
 export function leaveRoom(
   socketId: string,
-): { room: Room | null; newHost?: { nickname: string } } {
+): { room: Room | null; newHost?: { id: string; nickname: string } } {
   for (const room of rooms.values()) {
     const p = room.players.find((x) => x.socketId === socketId);
     if (!p) continue;
@@ -225,11 +225,21 @@ export function leaveRoom(
       if (p.isHost && room.players.length > 0) {
         room.players[0].isHost = true;
         room.hostId = room.players[0].id;
-        return { room, newHost: { nickname: room.players[0].nickname } };
+        return { room, newHost: { id: room.players[0].id, nickname: room.players[0].nickname } };
       }
     } else {
       p.isConnected = false;
       p.socketId = null;
+      // Auto-transfer host when the host disconnects mid-game
+      if (p.isHost) {
+        const candidate = room.players.find((x) => x.id !== p.id && x.isAlive && x.isConnected);
+        if (candidate) {
+          p.isHost = false;
+          candidate.isHost = true;
+          room.hostId = candidate.id;
+          return { room, newHost: { id: candidate.id, nickname: candidate.nickname } };
+        }
+      }
     }
     return { room };
   }
