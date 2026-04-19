@@ -31,7 +31,7 @@ function PausedBadge() {
 
 export function HeaderBar({ title, subtitle }: { title: string; subtitle?: string }) {
   const c = useColors();
-  const { connected, voiceMuted, toggleVoice, state, myPlayerId } = useGame();
+  const { connected, voiceMuted, toggleVoice, vibrationsEnabled, toggleVibrations, state, myPlayerId } = useGame();
   const isHost = state && myPlayerId === state.hostId;
   const isPaused = state?.paused === true;
 
@@ -74,6 +74,16 @@ export function HeaderBar({ title, subtitle }: { title: string; subtitle?: strin
             </Pressable>
           </>
         ) : null}
+        <Pressable
+          onPress={toggleVibrations}
+          style={[styles.iconBtn, { borderColor: c.border }]}
+        >
+          <Feather
+            name={vibrationsEnabled ? "smartphone" : "slash"}
+            size={18}
+            color={vibrationsEnabled ? c.primary : c.mutedForeground}
+          />
+        </Pressable>
         <View
           style={[
             styles.dot,

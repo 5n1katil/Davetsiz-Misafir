@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { haptic } from "@/lib/haptics";
 import * as Linking from "expo-linking";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
@@ -40,6 +41,8 @@ export default function LobbyScreen() {
     state,
     myPlayerId,
     emit,
+    vibrationsEnabled,
+    toggleVibrations,
   } = useGame();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -80,7 +83,7 @@ export default function LobbyScreen() {
       return;
     }
     setBusy(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic(Haptics.ImpactFeedbackStyle.Medium);
     const res = await createRoom(myNickname.trim());
     setBusy(false);
     if (!res.ok) Alert.alert("Hata", res.error ?? "Bilinmeyen hata");
@@ -96,7 +99,7 @@ export default function LobbyScreen() {
       return;
     }
     setBusy(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic(Haptics.ImpactFeedbackStyle.Medium);
     const res = await joinRoom(code.trim(), myNickname.trim());
     setBusy(false);
     if (!res.ok) Alert.alert("Hata", res.error ?? "Bilinmeyen hata");
@@ -376,6 +379,45 @@ export default function LobbyScreen() {
         ))}
       </View>
 
+      <Text style={[styles.sectionTitle, { color: c.foreground }]}>Cihaz Ayarları</Text>
+      <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border, gap: 0 }]}>
+        <View style={styles.settingRow}>
+          <Text style={[styles.label, { color: c.mutedForeground, marginBottom: 0, flex: 1 }]}>Titreşim</Text>
+          <View style={{ flexDirection: "row", gap: 8 }}>
+            <Pressable
+              onPress={() => { if (!vibrationsEnabled) toggleVibrations(); }}
+              style={{
+                paddingVertical: 8,
+                paddingHorizontal: 14,
+                borderRadius: 999,
+                backgroundColor: vibrationsEnabled ? c.primary : c.background,
+                borderWidth: 1,
+                borderColor: vibrationsEnabled ? c.primary : c.border,
+              }}
+            >
+              <Text style={{ color: vibrationsEnabled ? c.primaryForeground : c.foreground, fontFamily: "Inter_500Medium" }}>
+                Açık
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => { if (vibrationsEnabled) toggleVibrations(); }}
+              style={{
+                paddingVertical: 8,
+                paddingHorizontal: 14,
+                borderRadius: 999,
+                backgroundColor: !vibrationsEnabled ? c.primary : c.background,
+                borderWidth: 1,
+                borderColor: !vibrationsEnabled ? c.primary : c.border,
+              }}
+            >
+              <Text style={{ color: !vibrationsEnabled ? c.primaryForeground : c.foreground, fontFamily: "Inter_500Medium" }}>
+                Kapalı
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+
       {isHost ? (
         <HostSettings c={c} state={state} emit={emit} />
       ) : (
@@ -610,6 +652,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   rowGap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
+  settingRow: { flexDirection: "row", alignItems: "center", paddingVertical: 4 },
   waitCard: { padding: 22, borderRadius: 16, borderWidth: 1, alignItems: "center" },
   helpModal: { flex: 1 },
   helpHeader: {

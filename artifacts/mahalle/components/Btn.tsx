@@ -8,6 +8,7 @@ import {
   View,
   ViewStyle,
 } from "react-native";
+import { haptic } from "@/lib/haptics";
 import * as Haptics from "expo-haptics";
 
 import { useColors } from "@/hooks/useColors";
@@ -65,7 +66,7 @@ export function Btn({
 
   function handlePress() {
     if (disabled || loading) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic(Haptics.ImpactFeedbackStyle.Light);
     Animated.sequence([
       Animated.timing(scaleAnim, { toValue: 0.96, duration: 80, useNativeDriver: true }),
       Animated.timing(scaleAnim, { toValue: 1, duration: 120, useNativeDriver: true }),

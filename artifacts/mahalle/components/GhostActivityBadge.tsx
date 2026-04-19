@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { haptic } from "@/lib/haptics";
 import * as Haptics from "expo-haptics";
 
 interface GhostActivityBadgeProps {
@@ -33,7 +34,7 @@ export function GhostActivityBadge({ count = 0 }: GhostActivityBadgeProps) {
 
   useEffect(() => {
     if (count > prevCountRef.current) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      haptic(Haptics.ImpactFeedbackStyle.Light);
       Animated.parallel([
         Animated.sequence([
           Animated.spring(scaleAnim, {

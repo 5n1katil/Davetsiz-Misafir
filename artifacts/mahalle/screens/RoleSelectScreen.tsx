@@ -1,4 +1,5 @@
 import * as Haptics from "expo-haptics";
+import { haptic } from "@/lib/haptics";
 import React, { useEffect, useRef } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 
@@ -96,7 +97,7 @@ function CardFan({ opts, remaining, emit, c, myPlayerId }: any) {
           >
             <Pressable
               onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                haptic(Haptics.ImpactFeedbackStyle.Medium);
                 emit("chooseRole", { roleId: rid });
               }}
               style={({ pressed }) => [

@@ -12,6 +12,7 @@ import React, {
 import { io, Socket } from "socket.io-client";
 
 import { speak, setMuted } from "@/lib/speech";
+import { setVibrationsEnabled } from "@/lib/haptics";
 
 const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN;
 const SOCKET_URL = DOMAIN ? `https://${DOMAIN}` : "http://localhost";
@@ -94,6 +95,8 @@ interface GameCtx {
   leave: () => void;
   voiceMuted: boolean;
   toggleVoice: () => void;
+  vibrationsEnabled: boolean;
+  toggleVibrations: () => void;
   systemToast: SystemToast | null;
   dismissToast: () => void;
 }
@@ -113,6 +116,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
   const [myNickname, setMyNickname] = useState("");
   const [voiceMuted, setVoiceMutedState] = useState(false);
+  const [vibrationsEnabled, setVibrationsEnabledState] = useState(true);
   const [systemToast, setSystemToast] = useState<SystemToast | null>(null);
   const lastPhaseRef = useRef<string | null>(null);
   const wasAliveRef = useRef<boolean | null>(null);
@@ -140,6 +144,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     AsyncStorage.getItem("mahalle:nickname").then((n) => {
       if (n) setMyNickname(n);
+    });
+    AsyncStorage.getItem("mahalle:vibrationsEnabled").then((v) => {
+      if (v === "false") {
+        setVibrationsEnabledState(false);
+        setVibrationsEnabled(false);
+      }
     });
   }, []);
 
@@ -222,6 +232,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const toggleVibrations = useCallback(() => {
+    setVibrationsEnabledState((prev) => {
+      const next = !prev;
+      setVibrationsEnabled(next);
+      AsyncStorage.setItem("mahalle:vibrationsEnabled", String(next));
+      return next;
+    });
+  }, []);
+
   const dismissToast = useCallback(() => {
     setSystemToast(null);
   }, []);
@@ -240,6 +259,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       leave,
       voiceMuted,
       toggleVoice,
+      vibrationsEnabled,
+      toggleVibrations,
       systemToast,
       dismissToast,
     }),
@@ -255,6 +276,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       leave,
       voiceMuted,
       toggleVoice,
+      vibrationsEnabled,
+      toggleVibrations,
       systemToast,
       dismissToast,
     ],

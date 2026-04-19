@@ -1,5 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { haptic } from "@/lib/haptics";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -70,7 +71,7 @@ export default function HostPanel() {
 
   function openPanel() {
     setOpen(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic(Haptics.ImpactFeedbackStyle.Light);
     Animated.spring(slideAnim, {
       toValue: 0,
       useNativeDriver: true,
@@ -88,7 +89,7 @@ export default function HostPanel() {
   }
 
   async function handlePauseResume() {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic(Haptics.ImpactFeedbackStyle.Medium);
     if (gs.paused) {
       await emit("resumeGame");
     } else {
@@ -97,7 +98,7 @@ export default function HostPanel() {
   }
 
   async function handleStartNight() {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    haptic(Haptics.ImpactFeedbackStyle.Heavy);
     const res = await emit("startNight");
     if (!res.ok) Alert.alert("Hata", res.error ?? "Bilinmeyen hata");
   }
@@ -112,7 +113,7 @@ export default function HostPanel() {
           text: "Oylamaya Geç",
           style: "destructive",
           onPress: async () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            haptic(Haptics.ImpactFeedbackStyle.Heavy);
             const res = await emit("endDayEarly");
             if (!res.ok) Alert.alert("Hata", res.error ?? "Bilinmeyen hata");
           },
@@ -131,7 +132,7 @@ export default function HostPanel() {
           text: "Çıkar",
           style: "destructive",
           onPress: async () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            haptic(Haptics.ImpactFeedbackStyle.Medium);
             const res = await emit("kickPlayer", { targetId });
             if (!res.ok) Alert.alert("Hata", res.error ?? "Bilinmeyen hata");
           },
@@ -155,7 +156,7 @@ export default function HostPanel() {
           text: "Host Yap",
           style: "destructive",
           onPress: async () => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            haptic(Haptics.ImpactFeedbackStyle.Heavy);
             const res = await emit("transferHost", { newHostId });
             if (!res.ok) Alert.alert("Hata", res.error ?? "Bilinmeyen hata");
             else closePanel();
