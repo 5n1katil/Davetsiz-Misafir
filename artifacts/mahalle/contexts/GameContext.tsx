@@ -255,6 +255,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       const next = !prev;
       setVibrationsEnabled(next);
       AsyncStorage.setItem("mahalle:vibrationsEnabled", String(next));
+      setSystemToast({
+        message: next ? "Titreşim açıldı" : "Titreşim kapatıldı",
+        id: Date.now(),
+      });
       return next;
     });
   }, []);
