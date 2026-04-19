@@ -1,4 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Haptics from "expo-haptics";
 import React, {
   createContext,
   useCallback,
@@ -114,6 +115,27 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [voiceMuted, setVoiceMutedState] = useState(false);
   const [systemToast, setSystemToast] = useState<SystemToast | null>(null);
   const lastPhaseRef = useRef<string | null>(null);
+  const wasAliveRef = useRef<boolean | null>(null);
+
+  useEffect(() => {
+    if (!state || !myPlayerId) return;
+    const me = state.players.find((p) => p.id === myPlayerId);
+    const isAlive = me?.isAlive ?? true;
+    if (wasAliveRef.current === true && !isAlive) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    }
+    wasAliveRef.current = isAlive;
+  }, [state?.players, myPlayerId]);
+
+  useEffect(() => {
+    if (!state) return;
+    const prev = lastPhaseRef.current;
+    const next = state.phase;
+    if ((prev === "VOTE" || prev === "VOTE_RUNOFF") && next === "DAY") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+    lastPhaseRef.current = next;
+  }, [state?.phase]);
 
   useEffect(() => {
     AsyncStorage.getItem("mahalle:nickname").then((n) => {
@@ -135,9 +157,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     s.on("disconnect", () => setConnected(false));
     s.on("state", (st: GameState) => {
       setState(st);
-      if (lastPhaseRef.current !== st.phase) {
-        lastPhaseRef.current = st.phase;
-      }
     });
     s.on("voice", (lines: string[]) => {
       for (const line of lines) speak(line);
