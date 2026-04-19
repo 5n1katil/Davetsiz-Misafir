@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Btn } from "@/components/Btn";
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
+import StatsScreen from "@/screens/StatsScreen";
 
 export default function LobbyScreen() {
   const c = useColors();
@@ -36,6 +37,7 @@ export default function LobbyScreen() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<"create" | "join">("create");
+  const [statsVisible, setStatsVisible] = useState(false);
 
   useEffect(() => {
     Linking.getInitialURL().then((url) => {
@@ -74,6 +76,13 @@ export default function LobbyScreen() {
             style={styles.heroBg}
           />
           <View style={styles.hero}>
+            <Pressable
+              onPress={() => setStatsVisible(true)}
+              hitSlop={12}
+              style={[styles.statsIcon, { backgroundColor: c.card, borderColor: c.border }]}
+            >
+              <Feather name="bar-chart-2" size={18} color={c.foreground} />
+            </Pressable>
             <Text style={styles.brand}>DAVETSİZ MİSAFİR</Text>
             <Text style={[styles.tag, { color: c.mutedForeground }]}>
               Davetsiz Misafir'i bul. Yoksa mahalle onların olur.
@@ -191,6 +200,7 @@ export default function LobbyScreen() {
             />
           </View>
         </ScrollView>
+        <StatsScreen visible={statsVisible} onClose={() => setStatsVisible(false)} />
       </KeyboardAvoidingView>
     );
   }
@@ -398,6 +408,14 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 18, gap: 14 },
   heroBg: { position: "absolute", left: 0, right: 0, top: 0, height: 240 },
   hero: { paddingTop: 28, paddingBottom: 24, alignItems: "center" },
+  statsIcon: {
+    position: "absolute",
+    top: 12,
+    right: 0,
+    padding: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
   brand: {
     fontFamily: "Cinzel_900Black",
     fontSize: 26,

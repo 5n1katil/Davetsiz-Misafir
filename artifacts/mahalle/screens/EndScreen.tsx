@@ -7,11 +7,13 @@ import { Btn } from "@/components/Btn";
 import { ROLE_DEFS } from "@/constants/roles";
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
+import { saveGameRecord } from "@/lib/history";
 
 export default function EndScreen() {
   const c = useColors();
   const { state, myPlayerId, emit, leave } = useGame();
   const burstAnim = useRef(new Animated.Value(0)).current;
+  const savedRef = useRef(false);
 
   useEffect(() => {
     Animated.timing(burstAnim, {
@@ -20,6 +22,28 @@ export default function EndScreen() {
       useNativeDriver: true,
     }).start();
   }, []);
+
+  useEffect(() => {
+    if (!state || !myPlayerId || savedRef.current) return;
+    if (!state.winner) return;
+
+    const myGraveEntry = state.graveyard.find((g) => g.playerId === myPlayerId);
+    const myRoleId = state.myRole ?? myGraveEntry?.roleId ?? "koylu";
+    const myRoleDef = ROLE_DEFS[myRoleId];
+    const myTeam = myRoleDef?.team ?? "iyi";
+    const won = myTeam === state.winner;
+
+    savedRef.current = true;
+    saveGameRecord({
+      playedAt: Date.now(),
+      winner: state.winner,
+      myRoleId,
+      myTeam,
+      won,
+      playerCount: state.players.length,
+      rounds: state.round,
+    });
+  }, [state, myPlayerId]);
 
   if (!state) return null;
   const isHost = state.hostId === myPlayerId;
