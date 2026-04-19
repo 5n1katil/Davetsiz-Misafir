@@ -10,11 +10,13 @@ import { useColors } from "@/hooks/useColors";
 import { haptic } from "@/lib/haptics";
 import { useCountdown } from "@/hooks/useCountdown";
 import { useGhostActivity } from "@/hooks/useGhostActivity";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 
 export default function VoteScreen() {
   const c = useColors();
   const { state, myPlayerId, emit } = useGame();
   const remaining = useCountdown(state?.phaseDeadline ?? null, state?.paused ?? false);
+  const reduceMotion = useReduceMotion();
   if (!state) return null;
   const me = state.players.find((p) => p.id === myPlayerId);
   const candidates = state.players.filter((p) => state.runoffCandidates.includes(p.id));
@@ -61,10 +63,10 @@ export default function VoteScreen() {
           useEffect(() => {
             Animated.timing(barAnim, {
               toValue: voteShare,
-              duration: 300,
+              duration: reduceMotion ? 0 : 300,
               useNativeDriver: false,
             }).start();
-          }, [state.voteCount]);
+          }, [state.voteCount, reduceMotion]);
 
           return (
             <Pressable

@@ -4,13 +4,19 @@ import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
 import { useGame } from "@/contexts/GameContext";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 import SettingsScreen from "@/screens/SettingsScreen";
 
 function PausedBadge() {
   const c = useColors();
+  const reduceMotion = useReduceMotion();
   const opacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
+    if (reduceMotion) {
+      opacity.setValue(1);
+      return;
+    }
     const pulse = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, { toValue: 0.3, duration: 700, useNativeDriver: true }),
@@ -19,7 +25,7 @@ function PausedBadge() {
     );
     pulse.start();
     return () => pulse.stop();
-  }, [opacity]);
+  }, [opacity, reduceMotion]);
 
   return (
     <Animated.View style={[styles.pausedBadge, { borderColor: c.primary, opacity }]}>

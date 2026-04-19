@@ -9,11 +9,13 @@ import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
 import { useCountdown } from "@/hooks/useCountdown";
 import { useGhostActivity } from "@/hooks/useGhostActivity";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 
 export default function DayScreen() {
   const c = useColors();
   const { state, myPlayerId, emit } = useGame();
   const remaining = useCountdown(state?.phaseDeadline ?? null, state?.paused ?? false);
+  const reduceMotion = useReduceMotion();
   if (!state) return null;
   const me = state.players.find((p) => p.id === myPlayerId);
   const alive = state.players.filter((p) => p.isAlive && p.isConnected);
@@ -29,7 +31,7 @@ export default function DayScreen() {
   const critColorAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (isCritical) {
+    if (isCritical && !reduceMotion) {
       Animated.loop(
         Animated.sequence([
           Animated.timing(shakeAnim, { toValue: 4, duration: 60, useNativeDriver: true }),
@@ -48,14 +50,18 @@ export default function DayScreen() {
       shakeAnim.stopAnimation();
       shakeAnim.setValue(0);
       critColorAnim.stopAnimation();
-      critColorAnim.setValue(0);
+      critColorAnim.setValue(isCritical ? 1 : 0);
     }
-  }, [isCritical]);
+  }, [isCritical, reduceMotion]);
 
-  const timerColor = critColorAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [c.primary, c.destructive],
-  });
+  const timerColor = reduceMotion
+    ? isCritical
+      ? c.destructive
+      : c.primary
+    : critColorAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [c.primary, c.destructive],
+      });
 
   return (
     <View style={{ flex: 1 }}>

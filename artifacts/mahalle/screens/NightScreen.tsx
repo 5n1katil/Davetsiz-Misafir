@@ -10,6 +10,7 @@ import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
 import { useCountdown } from "@/hooks/useCountdown";
 import { useGhostActivity } from "@/hooks/useGhostActivity";
+import { useReduceMotion } from "@/hooks/useReduceMotion";
 
 const ROLE_LABELS: Record<string, string> = {
   _cete: "Davetsiz Misafir",
@@ -24,6 +25,7 @@ export default function NightScreen() {
   const c = useColors();
   const { state, myPlayerId, emit } = useGame();
   const remaining = useCountdown(state?.phaseDeadline ?? null, state?.paused ?? false);
+  const reduceMotion = useReduceMotion();
   const me = state?.players.find((p) => p.id === myPlayerId);
   const isHost = state && me && me.id === state.hostId;
   const isDead = !me?.isAlive;
@@ -33,22 +35,34 @@ export default function NightScreen() {
   const pulseAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.loop(
+    if (reduceMotion) {
+      moonAnim.setValue(0.5);
+      return;
+    }
+    const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(moonAnim, { toValue: 1, duration: 2400, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
         Animated.timing(moonAnim, { toValue: 0, duration: 2400, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
       ]),
-    ).start();
-  }, [moonAnim]);
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [moonAnim, reduceMotion]);
 
   useEffect(() => {
-    Animated.loop(
+    if (reduceMotion) {
+      pulseAnim.setValue(1);
+      return;
+    }
+    const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
         Animated.timing(pulseAnim, { toValue: 0, duration: 600, useNativeDriver: true }),
       ]),
-    ).start();
-  }, [pulseAnim]);
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [pulseAnim, reduceMotion]);
 
   if (!state) return null;
 
