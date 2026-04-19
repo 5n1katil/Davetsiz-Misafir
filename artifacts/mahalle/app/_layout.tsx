@@ -21,20 +21,28 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GameProvider } from "@/contexts/GameContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { useColors } from "@/hooks/useColors";
 
 SplashScreen.preventAutoHideAsync();
 
-function RootLayoutNav() {
+function ThemedApp() {
+  const { background, resolvedTheme } = useColors();
+
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: "#0A0614" },
-        animation: "fade",
-      }}
-    >
-      <Stack.Screen name="index" />
-    </Stack>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: background }}>
+      <KeyboardProvider>
+        <StatusBar style={resolvedTheme === "light" ? "dark" : "light"} />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: background },
+            animation: "fade",
+          }}
+        >
+          <Stack.Screen name="index" />
+        </Stack>
+      </KeyboardProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -66,12 +74,7 @@ export default function RootLayout() {
       <ErrorBoundary>
         <ThemeProvider>
           <GameProvider>
-            <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#0A0614" }}>
-              <KeyboardProvider>
-                <StatusBar style="light" />
-                <RootLayoutNav />
-              </KeyboardProvider>
-            </GestureHandlerRootView>
+            <ThemedApp />
           </GameProvider>
         </ThemeProvider>
       </ErrorBoundary>
