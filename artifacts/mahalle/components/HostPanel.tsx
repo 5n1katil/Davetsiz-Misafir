@@ -37,6 +37,7 @@ export default function HostPanel() {
   const [open, setOpen] = useState(false);
   const [ticker, setTicker] = useState(0);
   const slideAnim = useRef(new Animated.Value(400)).current;
+  const frozenRemainingRef = useRef<number | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => setTicker((t) => t + 1), 1000);
@@ -48,9 +49,18 @@ export default function HostPanel() {
 
   const gs = state;
 
-  const remainingSec = gs.phaseDeadline
-    ? Math.max(0, Math.ceil((gs.phaseDeadline - Date.now()) / 1000))
+  const liveRemainingMs = gs.phaseDeadline
+    ? Math.max(0, gs.phaseDeadline - Date.now())
     : null;
+  const liveRemainingSec = liveRemainingMs !== null ? Math.ceil(liveRemainingMs / 1000) : null;
+
+  // Freeze displayed countdown while paused so it doesn't keep ticking down on-screen
+  if (!gs.paused) {
+    frozenRemainingRef.current = null;
+  } else if (frozenRemainingRef.current === null && liveRemainingSec !== null) {
+    frozenRemainingRef.current = liveRemainingSec;
+  }
+  const remainingSec = gs.paused ? frozenRemainingRef.current : liveRemainingSec;
 
   const formatTime = (totalSec: number) => {
     const m = Math.floor(totalSec / 60);
