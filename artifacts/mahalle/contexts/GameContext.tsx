@@ -11,6 +11,7 @@ import React, {
 } from "react";
 import { io, Socket } from "socket.io-client";
 
+import { ROLE_DEFS } from "@/constants/roles";
 import { speak, setMuted } from "@/lib/speech";
 import { setVibrationsEnabled } from "@/lib/haptics";
 
@@ -138,8 +139,25 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     if ((prev === "VOTE" || prev === "VOTE_RUNOFF") && next === "DAY") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
+    if (prev !== "ENDED" && next === "ENDED") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      if (state.winner && myPlayerId) {
+        const myGraveEntry = state.graveyard.find((g) => g.playerId === myPlayerId);
+        const myRoleId = state.myRole ?? myGraveEntry?.roleId ?? "koylu";
+        const myRoleDef = ROLE_DEFS[myRoleId];
+        const myTeam = myRoleDef?.team ?? "iyi";
+        const won = myTeam === state.winner;
+        setTimeout(() => {
+          Haptics.notificationAsync(
+            won
+              ? Haptics.NotificationFeedbackType.Success
+              : Haptics.NotificationFeedbackType.Error,
+          );
+        }, 400);
+      }
+    }
     lastPhaseRef.current = next;
-  }, [state?.phase]);
+  }, [state?.phase, myPlayerId]);
 
   useEffect(() => {
     AsyncStorage.getItem("mahalle:nickname").then((n) => {
