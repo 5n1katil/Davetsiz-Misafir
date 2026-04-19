@@ -2,9 +2,12 @@ import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import * as Linking from "expo-linking";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Alert,
+  Animated,
+  Dimensions,
+  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -23,6 +26,9 @@ import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
 import StatsScreen from "@/screens/StatsScreen";
 
+const SCREEN_W = Dimensions.get("window").width;
+const LOGO_SIZE = Math.min(SCREEN_W * 0.78, 300);
+
 export default function LobbyScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
@@ -40,6 +46,16 @@ export default function LobbyScreen() {
   const [mode, setMode] = useState<"create" | "join">("create");
   const [statsVisible, setStatsVisible] = useState(false);
   const [helpVisible, setHelpVisible] = useState(false);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, { toValue: 1, duration: 900, useNativeDriver: false }),
+      Animated.spring(slideAnim, { toValue: 0, tension: 60, friction: 10, useNativeDriver: false }),
+    ]).start();
+  }, []);
 
   useEffect(() => {
     Linking.getInitialURL().then((url) => {
@@ -98,36 +114,62 @@ export default function LobbyScreen() {
           <ScrollView
             contentContainerStyle={[
               styles.scroll,
-              { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 },
+              { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 40 },
             ]}
             keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
-            <LinearGradient colors={["#1A0A3E", "#0A0614"]} style={styles.heroBg} />
+            <LinearGradient
+              colors={["#1A0A3E", "#140830", "#0A0614"]}
+              style={styles.heroBg}
+            />
 
-            <View style={styles.hero}>
-              <View style={styles.heroIcons}>
-                <Pressable
-                  onPress={() => setStatsVisible(true)}
-                  hitSlop={12}
-                  style={[styles.iconBtn, { backgroundColor: c.card, borderColor: c.border }]}
-                >
-                  <Feather name="bar-chart-2" size={17} color={c.foreground} />
-                </Pressable>
-                <Pressable
-                  onPress={() => setHelpVisible(true)}
-                  hitSlop={12}
-                  style={[styles.iconBtn, { backgroundColor: c.card, borderColor: c.border }]}
-                >
-                  <Feather name="help-circle" size={17} color={c.foreground} />
-                </Pressable>
+            <View style={styles.heroIcons}>
+              <Pressable
+                onPress={() => setStatsVisible(true)}
+                hitSlop={12}
+                style={[styles.iconBtn, { backgroundColor: c.card, borderColor: c.border }]}
+              >
+                <Feather name="bar-chart-2" size={17} color={c.foreground} />
+              </Pressable>
+              <Pressable
+                onPress={() => setHelpVisible(true)}
+                hitSlop={12}
+                style={[styles.iconBtn, { backgroundColor: c.card, borderColor: c.border }]}
+              >
+                <Feather name="help-circle" size={17} color={c.foreground} />
+              </Pressable>
+            </View>
+
+            <Animated.View
+              style={[
+                styles.hero,
+                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+              ]}
+            >
+              <View style={styles.logoWrap}>
+                <Image
+                  source={require("../assets/images/logo.png")}
+                  style={styles.logoImg}
+                  resizeMode="cover"
+                />
+                <LinearGradient
+                  colors={["transparent", "transparent", "#0A0614"]}
+                  style={[styles.logoFade, { pointerEvents: "none" }]}
+                />
+                <View style={[styles.logoGlow, { pointerEvents: "none" }]} />
               </View>
 
               <Text style={styles.brand}>DAVETSİZ MİSAFİR</Text>
+              <View style={styles.divider} />
               <Text style={[styles.tag, { color: c.mutedForeground }]}>
                 Davetsiz Misafir'i bul. Yoksa mahalle onların olur.
               </Text>
-            </View>
+            </Animated.View>
 
+            <Animated.View
+              style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
+            >
             <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
               <Text style={[styles.label, { color: c.mutedForeground }]}>Adın</Text>
               <TextInput
@@ -222,6 +264,7 @@ export default function LobbyScreen() {
                 </>
               ) : null}
             </View>
+            </Animated.View>
           </ScrollView>
         </KeyboardAvoidingView>
 
@@ -477,27 +520,65 @@ function How({ c, icon, title, text }: any) {
 
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 18, gap: 14 },
-  heroBg: { position: "absolute", left: 0, right: 0, top: 0, height: 240 },
-  hero: { paddingTop: 16, paddingBottom: 20, alignItems: "center" },
+  heroBg: { position: "absolute", left: 0, right: 0, top: 0, height: 480 },
+  hero: { alignItems: "center", marginBottom: 4 },
   heroIcons: {
     flexDirection: "row",
     gap: 8,
     alignSelf: "flex-end",
-    marginBottom: 12,
+    marginBottom: 8,
   },
   iconBtn: {
     padding: 8,
     borderRadius: 10,
     borderWidth: 1,
   },
+  logoWrap: {
+    width: LOGO_SIZE,
+    height: LOGO_SIZE,
+    borderRadius: LOGO_SIZE / 2,
+    overflow: "hidden",
+    marginBottom: 20,
+    borderWidth: 3,
+    borderColor: "#F5C84255",
+  },
+  logoImg: {
+    width: "100%",
+    height: "100%",
+  },
+  logoFade: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: LOGO_SIZE * 0.35,
+  },
+  logoGlow: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: LOGO_SIZE / 2,
+    borderWidth: 1,
+    borderColor: "#F5C84233",
+  },
   brand: {
     fontFamily: "Cinzel_900Black",
-    fontSize: 26,
-    letterSpacing: 6,
+    fontSize: 28,
+    letterSpacing: 5,
     color: "#F5C842",
     textAlign: "center",
   },
-  tag: { fontFamily: "Inter_400Regular", fontSize: 13, marginTop: 8, textAlign: "center", paddingHorizontal: 18 },
+  divider: {
+    width: 60,
+    height: 2,
+    backgroundColor: "#F5C84244",
+    borderRadius: 1,
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  tag: { fontFamily: "Inter_400Regular", fontSize: 13, marginTop: 4, textAlign: "center", paddingHorizontal: 18 },
   card: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 12 },
   label: { fontFamily: "Inter_500Medium", fontSize: 12, letterSpacing: 0.5, textTransform: "uppercase" },
   input: {
