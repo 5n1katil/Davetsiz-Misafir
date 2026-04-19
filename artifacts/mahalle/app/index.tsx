@@ -1,7 +1,8 @@
-import React from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import React, { useState } from "react";
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import { Feather } from "@expo/vector-icons";
 
 import { HeaderBar } from "@/components/HeaderBar";
 import HostPanel from "@/components/HostPanel";
@@ -14,12 +15,14 @@ import LobbyScreen from "@/screens/LobbyScreen";
 import NightScreen from "@/screens/NightScreen";
 import RoleRevealScreen from "@/screens/RoleRevealScreen";
 import RoleSelectScreen from "@/screens/RoleSelectScreen";
+import SettingsScreen from "@/screens/SettingsScreen";
 import VoteScreen from "@/screens/VoteScreen";
 
 export default function Index() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   const { connected, state } = useGame();
+  const [settingsVisible, setSettingsVisible] = useState(false);
 
   if (!connected && !state) {
     return (
@@ -66,7 +69,7 @@ export default function Index() {
 
   return (
     <View style={[styles.root, { backgroundColor: c.background, paddingTop: insets.top }]}>
-      <HeaderBar title={phaseTitle} subtitle={phaseSub} />
+      <HeaderBar title={phaseTitle} subtitle={phaseSub} onOpenSettings={() => setSettingsVisible(true)} />
       <View style={{ flex: 1 }}>
         {body}
         {isPaused && (
@@ -74,18 +77,27 @@ export default function Index() {
             entering={FadeIn.duration(200)}
             exiting={FadeOut.duration(200)}
             style={styles.pauseOverlay}
-            pointerEvents="none"
+            pointerEvents="box-none"
           >
             <View style={styles.pauseBadge}>
               <Text style={styles.pauseIcon}>⏸</Text>
               <Text style={styles.pauseTitle}>OYUN DURAKLATILDI</Text>
               <Text style={styles.pauseSub}>Host oyunu duraklattı. Kısa sürede devam edilecek.</Text>
+              <Pressable
+                onPress={() => setSettingsVisible(true)}
+                style={styles.settingsBtn}
+                accessibilityLabel="Ayarları aç"
+              >
+                <Feather name="settings" size={15} color="#C4A8FF" />
+                <Text style={styles.settingsBtnText}>Ayarlar</Text>
+              </Pressable>
             </View>
           </Animated.View>
         )}
       </View>
       <HostPanel />
       <SystemToast />
+      <SettingsScreen visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
     </View>
   );
 }
@@ -127,5 +139,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     marginTop: 4,
+  },
+  settingsBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#3B1F8C",
+    backgroundColor: "rgba(59,31,140,0.25)",
+  },
+  settingsBtnText: {
+    color: "#C4A8FF",
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+    letterSpacing: 0.5,
   },
 });
