@@ -140,6 +140,25 @@ export default function HostPanel() {
     );
   }
 
+  function handleTransferHost(newHostId: string, nickname: string) {
+    Alert.alert(
+      "Host Devret",
+      `${nickname} adlı oyuncuyu yeni host yapmak istediğine emin misin? Oyun yönetimi ona geçecek.`,
+      [
+        { text: "İptal", style: "cancel" },
+        {
+          text: "Host Yap",
+          onPress: async () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            const res = await emit("transferHost", { newHostId });
+            if (!res.ok) Alert.alert("Hata", res.error ?? "Bilinmeyen hata");
+            else closePanel();
+          },
+        },
+      ],
+    );
+  }
+
   const graveyardMap = Object.fromEntries(
     gs.graveyard.map((g) => [g.playerId, g]),
   );
@@ -307,11 +326,20 @@ export default function HostPanel() {
                       </Text>
                     )}
                   </View>
+                  {p.id !== myPlayerId && !dead && (
+                    <Pressable
+                      onPress={() => handleTransferHost(p.id, p.nickname)}
+                      hitSlop={8}
+                      style={[styles.actionBtn, { borderColor: "#F5C842" }]}
+                    >
+                      <Feather name="award" size={14} color="#F5C842" />
+                    </Pressable>
+                  )}
                   {p.id !== myPlayerId && ["LOBBY", "DAY"].includes(gs.phase) && !dead && (
                     <Pressable
                       onPress={() => handleKick(p.id, p.nickname)}
                       hitSlop={8}
-                      style={[styles.kickBtn, { borderColor: "#C8102E" }]}
+                      style={[styles.actionBtn, { borderColor: "#C8102E" }]}
                     >
                       <Feather name="user-x" size={14} color="#C8102E" />
                     </Pressable>
@@ -450,7 +478,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  kickBtn: {
+  actionBtn: {
     padding: 6,
     borderRadius: 8,
     borderWidth: 1,

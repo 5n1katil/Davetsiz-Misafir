@@ -495,6 +495,25 @@ export function resumeGame(
   return room;
 }
 
+export function transferHost(
+  code: string,
+  currentHostId: string,
+  newHostId: string,
+): Room | { error: string } {
+  const room = rooms.get(code);
+  if (!room) return { error: "Oda yok" };
+  if (room.hostId !== currentHostId) return { error: "Sadece host devredebilir" };
+  if (currentHostId === newHostId) return { error: "Zaten hostsun" };
+  const newHost = room.players.find((p) => p.id === newHostId);
+  if (!newHost) return { error: "Oyuncu bulunamadı" };
+  if (!newHost.isAlive) return { error: "Ölü oyuncuya host devredilemez" };
+  const oldHost = room.players.find((p) => p.id === currentHostId);
+  if (oldHost) oldHost.isHost = false;
+  newHost.isHost = true;
+  room.hostId = newHostId;
+  return room;
+}
+
 export function kickPlayer(
   code: string,
   hostId: string,

@@ -24,6 +24,7 @@ import {
   submitNightAction,
   tickPhaseTimeout,
   tickRoleSelectTimeout,
+  transferHost,
   updateSettings,
 } from "./gameEngine.js";
 
@@ -213,6 +214,15 @@ export function attachSocketServer(http: HTTPServer) {
       const s = sessions.get(socket.id);
       if (!s) return cb?.({ ok: false, error: "session yok" });
       const res = resumeGame(s.roomCode, s.playerId);
+      if ("error" in res) return cb?.({ ok: false, error: res.error });
+      cb?.({ ok: true });
+      broadcast(s.roomCode);
+    });
+
+    socket.on("transferHost", ({ newHostId }, cb) => {
+      const s = sessions.get(socket.id);
+      if (!s) return cb?.({ ok: false, error: "session yok" });
+      const res = transferHost(s.roomCode, s.playerId, String(newHostId));
       if ("error" in res) return cb?.({ ok: false, error: res.error });
       cb?.({ ok: true });
       broadcast(s.roomCode);
