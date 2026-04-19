@@ -209,7 +209,9 @@ export function joinRoom(
   return { room, player };
 }
 
-export function leaveRoom(socketId: string): Room | null {
+export function leaveRoom(
+  socketId: string,
+): { room: Room | null; newHost?: { nickname: string } } {
   for (const room of rooms.values()) {
     const p = room.players.find((x) => x.socketId === socketId);
     if (!p) continue;
@@ -217,20 +219,21 @@ export function leaveRoom(socketId: string): Room | null {
       room.players = room.players.filter((x) => x.id !== p.id);
       if (room.players.length === 0) {
         rooms.delete(room.code);
-        return null;
+        return { room: null };
       }
       // Host devri
       if (p.isHost && room.players.length > 0) {
         room.players[0].isHost = true;
         room.hostId = room.players[0].id;
+        return { room, newHost: { nickname: room.players[0].nickname } };
       }
     } else {
       p.isConnected = false;
       p.socketId = null;
     }
-    return room;
+    return { room };
   }
-  return null;
+  return { room: null };
 }
 
 export function updateSettings(

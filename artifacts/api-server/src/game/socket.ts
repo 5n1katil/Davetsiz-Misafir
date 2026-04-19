@@ -263,9 +263,16 @@ export function attachSocketServer(http: HTTPServer) {
     socket.on("disconnect", () => {
       const s = sessions.get(socket.id);
       sessions.delete(socket.id);
-      const room = leaveRoom(socket.id);
-      if (room) broadcast(room.code);
-      else if (s) {
+      const { room, newHost } = leaveRoom(socket.id);
+      if (room) {
+        if (newHost) {
+          io.to(room.code).emit("hostTransferred", {
+            nickname: newHost.nickname,
+            message: `${newHost.nickname} oyun yöneticisi oldu`,
+          });
+        }
+        broadcast(room.code);
+      } else if (s) {
         // room may still exist
         broadcast(s.roomCode);
       }
