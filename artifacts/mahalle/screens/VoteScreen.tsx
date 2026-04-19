@@ -3,9 +3,11 @@ import React, { useEffect, useRef } from "react";
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { GraveyardChat } from "@/components/GraveyardChat";
+import { GhostActivityBadge } from "@/components/GhostActivityBadge";
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
 import { useCountdown } from "@/hooks/useCountdown";
+import { useGhostActivity } from "@/hooks/useGhostActivity";
 
 export default function VoteScreen() {
   const c = useColors();
@@ -17,6 +19,7 @@ export default function VoteScreen() {
   const isRunoff = state.phase === "VOTE_RUNOFF";
   const isCritical = remaining <= 10 && remaining > 0;
   const isDead = !me?.isAlive;
+  const ghostActive = useGhostActivity();
 
   const timerColor = isCritical ? c.destructive : c.primary;
 
@@ -40,6 +43,11 @@ export default function VoteScreen() {
         <Text style={{ color: c.mutedForeground, marginTop: 4, fontFamily: "Inter_400Regular", fontSize: 13 }}>
           {state.voteCount} oy verildi
         </Text>
+        {ghostActive ? (
+          <View style={{ marginTop: 8 }}>
+            <GhostActivityBadge />
+          </View>
+        ) : null}
       </View>
 
       {isDead ? (

@@ -4,9 +4,11 @@ import { Animated, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Btn } from "@/components/Btn";
 import { GraveyardChat } from "@/components/GraveyardChat";
+import { GhostActivityBadge } from "@/components/GhostActivityBadge";
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
 import { useCountdown } from "@/hooks/useCountdown";
+import { useGhostActivity } from "@/hooks/useGhostActivity";
 
 export default function DayScreen() {
   const c = useColors();
@@ -17,6 +19,7 @@ export default function DayScreen() {
   const alive = state.players.filter((p) => p.isAlive && p.isConnected);
   const need = Math.ceil(alive.length / 2);
   const isDead = !me?.isAlive;
+  const ghostActive = useGhostActivity();
 
   const mins = Math.floor(remaining / 60);
   const secs = (remaining % 60).toString().padStart(2, "0");
@@ -105,9 +108,12 @@ export default function DayScreen() {
           </View>
         ) : null}
 
-        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", fontSize: 11, letterSpacing: 1.5, marginTop: 4 }}>
-          HAYATTA OLAN ({alive.length})
-        </Text>
+        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+          <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", fontSize: 11, letterSpacing: 1.5 }}>
+            HAYATTA OLAN ({alive.length})
+          </Text>
+          {ghostActive ? <GhostActivityBadge /> : null}
+        </View>
         <View style={[styles.playerCard, { backgroundColor: c.card, borderColor: c.border }]}>
           {state.players.map((p) => (
             <View key={p.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 7 }}>
