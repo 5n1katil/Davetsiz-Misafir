@@ -8,6 +8,7 @@ interface GhostActivityBadgeProps {
 export function GhostActivityBadge({ count = 0 }: GhostActivityBadgeProps) {
   const opacityAnim = useRef(new Animated.Value(0.35)).current;
   const scaleAnim = useRef(new Animated.Value(1)).current;
+  const shakeAnim = useRef(new Animated.Value(0)).current;
   const prevCountRef = useRef(count);
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -31,19 +32,29 @@ export function GhostActivityBadge({ count = 0 }: GhostActivityBadgeProps) {
 
   useEffect(() => {
     if (count > prevCountRef.current) {
-      Animated.sequence([
-        Animated.spring(scaleAnim, {
-          toValue: 1.45,
-          useNativeDriver: true,
-          speed: 40,
-          bounciness: 6,
-        }),
-        Animated.spring(scaleAnim, {
-          toValue: 1,
-          useNativeDriver: true,
-          speed: 20,
-          bounciness: 10,
-        }),
+      Animated.parallel([
+        Animated.sequence([
+          Animated.spring(scaleAnim, {
+            toValue: 1.45,
+            useNativeDriver: true,
+            speed: 40,
+            bounciness: 6,
+          }),
+          Animated.spring(scaleAnim, {
+            toValue: 1,
+            useNativeDriver: true,
+            speed: 20,
+            bounciness: 10,
+          }),
+        ]),
+        Animated.sequence([
+          Animated.timing(shakeAnim, { toValue: -4, duration: 40, useNativeDriver: true }),
+          Animated.timing(shakeAnim, { toValue: 4, duration: 60, useNativeDriver: true }),
+          Animated.timing(shakeAnim, { toValue: -4, duration: 60, useNativeDriver: true }),
+          Animated.timing(shakeAnim, { toValue: 4, duration: 60, useNativeDriver: true }),
+          Animated.timing(shakeAnim, { toValue: -2, duration: 40, useNativeDriver: true }),
+          Animated.timing(shakeAnim, { toValue: 0, duration: 40, useNativeDriver: true }),
+        ]),
       ]).start();
     }
     prevCountRef.current = count;
@@ -77,7 +88,7 @@ export function GhostActivityBadge({ count = 0 }: GhostActivityBadgeProps) {
       ) : null}
       <Pressable onPress={handlePress} hitSlop={10}>
         <Animated.View style={[styles.badge, { opacity: opacityAnim }]}>
-          <Text style={styles.ghost}>👻</Text>
+          <Animated.Text style={[styles.ghost, { transform: [{ translateX: shakeAnim }] }]}>👻</Animated.Text>
           {count > 0 ? (
             <Animated.View style={[styles.countBubble, { transform: [{ scale: scaleAnim }] }]}>
               <Text style={styles.countText}>{count}</Text>
