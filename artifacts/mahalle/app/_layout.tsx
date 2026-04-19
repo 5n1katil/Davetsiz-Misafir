@@ -11,9 +11,11 @@ import {
 } from "@expo-google-fonts/cinzel";
 import { useFonts as useCinzelFonts } from "@expo-google-fonts/cinzel";
 import { Stack } from "expo-router";
+import * as NavigationBar from "expo-navigation-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
+import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -27,6 +29,12 @@ SplashScreen.preventAutoHideAsync();
 
 function ThemedApp() {
   const { background, resolvedTheme } = useColors();
+
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    NavigationBar.setBackgroundColorAsync(background);
+    NavigationBar.setButtonStyleAsync(resolvedTheme === "light" ? "dark" : "light");
+  }, [background, resolvedTheme]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: background }}>

@@ -60,6 +60,7 @@
   },
   "dependencies": {
     "@expo-google-fonts/cinzel": "^0.4.2",
-    "expo-keep-awake": "^55.0.6"
+    "expo-keep-awake": "^55.0.6",
+    "expo-navigation-bar": "~5.0.10"
   }
 }
