@@ -7,6 +7,8 @@ interface GhostActivityBadgeProps {
 
 export function GhostActivityBadge({ count = 0 }: GhostActivityBadgeProps) {
   const opacityAnim = useRef(new Animated.Value(0.35)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const prevCountRef = useRef(count);
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -26,6 +28,26 @@ export function GhostActivityBadge({ count = 0 }: GhostActivityBadgeProps) {
       if (dismissTimer.current) clearTimeout(dismissTimer.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (count > prevCountRef.current) {
+      Animated.sequence([
+        Animated.spring(scaleAnim, {
+          toValue: 1.45,
+          useNativeDriver: true,
+          speed: 40,
+          bounciness: 6,
+        }),
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          speed: 20,
+          bounciness: 10,
+        }),
+      ]).start();
+    }
+    prevCountRef.current = count;
+  }, [count]);
 
   function handlePress() {
     if (tooltipVisible) {
@@ -57,9 +79,9 @@ export function GhostActivityBadge({ count = 0 }: GhostActivityBadgeProps) {
         <Animated.View style={[styles.badge, { opacity: opacityAnim }]}>
           <Text style={styles.ghost}>👻</Text>
           {count > 0 ? (
-            <View style={styles.countBubble}>
+            <Animated.View style={[styles.countBubble, { transform: [{ scale: scaleAnim }] }]}>
               <Text style={styles.countText}>{count}</Text>
-            </View>
+            </Animated.View>
           ) : (
             <View style={styles.dot} />
           )}
