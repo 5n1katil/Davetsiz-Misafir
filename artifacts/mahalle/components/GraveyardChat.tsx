@@ -13,12 +13,14 @@ import {
 
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
+import { useOwnGraveyardCount } from "@/hooks/useGhostActivity";
 
 const MAX_LENGTH = 200;
 
 export function GraveyardChat() {
   const c = useColors();
   const { state, emit } = useGame();
+  const ownCount = useOwnGraveyardCount();
   const [text, setText] = useState("");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const listRef = useRef<FlatList>(null);
@@ -69,6 +71,9 @@ export function GraveyardChat() {
         <Feather name="message-circle" size={14} color={c.mutedForeground} />
         <Text style={[styles.headerText, { color: c.mutedForeground }]}>
           MEZARLIK SOHBETI
+        </Text>
+        <Text style={[styles.ownCountText, { color: c.mutedForeground }]}>
+          {ownCount}
         </Text>
       </View>
 
@@ -145,6 +150,12 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 11,
     letterSpacing: 1,
+    flex: 1,
+  },
+  ownCountText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 11,
+    letterSpacing: 0.5,
   },
   list: {
     flex: 1,

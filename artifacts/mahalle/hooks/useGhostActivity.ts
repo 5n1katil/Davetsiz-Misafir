@@ -25,3 +25,26 @@ export function useGhostActivity(): number {
 
   return isAlive ? count : 0;
 }
+
+export function useOwnGraveyardCount(): number {
+  const { state, myPlayerId } = useGame();
+  const baselineRef = useRef<number | null>(null);
+  const [count, setCount] = useState(0);
+
+  const phase = state?.phase ?? null;
+
+  const ownMessages = state?.graveyardChat.filter((m) => m.from === myPlayerId) ?? [];
+
+  useEffect(() => {
+    baselineRef.current = ownMessages.length;
+    setCount(0);
+  }, [phase, myPlayerId]);
+
+  useEffect(() => {
+    if (baselineRef.current === null) return;
+    const newCount = Math.max(0, ownMessages.length - baselineRef.current);
+    setCount(newCount);
+  }, [ownMessages.length]);
+
+  return count;
+}
