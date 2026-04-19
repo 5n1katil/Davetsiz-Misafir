@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import { useGame } from "@/contexts/GameContext";
+import { type ThemePreference, useThemePreference } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
 
 interface SettingsScreenProps {
@@ -18,9 +19,16 @@ interface SettingsScreenProps {
   onClose: () => void;
 }
 
+const THEME_OPTIONS: { value: ThemePreference; label: string; icon: string }[] = [
+  { value: "system", label: "Sistem", icon: "monitor" },
+  { value: "light", label: "Açık", icon: "sun" },
+  { value: "dark", label: "Koyu", icon: "moon" },
+];
+
 export default function SettingsScreen({ visible, onClose }: SettingsScreenProps) {
   const c = useColors();
   const { voiceMuted, toggleVoice, vibrationsEnabled, toggleVibrations, toastsEnabled, toggleToasts, keepAwake, toggleKeepAwake } = useGame();
+  const { themePreference, setThemePreference } = useThemePreference();
 
   return (
     <Modal
@@ -38,6 +46,53 @@ export default function SettingsScreen({ visible, onClose }: SettingsScreenProps
         </View>
 
         <ScrollView contentContainerStyle={styles.content}>
+          <Text style={[styles.sectionLabel, { color: c.mutedForeground }]}>
+            GÖRÜNÜM
+          </Text>
+
+          <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
+            <View style={[styles.row, { borderBottomWidth: 0 }]}>
+              <View style={styles.rowLeft}>
+                <Feather name="layers" size={20} color={c.primary} />
+                <View style={styles.rowText}>
+                  <Text style={[styles.rowTitle, { color: c.foreground }]}>Tema</Text>
+                  <Text style={[styles.rowSub, { color: c.mutedForeground }]}>
+                    Uygulama renk teması
+                  </Text>
+                </View>
+              </View>
+              <View style={[styles.segmented, { backgroundColor: c.muted, borderColor: c.border }]}>
+                {THEME_OPTIONS.map((opt) => {
+                  const active = themePreference === opt.value;
+                  return (
+                    <Pressable
+                      key={opt.value}
+                      onPress={() => setThemePreference(opt.value)}
+                      style={[
+                        styles.segment,
+                        active && { backgroundColor: c.primary },
+                      ]}
+                    >
+                      <Feather
+                        name={opt.icon as any}
+                        size={14}
+                        color={active ? c.primaryForeground : c.mutedForeground}
+                      />
+                      <Text
+                        style={[
+                          styles.segmentLabel,
+                          { color: active ? c.primaryForeground : c.mutedForeground },
+                        ]}
+                      >
+                        {opt.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </View>
+
           <Text style={[styles.sectionLabel, { color: c.mutedForeground }]}>
             SES VE HAPTİK
           </Text>
@@ -232,6 +287,23 @@ const styles = StyleSheet.create({
   separator: {
     height: StyleSheet.hairlineWidth,
     marginHorizontal: 16,
+  },
+  segmented: {
+    flexDirection: "row",
+    borderRadius: 10,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  segment: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  segmentLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
   },
   hint: {
     fontFamily: "Inter_400Regular",
