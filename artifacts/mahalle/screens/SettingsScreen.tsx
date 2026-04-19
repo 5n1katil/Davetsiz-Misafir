@@ -3,6 +3,7 @@ import React from "react";
 import {
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Switch,
   Text,
@@ -36,21 +37,23 @@ export default function SettingsScreen({ visible, onClose }: SettingsScreenProps
           </Pressable>
         </View>
 
-        <View style={styles.body}>
+        <ScrollView contentContainerStyle={styles.content}>
           <Text style={[styles.sectionLabel, { color: c.mutedForeground }]}>
             SES VE HAPTİK
           </Text>
 
           <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
-            <View style={[styles.row, { borderBottomColor: c.border }]}>
+            <View style={styles.row}>
               <View style={styles.rowLeft}>
-                <Feather
-                  name={voiceMuted ? "volume-x" : "volume-2"}
-                  size={20}
-                  color={voiceMuted ? c.mutedForeground : c.primary}
-                />
+                <View style={styles.rowIconWrap}>
+                  <Feather
+                    name={voiceMuted ? "volume-x" : "volume-2"}
+                    size={18}
+                    color={voiceMuted ? c.mutedForeground : c.primary}
+                  />
+                </View>
                 <View style={styles.rowText}>
-                  <Text style={[styles.rowTitle, { color: c.foreground }]}>Sesli Anonslar</Text>
+                  <Text style={[styles.rowTitle, { color: c.foreground }]}>Ses Anlatımı</Text>
                   <Text style={[styles.rowSub, { color: c.mutedForeground }]}>
                     Host cihazındaki oyun duyuruları
                   </Text>
@@ -64,13 +67,17 @@ export default function SettingsScreen({ visible, onClose }: SettingsScreenProps
               />
             </View>
 
-            <View style={[styles.row, { borderBottomWidth: 0 }]}>
+            <View style={[styles.separator, { backgroundColor: c.border }]} />
+
+            <View style={styles.row}>
               <View style={styles.rowLeft}>
-                <Feather
-                  name={vibrationsEnabled ? "smartphone" : "slash"}
-                  size={20}
-                  color={vibrationsEnabled ? c.primary : c.mutedForeground}
-                />
+                <View style={styles.rowIconWrap}>
+                  <Feather
+                    name={vibrationsEnabled ? "smartphone" : "slash"}
+                    size={18}
+                    color={vibrationsEnabled ? c.primary : c.mutedForeground}
+                  />
+                </View>
                 <View style={styles.rowText}>
                   <Text style={[styles.rowTitle, { color: c.foreground }]}>Titreşim</Text>
                   <Text style={[styles.rowSub, { color: c.mutedForeground }]}>
@@ -92,13 +99,15 @@ export default function SettingsScreen({ visible, onClose }: SettingsScreenProps
           </Text>
 
           <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
-            <View style={[styles.row, { borderBottomWidth: 0 }]}>
+            <View style={styles.row}>
               <View style={styles.rowLeft}>
-                <Feather
-                  name={toastsEnabled ? "bell" : "bell-off"}
-                  size={20}
-                  color={toastsEnabled ? c.primary : c.mutedForeground}
-                />
+                <View style={styles.rowIconWrap}>
+                  <Feather
+                    name={toastsEnabled ? "bell" : "bell-off"}
+                    size={18}
+                    color={toastsEnabled ? c.primary : c.mutedForeground}
+                  />
+                </View>
                 <View style={styles.rowText}>
                   <Text style={[styles.rowTitle, { color: c.foreground }]}>Oyun Bildirimleri</Text>
                   <Text style={[styles.rowSub, { color: c.mutedForeground }]}>
@@ -118,7 +127,7 @@ export default function SettingsScreen({ visible, onClose }: SettingsScreenProps
           <Text style={[styles.hint, { color: c.mutedForeground }]}>
             Bu ayarlar cihazına kaydedilir ve sonraki oturumlarda korunur.
           </Text>
-        </View>
+        </ScrollView>
       </View>
     </Modal>
   );
@@ -140,7 +149,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     fontSize: 18,
   },
-  body: {
+  content: {
     padding: 20,
     gap: 12,
   },
@@ -150,6 +159,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: "uppercase",
     marginBottom: 4,
+    marginLeft: 2,
   },
   card: {
     borderRadius: 16,
@@ -162,7 +172,6 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
     gap: 12,
   },
   rowLeft: {
@@ -171,22 +180,36 @@ const styles = StyleSheet.create({
     gap: 12,
     flex: 1,
   },
+  rowIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(59,31,140,0.18)",
+  },
   rowText: {
     flex: 1,
     gap: 2,
   },
   rowTitle: {
-    fontFamily: "Inter_500Medium",
+    fontFamily: "Inter_600SemiBold",
     fontSize: 15,
   },
   rowSub: {
     fontFamily: "Inter_400Regular",
     fontSize: 12,
+    marginTop: 2,
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 16,
   },
   hint: {
     fontFamily: "Inter_400Regular",
     fontSize: 12,
     textAlign: "center",
     marginTop: 8,
+    paddingHorizontal: 4,
   },
 });
