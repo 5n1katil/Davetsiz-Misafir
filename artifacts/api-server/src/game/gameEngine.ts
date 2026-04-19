@@ -80,6 +80,7 @@ export interface Room {
   winner: string | null;
   winnerLabel: string | null;
   paused: boolean;
+  pausedAt: number | null;
 }
 
 const rooms = new Map<string, Room>();
@@ -166,6 +167,7 @@ export function createRoom(socketId: string, nickname: string): Room {
     winner: null,
     winnerLabel: null,
     paused: false,
+    pausedAt: null,
   };
   rooms.set(code, room);
   return room;
@@ -327,6 +329,7 @@ export function chooseRole(
 export function tickRoleSelectTimeout(code: string): Room | null {
   const room = rooms.get(code);
   if (!room) return null;
+  if (room.paused) return null;
   if (room.phase !== "ROLE_SELECT") return null;
   if (!room.currentChoice || !room.roleSelectDeadline) return null;
   if (Date.now() < room.roleSelectDeadline) return null;
@@ -422,6 +425,7 @@ export function castVote(
 export function tickPhaseTimeout(code: string): Room | null {
   const room = rooms.get(code);
   if (!room) return null;
+  if (room.paused) return null;
   if (!room.phaseDeadline) return null;
   if (Date.now() < room.phaseDeadline) return null;
 
@@ -447,6 +451,52 @@ export function tickPhaseTimeout(code: string): Room | null {
     return room;
   }
   return null;
+}
+
+export function pauseGame(
+  code: string,
+  playerId: string,
+): Room | { error: string } {
+  const room = rooms.get(code);
+  if (!room) return { error: "Oda yok" };
+  if (room.hostId !== playerId) return { error: "Sadece host" };
+  if (room.paused) return { error: "Zaten duraklatıldı" };
+  room.paused = true;
+  room.pausedAt = Date.now();
+  return room;
+}
+
+export function resumeGame(
+  code: string,
+  playerId: string,
+): Room | { error: string } {
+  const room = rooms.get(code);
+  if (!room) return { error: "Oda yok" };
+  if (room.hostId !== playerId) return { error: "Sadece host" };
+  if (!room.paused) return { error: "Zaten devam ediyor" };
+  const elapsed = room.pausedAt ? Date.now() - room.pausedAt : 0;
+  if (room.phaseDeadline) room.phaseDeadline += elapsed;
+  if (room.roleSelectDeadline) room.roleSelectDeadline += elapsed;
+  room.paused = false;
+  room.pausedAt = null;
+  return room;
+}
+
+export function kickPlayer(
+  code: string,
+  hostId: string,
+  targetId: string,
+): Room | { error: string } {
+  const room = rooms.get(code);
+  if (!room) return { error: "Oda yok" };
+  if (room.hostId !== hostId) return { error: "Sadece host" };
+  if (hostId === targetId) return { error: "Kendini çıkaramazsın" };
+  if (!["LOBBY", "DAY"].includes(room.phase))
+    return { error: "Bu fazda çıkarma yapılamaz" };
+  const idx = room.players.findIndex((p) => p.id === targetId);
+  if (idx === -1) return { error: "Oyuncu bulunamadı" };
+  room.players.splice(idx, 1);
+  return room;
 }
 
 function resolveVote(room: Room, isRunoff: boolean) {
@@ -821,6 +871,7 @@ export function publicView(room: Room, viewerPlayerId: string | null) {
     settings: room.settings,
     phaseDeadline: room.phaseDeadline,
     roleSelectDeadline: room.roleSelectDeadline,
+    paused: room.paused,
     players: room.players.map((p) => ({
       id: p.id,
       nickname: p.nickname,

@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HeaderBar } from "@/components/HeaderBar";
+import HostPanel from "@/components/HostPanel";
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
 import DayScreen from "@/screens/DayScreen";
@@ -63,6 +64,7 @@ export default function Index() {
     <View style={[styles.root, { backgroundColor: c.background, paddingTop: insets.top }]}>
       <HeaderBar title={phaseTitle} subtitle={phaseSub} />
       <View style={{ flex: 1 }}>{body}</View>
+      <HostPanel />
     </View>
   );
 }

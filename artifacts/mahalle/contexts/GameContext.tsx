@@ -69,6 +69,7 @@ export interface GameState {
   voteOpenBy: number;
   privateMessages: { msg: string; ts: number }[];
   ceteMembers: { id: string; nickname: string; roleId: string | null }[];
+  paused: boolean;
 }
 
 interface GameCtx {
@@ -132,6 +133,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     });
     s.on("voice", (lines: string[]) => {
       for (const line of lines) speak(line);
+    });
+    s.on("kicked", () => {
+      setState(null);
+      setMyPlayerId(null);
     });
     setSocket(s);
     return () => {

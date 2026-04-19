@@ -6,6 +6,7 @@ import React, { useEffect, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -36,8 +37,9 @@ export default function LobbyScreen() {
   } = useGame();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
-  const [tab, setTab] = useState<"create" | "join">("create");
+  const [mode, setMode] = useState<"create" | "join">("create");
   const [statsVisible, setStatsVisible] = useState(false);
+  const [helpVisible, setHelpVisible] = useState(false);
 
   useEffect(() => {
     Linking.getInitialURL().then((url) => {
@@ -52,156 +54,225 @@ export default function LobbyScreen() {
     if (parsed.path === "join" && parsed.queryParams?.code) {
       const roomCode = String(parsed.queryParams.code).toUpperCase();
       setCode(roomCode);
-      setTab("join");
+      setMode("join");
     }
+  }
+
+  async function handleCreate() {
+    if (!myNickname.trim()) {
+      Alert.alert("Adını yaz", "Önce mahalleli adını girmelisin.");
+      return;
+    }
+    setBusy(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const res = await createRoom(myNickname.trim());
+    setBusy(false);
+    if (!res.ok) Alert.alert("Hata", res.error ?? "Bilinmeyen hata");
+  }
+
+  async function handleJoin() {
+    if (!myNickname.trim()) {
+      Alert.alert("Adını yaz", "Önce mahalleli adını girmelisin.");
+      return;
+    }
+    if (code.trim().length < 3) {
+      Alert.alert("Kod yok", "Geçerli bir oda kodu gir.");
+      return;
+    }
+    setBusy(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const res = await joinRoom(code.trim(), myNickname.trim());
+    setBusy(false);
+    if (!res.ok) Alert.alert("Hata", res.error ?? "Bilinmeyen hata");
   }
 
   const inRoom = !!state;
 
   if (!inRoom) {
     return (
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
-        <ScrollView
-          contentContainerStyle={[
-            styles.scroll,
-            { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 },
-          ]}
-          keyboardShouldPersistTaps="handled"
+      <>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
-          <LinearGradient
-            colors={["#1A0A3E", "#0A0614"]}
-            style={styles.heroBg}
-          />
-          <View style={styles.hero}>
-            <Pressable
-              onPress={() => setStatsVisible(true)}
-              hitSlop={12}
-              style={[styles.statsIcon, { backgroundColor: c.card, borderColor: c.border }]}
-            >
-              <Feather name="bar-chart-2" size={18} color={c.foreground} />
-            </Pressable>
-            <Text style={styles.brand}>DAVETSİZ MİSAFİR</Text>
-            <Text style={[styles.tag, { color: c.mutedForeground }]}>
-              Davetsiz Misafir'i bul. Yoksa mahalle onların olur.
-            </Text>
-          </View>
+          <ScrollView
+            contentContainerStyle={[
+              styles.scroll,
+              { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 32 },
+            ]}
+            keyboardShouldPersistTaps="handled"
+          >
+            <LinearGradient colors={["#1A0A3E", "#0A0614"]} style={styles.heroBg} />
 
-          <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
-            <Text style={[styles.label, { color: c.mutedForeground }]}>Adın</Text>
-            <TextInput
-              value={myNickname}
-              onChangeText={setNickname}
-              placeholder="Ör: Selim Abi"
-              placeholderTextColor={c.mutedForeground}
-              maxLength={20}
-              style={[
-                styles.input,
-                { color: c.foreground, borderColor: c.border, backgroundColor: c.input },
-              ]}
-            />
+            <View style={styles.hero}>
+              <View style={styles.heroIcons}>
+                <Pressable
+                  onPress={() => setStatsVisible(true)}
+                  hitSlop={12}
+                  style={[styles.iconBtn, { backgroundColor: c.card, borderColor: c.border }]}
+                >
+                  <Feather name="bar-chart-2" size={17} color={c.foreground} />
+                </Pressable>
+                <Pressable
+                  onPress={() => setHelpVisible(true)}
+                  hitSlop={12}
+                  style={[styles.iconBtn, { backgroundColor: c.card, borderColor: c.border }]}
+                >
+                  <Feather name="help-circle" size={17} color={c.foreground} />
+                </Pressable>
+              </View>
 
-            <View style={[styles.tabs, { borderColor: c.border }]}>
-              <Pressable
-                onPress={() => setTab("create")}
-                style={[
-                  styles.tab,
-                  tab === "create" && { backgroundColor: c.primary },
-                ]}
-              >
-                <Text
-                  style={{
-                    color: tab === "create" ? c.primaryForeground : c.foreground,
-                    fontFamily: "Inter_600SemiBold",
-                  }}
-                >
-                  Oda Kur
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => setTab("join")}
-                style={[
-                  styles.tab,
-                  tab === "join" && { backgroundColor: c.primary },
-                ]}
-              >
-                <Text
-                  style={{
-                    color: tab === "join" ? c.primaryForeground : c.foreground,
-                    fontFamily: "Inter_600SemiBold",
-                  }}
-                >
-                  Odaya Katıl
-                </Text>
-              </Pressable>
+              <Text style={styles.brand}>DAVETSİZ MİSAFİR</Text>
+              <Text style={[styles.tag, { color: c.mutedForeground }]}>
+                Davetsiz Misafir'i bul. Yoksa mahalle onların olur.
+              </Text>
             </View>
 
-            {tab === "join" ? (
+            <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
+              <Text style={[styles.label, { color: c.mutedForeground }]}>Adın</Text>
               <TextInput
-                value={code}
-                onChangeText={(t) => setCode(t.toUpperCase())}
-                placeholder="ODA KODU (ör. KAHVE47)"
+                value={myNickname}
+                onChangeText={setNickname}
+                placeholder="Ör: Selim Abi"
                 placeholderTextColor={c.mutedForeground}
-                maxLength={10}
-                autoCapitalize="characters"
+                maxLength={20}
                 style={[
                   styles.input,
-                  styles.codeInput,
                   { color: c.foreground, borderColor: c.border, backgroundColor: c.input },
                 ]}
               />
-            ) : null}
 
-            <Btn
-              label={tab === "create" ? "Oda Kur" : "Katıl"}
-              loading={busy}
-              onPress={async () => {
-                if (!myNickname.trim()) {
-                  Alert.alert("Adını yaz", "Önce mahalleli adını girmelisin.");
-                  return;
-                }
-                if (tab === "join" && code.trim().length < 3) {
-                  Alert.alert("Kod yok", "Geçerli bir oda kodu gir.");
-                  return;
-                }
-                setBusy(true);
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                const res =
-                  tab === "create"
-                    ? await createRoom(myNickname.trim())
-                    : await joinRoom(code.trim(), myNickname.trim());
-                setBusy(false);
-                if (!res.ok) Alert.alert("Hata", res.error ?? "Bilinmeyen hata");
-              }}
-            />
-          </View>
+              <View style={styles.actionRow}>
+                <Pressable
+                  onPress={mode === "create" ? handleCreate : () => setMode("create")}
+                  disabled={busy}
+                  style={[
+                    styles.actionBtn,
+                    {
+                      backgroundColor: mode === "create" ? c.primary : c.card,
+                      borderColor: mode === "create" ? c.primary : c.border,
+                      opacity: busy ? 0.6 : 1,
+                    },
+                  ]}
+                >
+                  <Feather
+                    name="home"
+                    size={16}
+                    color={mode === "create" ? c.primaryForeground : c.foreground}
+                    style={{ marginBottom: 4 }}
+                  />
+                  <Text
+                    style={{
+                      color: mode === "create" ? c.primaryForeground : c.foreground,
+                      fontFamily: "Inter_600SemiBold",
+                      fontSize: 14,
+                    }}
+                  >
+                    Oda Kur
+                  </Text>
+                </Pressable>
 
-          <View style={[styles.howWrap]}>
-            <Text style={[styles.howTitle, { color: c.foreground }]}>Nasıl oynanır?</Text>
-            <How
-              c={c}
-              icon="users"
-              title="4-30 kişi, tek mekanda"
-              text="Arkadaşlarınla yan yana oturun. Herkesin elinde telefon."
-            />
-            <How
-              c={c}
-              icon="volume-2"
-              title="Host telefonu masada"
-              text="Host telefonu hoparlör açık olarak masaya yatırır, oyunu sesli yönetir."
-            />
-            <How
-              c={c}
-              icon="moon"
-              title="Gece, gündüz, oylama"
-              text="Davetsiz Misafir geceleri saldırır. Gündüz mahalle suçluyu bulmaya çalışır."
-            />
-          </View>
-        </ScrollView>
+                <Pressable
+                  onPress={() => setMode("join")}
+                  disabled={busy}
+                  style={[
+                    styles.actionBtn,
+                    {
+                      backgroundColor: mode === "join" ? c.primary : c.card,
+                      borderColor: mode === "join" ? c.primary : c.border,
+                      opacity: busy ? 0.6 : 1,
+                    },
+                  ]}
+                >
+                  <Feather
+                    name="users"
+                    size={16}
+                    color={mode === "join" ? c.primaryForeground : c.foreground}
+                    style={{ marginBottom: 4 }}
+                  />
+                  <Text
+                    style={{
+                      color: mode === "join" ? c.primaryForeground : c.foreground,
+                      fontFamily: "Inter_600SemiBold",
+                      fontSize: 14,
+                    }}
+                  >
+                    Odaya Katıl
+                  </Text>
+                </Pressable>
+              </View>
+
+              {mode === "join" ? (
+                <>
+                  <TextInput
+                    value={code}
+                    onChangeText={(t) => setCode(t.toUpperCase())}
+                    placeholder="ODA KODU (ör. KAHVE47)"
+                    placeholderTextColor={c.mutedForeground}
+                    maxLength={10}
+                    autoCapitalize="characters"
+                    autoFocus
+                    style={[
+                      styles.input,
+                      styles.codeInput,
+                      { color: c.foreground, borderColor: c.border, backgroundColor: c.input },
+                    ]}
+                  />
+                  <Btn label="Katıl" loading={busy} onPress={handleJoin} />
+                </>
+              ) : null}
+            </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
+
         <StatsScreen visible={statsVisible} onClose={() => setStatsVisible(false)} />
-      </KeyboardAvoidingView>
+
+        <Modal
+          visible={helpVisible}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => setHelpVisible(false)}
+        >
+          <View style={[styles.helpModal, { backgroundColor: c.background }]}>
+            <View style={[styles.helpHeader, { borderBottomColor: c.border }]}>
+              <Text style={[styles.helpTitle, { color: c.foreground }]}>Nasıl Oynanır?</Text>
+              <Pressable
+                onPress={() => setHelpVisible(false)}
+                hitSlop={12}
+                style={{ padding: 4 }}
+              >
+                <Feather name="x" size={22} color={c.mutedForeground} />
+              </Pressable>
+            </View>
+            <ScrollView contentContainerStyle={{ padding: 20, gap: 12 }}>
+              <How
+                c={c}
+                icon="users"
+                title="4-30 kişi, tek mekanda"
+                text="Arkadaşlarınla yan yana oturun. Herkesin elinde telefon."
+              />
+              <How
+                c={c}
+                icon="volume-2"
+                title="Host telefonu masada"
+                text="Host telefonu hoparlör açık olarak masaya yatırır, oyunu sesli yönetir."
+              />
+              <How
+                c={c}
+                icon="moon"
+                title="Gece, gündüz, oylama"
+                text="Davetsiz Misafir geceleri saldırır. Gündüz mahalle suçluyu bulmaya çalışır."
+              />
+              <How
+                c={c}
+                icon="award"
+                title="Kazanma koşulu"
+                text="Tüm Davetsiz Misafirler idam edilirse mahalle kazanır. Çete sayıca eşitlenirse çete kazanır."
+              />
+            </ScrollView>
+          </View>
+        </Modal>
+      </>
     );
   }
 
@@ -407,11 +478,14 @@ function How({ c, icon, title, text }: any) {
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 18, gap: 14 },
   heroBg: { position: "absolute", left: 0, right: 0, top: 0, height: 240 },
-  hero: { paddingTop: 28, paddingBottom: 24, alignItems: "center" },
-  statsIcon: {
-    position: "absolute",
-    top: 12,
-    right: 0,
+  hero: { paddingTop: 16, paddingBottom: 20, alignItems: "center" },
+  heroIcons: {
+    flexDirection: "row",
+    gap: 8,
+    alignSelf: "flex-end",
+    marginBottom: 12,
+  },
+  iconBtn: {
     padding: 8,
     borderRadius: 10,
     borderWidth: 1,
@@ -435,11 +509,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   codeInput: { textAlign: "center", letterSpacing: 4, fontFamily: "Inter_700Bold" },
-  tabs: { flexDirection: "row", borderRadius: 12, borderWidth: 1, padding: 4, gap: 4 },
-  tab: { flex: 1, paddingVertical: 10, alignItems: "center", borderRadius: 8 },
-  howWrap: { gap: 10, marginTop: 8 },
-  howTitle: { fontFamily: "Inter_700Bold", fontSize: 16, marginTop: 6 },
-  howRow: { flexDirection: "row", gap: 12, alignItems: "flex-start", borderTopWidth: StyleSheet.hairlineWidth, paddingVertical: 10 },
+  actionRow: { flexDirection: "row", gap: 10 },
+  actionBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    borderRadius: 12,
+    borderWidth: 1,
+  },
   codeCard: { padding: 18, borderRadius: 16, borderWidth: 1, alignItems: "center" },
   qrCard: { padding: 18, borderRadius: 16, borderWidth: 1, alignItems: "center" },
   qrWrap: { padding: 12, borderRadius: 12, backgroundColor: "#0B0F1F" },
@@ -452,4 +530,15 @@ const styles = StyleSheet.create({
   },
   rowGap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
   waitCard: { padding: 22, borderRadius: 16, borderWidth: 1, alignItems: "center" },
+  helpModal: { flex: 1 },
+  helpHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  helpTitle: { fontFamily: "Inter_700Bold", fontSize: 18 },
+  howRow: { flexDirection: "row", gap: 12, alignItems: "flex-start", borderTopWidth: StyleSheet.hairlineWidth, paddingVertical: 12 },
 });
