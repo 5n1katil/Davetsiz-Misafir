@@ -21,7 +21,7 @@ import VoteScreen from "@/screens/VoteScreen";
 export default function Index() {
   const c = useColors();
   const insets = useSafeAreaInsets();
-  const { connected, state } = useGame();
+  const { connected, state, voiceMuted, toggleVoice } = useGame();
   const [settingsVisible, setSettingsVisible] = useState(false);
 
   if (!connected && !state) {
@@ -89,14 +89,26 @@ export default function Index() {
               <Text style={styles.pauseIcon}>⏸</Text>
               <Text style={styles.pauseTitle}>OYUN DURAKLATILDI</Text>
               <Text style={styles.pauseSub}>Host oyunu duraklattı. Kısa sürede devam edilecek.</Text>
-              <Pressable
-                onPress={() => setSettingsVisible(true)}
-                style={styles.settingsBtn}
-                accessibilityLabel="Ayarları aç"
-              >
-                <Feather name="settings" size={15} color="#C4A8FF" />
-                <Text style={styles.settingsBtnText}>Ayarlar</Text>
-              </Pressable>
+              <View style={styles.pauseActions}>
+                <Pressable
+                  onPress={toggleVoice}
+                  style={styles.muteBtn}
+                  accessibilityLabel={voiceMuted ? "Sesi aç" : "Sesi kapat"}
+                >
+                  <Feather name={voiceMuted ? "volume-x" : "volume-2"} size={16} color={voiceMuted ? "#FF8A8A" : "#C4A8FF"} />
+                  <Text style={[styles.settingsBtnText, voiceMuted && styles.muteBtnTextMuted]}>
+                    {voiceMuted ? "Ses Kapalı" : "Ses Açık"}
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => setSettingsVisible(true)}
+                  style={styles.settingsBtn}
+                  accessibilityLabel="Ayarları aç"
+                >
+                  <Feather name="settings" size={15} color="#C4A8FF" />
+                  <Text style={styles.settingsBtnText}>Ayarlar</Text>
+                </Pressable>
+              </View>
             </View>
           </Animated.View>
         )}
@@ -150,7 +162,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    marginTop: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 10,
@@ -163,5 +174,24 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_600SemiBold",
     fontSize: 13,
     letterSpacing: 0.5,
+  },
+  pauseActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 8,
+  },
+  muteBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#3B1F8C",
+    backgroundColor: "rgba(59,31,140,0.25)",
+  },
+  muteBtnTextMuted: {
+    color: "#FF8A8A",
   },
 });
