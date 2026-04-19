@@ -24,6 +24,9 @@ import { useReduceMotion } from "@/hooks/useReduceMotion";
 
 const BG = "#060310";
 
+// Roles whose identity must stay hidden from other players during night
+const HIDDEN_ROLES = new Set(["anonim", "kahraman_dede", "kumarbaz"]);
+
 const ROLE_INSTRUCTIONS: Record<string, string> = {
   _cete: "Hedef seçin. Çoğunluk kazanır.",
   bekci: "Bu gece kimin ekibini sorguluyorsun?",
@@ -54,6 +57,7 @@ export default function NightScreen() {
   const ghostActive = useGhostActivity();
 
   const [kumarbazFirst, setKumarbazFirst] = useState<string | null>(null);
+  const [kumarbazSecond, setKumarbazSecond] = useState<string | null>(null);
 
   const moonAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(0)).current;
@@ -87,6 +91,7 @@ export default function NightScreen() {
   const stepRoleId = step?.roleId;
   useEffect(() => {
     setKumarbazFirst(null);
+    setKumarbazSecond(null);
   }, [stepRoleId]);
 
   if (!state) return null;
@@ -158,16 +163,18 @@ export default function NightScreen() {
       ? !!me && step.actorIds.includes(me.id)
       : state.myRole === roleId;
 
-  // ── "Someone else's turn" waiting screen ─────────────────────────────────────
   if (!isMyTurn) {
+    const isHiddenRole = HIDDEN_ROLES.has(roleId);
     return (
       <View style={[styles.intro, { backgroundColor: BG }]}>
-        <Text style={{ fontSize: 52 }}>{roleEmoji}</Text>
+        <Feather name="moon" size={52} color="#F5C842" />
         <Text style={{ color: "#E8DEFF", fontFamily: "Cinzel_700Bold", fontSize: 20, marginTop: 16, textAlign: "center", letterSpacing: 2 }}>
-          {roleLabel} uyanıyor...
+          {isHiddenRole ? "Biri uyanıyor..." : `${roleLabel} uyanıyor...`}
         </Text>
         <Text style={{ color: "#9B7FD4", marginTop: 8, fontFamily: "Inter_400Regular", textAlign: "center" }}>
-          Sen uyu. Aksiyon başkasına ait.
+          {isHiddenRole
+            ? "Gözlerini kapat. Kim olduğu gizli."
+            : "Sen uyu. Aksiyon başkasına ait."}
         </Text>
         {ghostActive > 0 ? (
           <View style={{ marginTop: 12 }}>
@@ -212,13 +219,18 @@ export default function NightScreen() {
     return true;
   });
 
-  // Kumarbaz second selection: exclude already-selected first target
-  const targets = roleId === "kumarbaz" && kumarbazFirst
-    ? allTargets.filter((p) => p.id !== kumarbazFirst)
-    : allTargets;
+  // Kumarbaz: filter out already-chosen players for each phase
+  const targets = roleId === "kumarbaz" && kumarbazSecond
+    ? []
+    : roleId === "kumarbaz" && kumarbazFirst
+      ? allTargets.filter((p) => p.id !== kumarbazFirst)
+      : allTargets;
 
   const firstPlayerNick = kumarbazFirst
     ? state.players.find((p) => p.id === kumarbazFirst)?.nickname
+    : null;
+  const secondPlayerNick = kumarbazSecond
+    ? state.players.find((p) => p.id === kumarbazSecond)?.nickname
     : null;
 
   return (
@@ -260,7 +272,14 @@ export default function NightScreen() {
 
       {/* ── Instruction ── */}
       <View style={[styles.instructionBar, { borderColor: accent + "33" }]}>
-        {roleId === "kumarbaz" && kumarbazFirst ? (
+        {roleId === "kumarbaz" && kumarbazSecond ? (
+          <Text style={{ color: "#C3AEFF", fontFamily: "Inter_400Regular", textAlign: "center", fontSize: 14, lineHeight: 22 }}>
+            <Text style={{ color: accent, fontFamily: "Inter_600SemiBold" }}>{firstPlayerNick}</Text>
+            {" "}↔️{" "}
+            <Text style={{ color: accent, fontFamily: "Inter_600SemiBold" }}>{secondPlayerNick}</Text>
+            {"\n"}Onaylamak için "Takas Et" butonuna bas.
+          </Text>
+        ) : roleId === "kumarbaz" && kumarbazFirst ? (
           <Text style={{ color: "#C3AEFF", fontFamily: "Inter_400Regular", textAlign: "center", fontSize: 14, lineHeight: 20 }}>
             <Text style={{ color: accent, fontFamily: "Inter_600SemiBold" }}>{firstPlayerNick}</Text>
             {" "}seçildi. Şimdi ikinci kişiyi seç.
@@ -280,6 +299,8 @@ export default function NightScreen() {
       >
         {targets.map((p) => {
           const isFirstSelected = roleId === "kumarbaz" && p.id === kumarbazFirst;
+          const isSecondSelected = roleId === "kumarbaz" && p.id === kumarbazSecond;
+          const isSelected = isFirstSelected || isSecondSelected;
           return (
             <Pressable
               key={p.id}
@@ -287,9 +308,8 @@ export default function NightScreen() {
                 if (roleId === "kumarbaz") {
                   if (!kumarbazFirst) {
                     setKumarbazFirst(p.id);
-                  } else {
-                    emit("nightAction", { targetId: kumarbazFirst, targetId2: p.id });
-                    setKumarbazFirst(null);
+                  } else if (!kumarbazSecond) {
+                    setKumarbazSecond(p.id);
                   }
                 } else {
                   emit("nightAction", { targetId: p.id });
@@ -298,17 +318,13 @@ export default function NightScreen() {
               style={({ pressed }) => [
                 styles.targetRow,
                 {
-                  backgroundColor: isFirstSelected
-                    ? accent + "33"
-                    : pressed ? "#1A0A3E" : "#2A1060",
-                  borderColor: isFirstSelected
-                    ? accent
-                    : pressed ? (accent + "55") : "#3B1F8C",
+                  backgroundColor: isSelected ? accent + "33" : pressed ? "#1A0A3E" : "#2A1060",
+                  borderColor: isSelected ? accent : pressed ? (accent + "55") : "#3B1F8C",
                   opacity: pressed ? 0.85 : 1,
                 },
               ]}
             >
-              <View style={[styles.playerAvatar, { backgroundColor: isFirstSelected ? accent + "44" : "#1A0A3E" }]}>
+              <View style={[styles.playerAvatar, { backgroundColor: isSelected ? accent + "44" : "#1A0A3E" }]}>
                 <Text style={{ color: "#E8DEFF", fontFamily: "Inter_700Bold", fontSize: 15 }}>
                   {p.nickname[0]?.toUpperCase()}
                 </Text>
@@ -319,6 +335,10 @@ export default function NightScreen() {
               {isFirstSelected ? (
                 <View style={[styles.firstBadge, { backgroundColor: accent }]}>
                   <Text style={{ color: "#000", fontFamily: "Inter_700Bold", fontSize: 10 }}>1.</Text>
+                </View>
+              ) : isSecondSelected ? (
+                <View style={[styles.firstBadge, { backgroundColor: accent }]}>
+                  <Text style={{ color: "#000", fontFamily: "Inter_700Bold", fontSize: 10 }}>2.</Text>
                 </View>
               ) : (
                 <Feather
@@ -331,15 +351,34 @@ export default function NightScreen() {
           );
         })}
 
-        {/* Kumarbaz: cancel first selection button */}
-        {roleId === "kumarbaz" && kumarbazFirst ? (
+        {/* Kumarbaz: "Takas Et" confirm button after both selected */}
+        {roleId === "kumarbaz" && kumarbazFirst && kumarbazSecond ? (
+          <Btn
+            label="🎰 Takas Et"
+            onPress={() => {
+              emit("nightAction", { targetId: kumarbazFirst, targetId2: kumarbazSecond });
+              setKumarbazFirst(null);
+              setKumarbazSecond(null);
+            }}
+            style={{ marginTop: 8 }}
+          />
+        ) : null}
+
+        {/* Kumarbaz: cancel / back button */}
+        {roleId === "kumarbaz" && (kumarbazFirst || kumarbazSecond) ? (
           <Pressable
-            onPress={() => setKumarbazFirst(null)}
+            onPress={() => {
+              if (kumarbazSecond) {
+                setKumarbazSecond(null);
+              } else {
+                setKumarbazFirst(null);
+              }
+            }}
             style={[styles.cancelBtn, { borderColor: "#3B1F8C" }]}
           >
             <Feather name="x" size={14} color="#9B7FD4" />
             <Text style={{ color: "#9B7FD4", fontFamily: "Inter_500Medium", fontSize: 13, marginLeft: 6 }}>
-              İlk seçimi iptal et
+              {kumarbazSecond ? "İkinci seçimi iptal et" : "İlk seçimi iptal et"}
             </Text>
           </Pressable>
         ) : null}
