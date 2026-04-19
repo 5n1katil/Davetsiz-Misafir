@@ -213,13 +213,20 @@ export function attachSocketServer(http: HTTPServer) {
       if (!s) return cb?.({ ok: false, error: "session yok" });
       const res = kickPlayer(s.roomCode, s.playerId, String(targetId));
       if ("error" in res) return cb?.({ ok: false, error: res.error });
-      // Disconnect kicked player's socket
+      // Find, notify, and forcibly disconnect the kicked player
       const target = [...sessions.entries()].find(
         ([, v]) => v.roomCode === s.roomCode && v.playerId === targetId,
       );
       if (target) {
         const [kickedSocketId] = target;
+        // Remove session immediately so future events are rejected
+        sessions.delete(kickedSocketId);
+        // Notify client then close connection
         io.to(kickedSocketId).emit("kicked", { reason: "Host sizi odadan çıkardı." });
+        setTimeout(() => {
+          const kickedSock = io.sockets.sockets.get(kickedSocketId);
+          if (kickedSock) kickedSock.disconnect(true);
+        }, 300);
       }
       cb?.({ ok: true });
       broadcast(s.roomCode);

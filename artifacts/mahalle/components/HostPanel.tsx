@@ -221,13 +221,13 @@ export default function HostPanel() {
                   {nightDone}/{nightTotal}
                 </Text>
               </View>
-              <View style={[styles.progressTrack, { backgroundColor: "#2A1060" }]}>
-                <View
-                  style={[
-                    styles.progressFill,
-                    { backgroundColor: "#F5C842", width: `${nightProgress * 100}%` as any },
-                  ]}
-                />
+              <View style={[styles.progressTrack, { backgroundColor: "#2A1060", flexDirection: "row" }]}>
+                {nightProgress > 0 && (
+                  <View style={[styles.progressFill, { flex: nightProgress, backgroundColor: "#F5C842" }]} />
+                )}
+                {nightProgress < 1 && (
+                  <View style={{ flex: 1 - nightProgress }} />
+                )}
               </View>
             </View>
           )}
