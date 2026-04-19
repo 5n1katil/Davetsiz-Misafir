@@ -814,6 +814,10 @@ function endGame(room: Room, winner: string, label: string) {
   room.voiceQueue.push(label);
 }
 
+const GRAVEYARD_MAX_LENGTH = 200;
+const GRAVEYARD_RATE_MS = 500;
+const graveyardLastSent = new Map<string, number>();
+
 export function sendGraveyardChat(
   code: string,
   playerId: string,
@@ -823,11 +827,24 @@ export function sendGraveyardChat(
   if (!room) return { error: "Oda yok" };
   const p = room.players.find((x) => x.id === playerId);
   if (!p || p.isAlive) return { error: "Yalnızca ölüler chat kullanır" };
+
+  if (text.length > GRAVEYARD_MAX_LENGTH) {
+    return { error: `Mesaj en fazla ${GRAVEYARD_MAX_LENGTH} karakter olabilir` };
+  }
+
+  const key = `${code}:${playerId}`;
+  const now = Date.now();
+  const last = graveyardLastSent.get(key) ?? 0;
+  if (now - last < GRAVEYARD_RATE_MS) {
+    return { error: "Çok hızlı mesaj gönderiyorsun, biraz bekle" };
+  }
+  graveyardLastSent.set(key, now);
+
   room.graveyardChat.push({
     from: p.id,
     nick: p.nickname,
-    text: text.slice(0, 200),
-    ts: Date.now(),
+    text,
+    ts: now,
   });
   return room;
 }

@@ -14,11 +14,15 @@ import {
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
 
+const MAX_LENGTH = 200;
+
 export function GraveyardChat() {
   const c = useColors();
   const { state, emit } = useGame();
   const [text, setText] = useState("");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const listRef = useRef<FlatList>(null);
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const messages = state?.graveyardChat ?? [];
 
@@ -28,11 +32,31 @@ export function GraveyardChat() {
     }
   }, [messages.length]);
 
+  useEffect(() => {
+    return () => {
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    };
+  }, []);
+
+  const showError = (msg: string) => {
+    setErrorMsg(msg);
+    if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    errorTimerRef.current = setTimeout(() => setErrorMsg(null), 2500);
+  };
+
   const send = async () => {
     const trimmed = text.trim();
     if (!trimmed) return;
-    setText("");
-    await emit("graveyardChat", { text: trimmed });
+    if (trimmed.length > MAX_LENGTH) {
+      showError(`Mesaj en fazla ${MAX_LENGTH} karakter olabilir`);
+      return;
+    }
+    const res = await emit("graveyardChat", { text: trimmed });
+    if (res.ok) {
+      setText("");
+    } else if (res.error) {
+      showError(res.error);
+    }
   };
 
   return (
@@ -72,6 +96,13 @@ export function GraveyardChat() {
         }
       />
 
+      {errorMsg ? (
+        <View style={[styles.errorBanner, { backgroundColor: c.card, borderColor: "#e53e3e" }]}>
+          <Feather name="alert-circle" size={13} color="#e53e3e" />
+          <Text style={styles.errorText}>{errorMsg}</Text>
+        </View>
+      ) : null}
+
       <View style={[styles.inputRow, { borderColor: c.border, backgroundColor: c.card }]}>
         <TextInput
           style={[styles.input, { color: c.foreground }]}
@@ -82,6 +113,7 @@ export function GraveyardChat() {
           onSubmitEditing={send}
           returnKeyType="send"
           blurOnSubmit={false}
+          maxLength={MAX_LENGTH}
         />
         <TouchableOpacity
           onPress={send}
@@ -167,5 +199,21 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: "center",
     justifyContent: "center",
+  },
+  errorBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    marginBottom: 6,
+  },
+  errorText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: "#e53e3e",
+    flexShrink: 1,
   },
 });
