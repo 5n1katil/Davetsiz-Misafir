@@ -1,0 +1,278 @@
+Türkiye'ye özgü bir sosyal dedeksiyon parti oyunu geliştir.
+Adı: MAHALLE
+Konsept: Arkadaşlar fiziksel olarak yan yana otururken 4-30 kişi oynayabilir. Herkesin elinde telefon var, oyun her telefonda eş zamanlı çalışır. Host telefonu hoparlör açık masaya yatırılır, sesli yönlendirme yapar.
+
+== TECH STACK ==
+- Frontend: React + TailwindCSS (mobil öncelikli, 375px baz)
+- Backend: Node.js + Express + Socket.io
+- Ses: Web Speech API — window.speechSynthesis, lang: 'tr-TR'
+- State: sunucu bellekte (Redis veya in-memory Map), veritabanı gerekmez
+- Deploy: Replit üzerinde tek repo, tek port
+
+== PROJE YAPISI ==
+/server
+  index.js         — Express + Socket.io sunucu
+  gameEngine.js    — tüm oyun mantığı
+  roles.js         — rol tanımları (JSON config)
+  nightEngine.js   — gece aksiyon işleyici
+/client
+  src/
+    App.jsx
+    screens/       — Lobby, RolSecim, RolAnlatim, Gunduz, Gece, Oylama, Sonuc
+    components/    — RolKarti, OylamaBar, HostPanel, MezarlikChat
+    hooks/         — useSocket, useTimer, useSpeech
+
+== ODA & OTURUM SİSTEMİ ==
+- "Oda Kur" → sunucu benzersiz 6 karakterli kod üretir (ör. KAHVE47)
+- Odayı kuran kişi HOST olur, socket ID'si odaya kaydedilir
+- Katılım: kod + nickname girilir, max 30 oyuncu
+- Reconnect: socket yeniden bağlanırsa aynı nickname ile odaya geri düşer, oyun kaldığı yerden devam eder. 60 saniye içinde bağlanamazsa o oyuncu "bağlantı kesildi" olarak işaretlenir, ghost oyuncu olarak kalır (aksiyonları atlanır, oylama sayılmaz)
+- Tüm oda state'i sunucuda tutulur, client sadece görüntüler
+
+== HOST ODA AYARLARI (oyun başlamadan önce) ==
+Host şunları ayarlar:
+1. Gündüz süresi: 3 dakika / 5 dakika
+2. Ses yönlendirmesi: açık / kapalı
+3. Çete sayısı: manuel (1 / 2 / 3) — host bunu özgürce seçer
+4. Aktif özel roller: host hangi özel rollerin havuza gireceğini seç/kaldır toggle ile belirler
+   - Temel paket (varsayılan): Muhtar, Bekçi, Otacı Teyze, Falcı, Kapıcı
+   - Ek roller: Muhabir, Şehir Tiyatrocusu, Hoca, Kumarbaz, Kıskanç Komşu, Kırık Kalp, Dedikoducu, Anonim, Kahraman Dede
+5. Gece aksiyon süresi: 10 sn / 15 sn (her rol için)
+
+HOST EKRANI (sadece host görür):
+- Mevcut faz + kalan süre (büyük)
+- Hayatta olan oyuncular listesi
+- Elenen oyuncuların rolleri (açık gösterilir)
+- Gece sırası progress bar'ı (hangi rol sırada)
+- "Beklet / Devam Et" butonu — timer ve sesi durdurur/devam ettirir
+- "Geceyi Başlat" butonu
+- Host kendi rolünü de görür ve normal oyuncu gibi oynar
+- Bağlantısı kopan oyuncuları gösterir, "Oyuncuyu At" butonu
+
+== ROL SEÇİM AŞAMASI ==
+Oyun başlatılınca sunucu şu adımları izler:
+
+1. Havuz oluşturma:
+   - Çete sayısı kadar Tefeci Başı + her çete için 1 Tahsildar + 1 Sahte Dernek Başkanı eklenir
+   - Host'un aktif ettiği özel roller havuza eklenir
+   - Kalan slotlar sıradan Köylü ile doldurulur
+   - Toplam kart sayısı = oyuncu sayısı
+
+2. Sıralama: sunucu oyuncuları rastgele sıralar, her oyuncuya gizli sıra numarası atar
+
+3. Sıra gelince oyuncunun ekranına 3 rastgele rol kartı (havuzdan) gelir:
+   - Her kartta: emoji, rol adı, fraksiyon rozeti, tek satır açıklama
+   - "Seç" butonu + "🎲 Rastgele Seç — kaderini koy ortaya!" butonu
+   - 25 saniye sayaç — dolarsa otomatik rastgele seçilir
+   - Seçilen kart havuzdan çıkar
+
+4. Bekleyen oyuncular yalnızca "X seçimini yaptı" bilgisini görür, hangi rolü değil
+
+5. Herkes seçince rol anlatım ekranı açılır
+
+ROL ANLATIM EKRANI (her oyuncu kendi rolünü görür):
+- Büyük emoji + rol adı + fraksiyon rozeti
+- Hikaye metni (komik, mahalle diliyle, 2-3 cümle)
+- Gece yetkinliği (ne yapar, nasıl çalışır)
+- Kazanma koşulu
+- 3 taktik ipucu
+- "✅ Anladım, Hazırım" butonu
+Herkes hazır olunca gündüz fazı başlar. 60 saniye sonra hazır olmayan otomatik geçer.
+
+Çete üyeleri rol anlatım ekranının sonunda ek bir ekran görür:
+"Çete üyeleriniz: [isim listesi]" — birbirlerini tanırlar ama diğerleri bilmez.
+
+== GÜNDÜZ FAZI ==
+- Sabah duyurusu ekranda + host hoparlöründen sesli okunur
+- Geri sayım başlar (host ayarına göre 3 veya 5 dk)
+- Ekranda: hayatta kalan oyuncular, tur sayısı, sabah olayları
+
+OYLAMA BAŞLATMA:
+- Her oyuncunun ekranında "⚖️ Oylama Öner" butonu
+- Hayatta oyuncuların %50'si basarsa: 10 saniyelik "Oylama başlıyor..." uyarısı sonra oylama açılır
+- Süre bitince de otomatik oylama açılır
+- Oylama: 30 saniye, herkes eş zamanlı bir kişiye oy verir (gizli)
+- Sonuç: en çok oy alan elenirdi
+- BERABERE KURALI: Tam eşitlikte 15 saniyelik ikinci tur yapılır, yalnızca eşit oylu kişiler arasında. İkinci turda da berabere kalırsa kimse elenmez, gece fazına geçilir.
+- Muhtar varsa ve hayattaysa oyu 1.5 sayılır (sunucu tarafında hesaplanır)
+- Dedikoducu o turda öldüyse: linç sonucu ters döner (en az oy alan elenir)
+- Elenen kişinin rolü tüm ekranlarda açıklanır, sonra Mezarlık'a geçer
+
+== GECE FAZI ==
+Host "Geceyi Başlat" butonuna basar. Tüm ekranlara "🌙 Gözlerinizi kapatın" animasyonu gelir.
+
+GECE AKSİYON SIRASI (bu sıra değişmez):
+1. Kumarbaz (varsa ve aktifse) — iki kişiyi seçer, rolleri o gece takas edilir. Takas kalıcıdır.
+2. Kıskanç Komşu (varsa) — bir kişiyi seçer, o kişinin aksiyonunu kopyalar (kopyalama 6. adımda işlenir)
+3. Tefeci Çetesi — çete üyeleri oylama yapar (aşağıda detay)
+4. Kapıcı (varsa) — bir evi kilitler
+5. Otacı Teyze (varsa) — bir kişiyi korur
+6. Bekçi (varsa) — bir kişiyi sorgular (ekip: iyi/kötü öğrenir)
+7. Falcı (varsa) — bir kişinin tam rolünü öğrenir (%20 ihtimal yanlış sonuç)
+8. Hoca (varsa, henüz kullanmadıysa) — 1 kullanım hakkı, biri için koruma aktive eder
+9. Kahraman Dede (varsa) — bağımsız olarak bir kişiyi öldürür
+10. Anonim (varsa) — bir kişiyi "işaretler" (3. işaret tamamlanınca Anonim kazanır)
+11. Kıskanç Komşu aksiyonu işlenir (2. adımda seçtiği kişinin yaptığını kopyalar)
+
+ÇETE OYLAMA MEKANİĞİ (3. adım detayı):
+- Çete üyelerinin ekranına gizli "Hedef Seç" ekranı gelir (hayatta olan iyi oyuncular listelenir)
+- Her çete üyesi bir kişiye oy verir, 12 saniye
+- Çoğunluk kimi seçtiyse o kişi hedef olur
+- Berabere: rastgele seçilir
+- Tefeci Başı hayatta değilse Tahsildar bu ekranı yönetir
+
+AKSİYON ÇELİŞKİ KURALLARI (öncelik sırası: Koruma > Öldürme > Sorgulama > Diğer):
+
+1. Otacı Teyze X'i korudu + Çete X'i öldürdü → X yaşar, sabah "Bu gece kimse kaybolmadı" duyurusu
+2. Hoca X'e koruma verdi + Çete X'i öldürdü → X yaşar (Hoca hakkı biter)
+3. Kapıcı X'in evini kilitledi + Çete X'i öldürmek istedi → Çete giremez, X yaşar
+4. Kapıcı X'in evini kilitledi + Bekçi X'i sorgulamak istedi → Bekçi giremez, sonuç alamaz
+5. Kapıcı X'in evini kilitledi + Otacı Teyze X'i korumak istedi → Otacı giremez, koruma uygulanamaz (riskli!)
+6. Kıskanç Komşu X'i kopyaladı + X'in aksiyonu kendine dönükse → hiçbir şey olmaz
+7. Kumarbaz A ve B'yi takas etti → o geceki tüm aksiyonlar yeni rollere göre işlenir
+8. Kahraman Dede X'i öldürdü + Otacı Teyze X'i korudu → Koruma > Öldürme, X yaşar
+9. Kırık Kalp'in aşığı öldü → Kırık Kalp de aynı gece ölür (zincir ölüm, sabah ikisi birden duyurulur)
+10. Falcı X'i sorguladı + X bu gece Kumarbaz tarafından rol değiştirdi → Falcı yeni rolü görür
+
+SABAH SONUÇ İŞLEME (sunucu tarafında, bu sırayla):
+1. Kumarbaz takasları uygula
+2. Koruma aksiyonlarını kaydet (Otacı, Hoca, Kapıcı)
+3. Öldürme aksiyonlarını işle (koruma varsa iptal)
+4. Kırık Kalp zincir ölümünü kontrol et
+5. Sorgulama sonuçlarını ilgili oyunculara gönder
+6. Anonim işaretleme sayısını kontrol et (3 olduysa Anonim kazandı mı?)
+7. Kazanma koşullarını kontrol et
+8. Sabah duyurusunu oluştur ve gönder
+
+== KAZANMA KOŞULU TESPİTİ (her sabah ve her linçten sonra kontrol) ==
+
+Sunucu gameEngine.checkWinCondition() fonksiyonu şunu yapar:
+
+1. MAHALLE kazandı mı?
+   - Hayatta kötü oyuncu (çete + Kahraman Dede + Anonim) sayısı = 0
+   - Kırık Kalp ve Kumarbaz'ın özel koşulları ayrıca değerlendirilir
+
+2. ÇETE kazandı mı?
+   - Hayatta çete sayısı >= hayatta iyi oyuncu sayısı
+   - VEYA Sahte Dernek Başkanı linç edildi (o an oyun biter)
+
+3. KAHRAMAN DEDE kazandı mı?
+   - Hayatta kalan tek kişi Kahraman Dede mi?
+
+4. ANONİM kazandı mı?
+   - Anonim'in işaretlediği 3 kişinin tamamı linç yoluyla öldü mü?
+   - (Gece ölümü sayılmaz, sadece linç)
+   - Anonim hâlâ hayattaysa kazanır, ölmüşse kazanamaz
+
+5. KUMARBAZ kazandı mı?
+   - Oyun bittiğinde hayatta kalan 3 veya daha az kişiden biri Kumarbaz mı?
+
+6. KIRIK KALP kazandı mı?
+   - Oyun bittiğinde hem Kırık Kalp hem aşığı hayatta mı?
+
+Birden fazla koşul aynı anda gerçekleşirse: Anonim > Kırık Kalp > Kahraman Dede > Çete > Mahalle önceliğiyle ilan edilir.
+
+== SESLİ YÖNLENDİRME ==
+Sadece HOST cihazında çalar (window.speechSynthesis, lang: 'tr-TR', rate: 0.9, pitch: 1.0)
+Ses kapalıysa sadece ekran animasyonları çalışır.
+
+Metinler (dinamik kısımlar köşeli parantez içinde):
+
+GECE BAŞLANGICI:
+"Mahalle uykuya daldı... Gece çöktü sokaklara. Gözlerinizi kapatın."
+
+ROL ÇAĞRILARI (rol yoksa bu metin hiç çalınmaz):
+Kumarbaz: "Kumarbaz... zarlarını at. Bu gece kimlerin kaderini takas edeceksin?"
+Kıskanç Komşu: "Kıskanç Komşu... perdeyi aralamadan izle. Kimi taklit edeceksin?"
+Çete: "Tefeci Çetesi uyanıyor... Bu gece kimi tasfiye edeceksiniz? Oyunuzu kullanın."
+Kapıcı: "Kapıcı... anahtarlarını al. Bu gece hangi kapıyı kilitleyeceksin?"
+Otacı Teyze: "Otacı Teyze... bitkisel çantanı al. Bu gece kimin kapısını çalacaksın?"
+Bekçi: "Bekçi... fenerini yak. Bu gece hangi evi kontrol edeceksin?"
+Falcı: "Falcı... fincanı çevir. Bu gece kimin kaderine bakacaksın?"
+Hoca: "Hoca... duanı et. Bu gece kime bereket vereceksin?"
+Kahraman Dede: "Kahraman Dede... çıkma vakti. Bu gece kim mahallemi bozuyor?"
+Anonim: "Anonim... gölgede kal. Bu gece kimi işaretliyorsun?"
+
+SABAH:
+Ölüm var: "Mahalle uyanıyor... Gözlerinizi açabilirsiniz. Bu sabah [İSİM] kaybolmuş."
+Ölüm yok: "Mahalle uyanıyor... Bu sabah mahalle sakindir. Kimse kaybolmamış."
+Çoklu ölüm: "Mahalle uyanıyor... Bu sabah [İSİM1] ve [İSİM2] kaybolmuş."
+
+GÜNDÜZ:
+"Mahalle meydanında toplanın. [X] dakikanız var. Suçluyu bulun."
+
+OYLAMA:
+"Oylama başlıyor. Telefonlarınızdan oyunuzu kullanın. Otuz saniye."
+"Mahalle kararını verdi. [İSİM] uzaklaştırılıyor. Rolü: [ROL]."
+"Oylar eşit. İkinci tur başlıyor."
+"Oylar yine eşit. Bu sefer kimse elenmedi."
+
+OYUN SONU:
+Mahalle: "Mahalle zafere ulaştı! Tüm karanlık güçler temizlendi."
+Çete: "Tefeci Çetesi kazandı! Mahalle artık onların..."
+Kahraman Dede: "Kahraman Dede tek başına ayakta! Herkes gitti, o kaldı."
+
+== MEZARLIK ==
+- Ölen oyuncu Mezarlık ekranına geçer
+- Mezarlık chat kanalı: ölüler birbirleriyle konuşabilir
+- Yaşayan oyunculara mesaj atılamaz, onların chat'i görülemez
+- Mezarlık ekranında tüm ölenlerin rolleri + ölüm nedeni listelenir
+- Ölüler oylama sonuçlarını gerçek zamanlı takip edebilir (izleyici modu)
+
+== OYUN SONU EKRANI ==
+Tüm ekranlarda eş zamanlı açılır:
+- Kazanan fraksiyon büyük animasyonla
+- Tüm rollerin açıklaması (kim ne oynadı)
+- Kim kimi öldürdü, kim kimi kurtardı (timeline)
+- İstatistikler:
+  * En iyi blöfçü (en çok yanlış suçlanan ama hayatta kalan)
+  * En çok kurtaran (Otacı Teyze kaç kez kurtardı)
+  * MVP (kazanmaya en çok katkı eden)
+  * Kaç tur sürdü
+- "📤 Kartı Paylaş" → Canvas API ile Instagram story boyutunda görsel üretilir
+- "🔄 Tekrar Oyna" → aynı oda, yeni oyun, aynı oyuncular
+
+== ROL JSON CONFIG YAPISI ==
+roles.js dosyasında her rol şu formatta:
+
+{
+  id: "bekci",
+  name: "Bekçi",
+  emoji: "🔦",
+  team: "iyi", // "iyi" | "kotu" | "kaos" | "tarafsiz"
+  description: "Mahallenin gece bekçisi...",
+  nightAction: {
+    type: "sorgu", // "oldurmek" | "koruma" | "sorgu" | "takas" | "isaretle" | "kopyala" | "bağımsız_oldurme" | null
+    targetType: "herhangi", // "herhangi" | "iyi_oyuncu" | "kotu_oyuncu"
+    duration: 12, // saniye
+    prompt: "Bekçi... fenerini yak. Bu gece hangi evi kontrol edeceksin?",
+    result: "ekip" // "ekip" | "tam_rol" | "olusur" | null
+  },
+  winCondition: "mahalle",
+  passiveAbility: null, // özel pasif yetenek varsa string açıklama
+  storyText: "Mahallenin gece bekçisi...",
+  tacticTips: ["ipucu1", "ipucu2", "ipucu3"],
+  nightOrder: 6 // gece sırasındaki pozisyon
+}
+
+== UI/UX DETAYLARI ==
+- Koyu tema (dark mode varsayılan, gece atmosferi)
+- Türkçe arayüz, tüm metinler Türkçe
+- Mobil öncelikli (375px baz genişlik, max 430px)
+- Dokunmatik butonlar minimum 48px yükseklik
+- Gece fazında ekran tamamen kararır (bg: #0a0a0f), ay animasyonu
+- Gündüz fazında sıcak krem ton (bg: #faf7f0)
+- Her faz geçişinde 1 saniyelik CSS geçiş animasyonu
+- Oylama ekranında gerçek zamanlı oy bar'ları (oy verildi ama kim verdi gizli)
+- Bağlantı durumu göstergesi (sağ üst köşe)
+- Hata durumları: "Bağlantı kesildi, yeniden bağlanılıyor..." toast mesajı
+
+== ÖNCELİKLİ GELİŞTİRME SIRASI ==
+1. Socket.io oda kurma ve katılım sistemi
+2. Rol seçim sırası motoru
+3. Gündüz fazı (timer + oylama)
+4. Gece fazı (aksiyon motoru + ses)
+5. Kazanma koşulu tespiti
+6. Oyun sonu ekranı
+
+İlk önce çalışan bir prototip yap: oda kur, rol seç, gündüz/gece döngüsü, temel oylama. Roller ve sesli yönlendirme sonra entegre edilebilir. Tüm oyun mantığı sunucu tarafında (gameEngine.js) tutulsun, client sadece state'i görüntülesin.

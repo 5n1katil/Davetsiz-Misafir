@@ -1,0 +1,221 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { io, Socket } from "socket.io-client";
+
+import { speak, setMuted } from "@/lib/speech";
+
+const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN;
+const SOCKET_URL = DOMAIN ? `https://${DOMAIN}` : "http://localhost";
+
+export interface PlayerView {
+  id: string;
+  nickname: string;
+  isHost: boolean;
+  isAlive: boolean;
+  isConnected: boolean;
+  isReady: boolean;
+  hasSelectedRole: boolean;
+}
+
+export interface GameState {
+  code: string;
+  hostId: string;
+  phase:
+    | "LOBBY"
+    | "ROLE_SELECT"
+    | "ROLE_REVEAL"
+    | "DAY"
+    | "VOTE"
+    | "VOTE_RUNOFF"
+    | "NIGHT"
+    | "NIGHT_ROLE"
+    | "ENDED";
+  round: number;
+  settings: {
+    dayDurationSec: number;
+    voiceEnabled: boolean;
+    ceteCount: number;
+    activeSpecialRoles: string[];
+    nightActionDurationSec: number;
+  };
+  phaseDeadline: number | null;
+  roleSelectDeadline: number | null;
+  players: PlayerView[];
+  currentChoice: { playerId: string; options: string[] } | null;
+  myRole: string | null;
+  runoffCandidates: string[];
+  nightStep: { roleId: string; actorIds: string[] } | null;
+  nightStepIndex: number;
+  nightOrderQueue: { roleId: string; actorIds: string[] }[];
+  morningEvents: { kind: string; message: string; victims?: string[] }[];
+  graveyard: {
+    playerId: string;
+    nickname: string;
+    roleId: string;
+    cause: string;
+  }[];
+  graveyardChat: { from: string; nick: string; text: string; ts: number }[];
+  winner: string | null;
+  winnerLabel: string | null;
+  voteCount: number;
+  voteOpenBy: number;
+  privateMessages: { msg: string; ts: number }[];
+  ceteMembers: { id: string; nickname: string; roleId: string | null }[];
+}
+
+interface GameCtx {
+  socket: Socket | null;
+  connected: boolean;
+  state: GameState | null;
+  myPlayerId: string | null;
+  myNickname: string;
+  setNickname: (n: string) => void;
+  createRoom: (nickname: string) => Promise<{ ok: boolean; error?: string }>;
+  joinRoom: (
+    code: string,
+    nickname: string,
+  ) => Promise<{ ok: boolean; error?: string }>;
+  emit: (event: string, payload?: any) => Promise<{ ok: boolean; error?: string }>;
+  leave: () => void;
+  voiceMuted: boolean;
+  toggleVoice: () => void;
+}
+
+const Ctx = createContext<GameCtx | null>(null);
+
+export function useGame() {
+  const v = useContext(Ctx);
+  if (!v) throw new Error("useGame must be used inside GameProvider");
+  return v;
+}
+
+export function GameProvider({ children }: { children: React.ReactNode }) {
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [connected, setConnected] = useState(false);
+  const [state, setState] = useState<GameState | null>(null);
+  const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
+  const [myNickname, setMyNickname] = useState("");
+  const [voiceMuted, setVoiceMutedState] = useState(false);
+  const lastPhaseRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem("mahalle:nickname").then((n) => {
+      if (n) setMyNickname(n);
+    });
+  }, []);
+
+  useEffect(() => {
+    AsyncStorage.setItem("mahalle:nickname", myNickname);
+  }, [myNickname]);
+
+  useEffect(() => {
+    const s = io(SOCKET_URL, {
+      path: "/api/socket.io",
+      transports: ["websocket", "polling"],
+      reconnection: true,
+    });
+    s.on("connect", () => setConnected(true));
+    s.on("disconnect", () => setConnected(false));
+    s.on("state", (st: GameState) => {
+      setState(st);
+      if (lastPhaseRef.current !== st.phase) {
+        lastPhaseRef.current = st.phase;
+      }
+    });
+    s.on("voice", (lines: string[]) => {
+      for (const line of lines) speak(line);
+    });
+    setSocket(s);
+    return () => {
+      s.disconnect();
+    };
+  }, []);
+
+  const emit = useCallback(
+    (event: string, payload: any = {}) =>
+      new Promise<{ ok: boolean; error?: string }>((resolve) => {
+        if (!socket) return resolve({ ok: false, error: "Bağlı değil" });
+        socket.emit(event, payload, (res: any) => {
+          resolve(res ?? { ok: true });
+        });
+      }),
+    [socket],
+  );
+
+  const createRoom = useCallback(
+    async (nickname: string) => {
+      const res = await emit("createRoom", { nickname });
+      if (res.ok && (res as any).playerId) setMyPlayerId((res as any).playerId);
+      return res;
+    },
+    [emit],
+  );
+
+  const joinRoom = useCallback(
+    async (code: string, nickname: string) => {
+      const res = await emit("joinRoom", {
+        code: code.trim().toUpperCase(),
+        nickname,
+      });
+      if (res.ok && (res as any).playerId) setMyPlayerId((res as any).playerId);
+      return res;
+    },
+    [emit],
+  );
+
+  const leave = useCallback(() => {
+    setState(null);
+    setMyPlayerId(null);
+    if (socket) {
+      socket.disconnect();
+      socket.connect();
+    }
+  }, [socket]);
+
+  const toggleVoice = useCallback(() => {
+    setVoiceMutedState((v) => {
+      setMuted(!v);
+      return !v;
+    });
+  }, []);
+
+  const value = useMemo<GameCtx>(
+    () => ({
+      socket,
+      connected,
+      state,
+      myPlayerId,
+      myNickname,
+      setNickname: setMyNickname,
+      createRoom,
+      joinRoom,
+      emit,
+      leave,
+      voiceMuted,
+      toggleVoice,
+    }),
+    [
+      socket,
+      connected,
+      state,
+      myPlayerId,
+      myNickname,
+      createRoom,
+      joinRoom,
+      emit,
+      leave,
+      voiceMuted,
+      toggleVoice,
+    ],
+  );
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}

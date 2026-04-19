@@ -1,0 +1,8 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "XUr4Yy_yg6EuvraoVpb7Q"
+uri = "file://artifacts/mahalle/assets/images/icon.png"
+type = "image"
+title = "mahalle app icon"

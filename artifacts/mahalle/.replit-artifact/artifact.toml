@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/"
+title = "MAHALLE"
+version = "1.0.0"
+id = "artifacts/mahalle"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+name = "expo"
+paths = [ "/" ]
+localPort = 21930
+
+[services.development]
+run = "pnpm --filter @workspace/mahalle run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/mahalle", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/mahalle", "run", "serve" ]
+
+[services.env]
+PORT = "21930"
+BASE_PATH = "/"
