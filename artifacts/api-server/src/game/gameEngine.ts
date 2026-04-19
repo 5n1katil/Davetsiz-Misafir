@@ -83,7 +83,7 @@ export interface Room {
   pausedAt: number | null;
 
   // ── 18-Rol Genişletilmiş Durum ──────────────────────────────────────────
-  hokaUsed: boolean;                          // Hoca tek kullanımlık bayrağı
+  hocaUsed: boolean;                          // Hoca tek kullanımlık bayrağı
   lockedHouses: string[];                     // Kapıcı kilitli ev (playerId)
   anonimMarks: Record<string, string[]>;      // anonimId -> [işaretlenen playerIds]
   anonimLynchedCounts: Record<string, number>;// anonimId -> linç edilen işaretli sayısı
@@ -179,7 +179,7 @@ export function createRoom(socketId: string, nickname: string): Room {
     winnerLabel: null,
     paused: false,
     pausedAt: null,
-    hokaUsed: false,
+    hocaUsed: false,
     lockedHouses: [],
     anonimMarks: {},
     anonimLynchedCounts: {},
@@ -303,7 +303,7 @@ export function startGame(
   room.phase = "ROLE_SELECT";
 
   // Reset 18-rol state
-  room.hokaUsed = false;
+  room.hocaUsed = false;
   room.lockedHouses = [];
   room.anonimMarks = {};
   room.anonimLynchedCounts = {};
@@ -810,7 +810,7 @@ function startNight(room: Room) {
   }
 
   // 8: Hoca (yalnızca kullanılmadıysa)
-  if (!room.hokaUsed) {
+  if (!room.hocaUsed) {
     const actors = room.players.filter((p) => p.isAlive && p.roleId === "hoca");
     if (actors.length > 0) queue.push({ roleId: "hoca", actorIds: actors.map((a) => a.id) });
   }
@@ -967,12 +967,12 @@ export function submitNightAction(
 
   // Hoca: tek kullanımlık, eğer kullanılmışsa geç
   if (roleId === "hoca") {
-    if (room.hokaUsed) {
+    if (room.hocaUsed) {
       finishNightStep(room);
       return room;
     }
     if (!t1 || !t1.isAlive) return { error: "Geçersiz hedef" };
-    room.hokaUsed = true;
+    room.hocaUsed = true;
     room.nightActions.push({ actorId, targetId, type: "koruma_guclu" });
     finishNightStep(room);
     return room;
@@ -1391,7 +1391,7 @@ export function restartGame(
   room.winnerLabel = null;
   room.paused = false;
   room.pausedAt = null;
-  room.hokaUsed = false;
+  room.hocaUsed = false;
   room.lockedHouses = [];
   room.anonimMarks = {};
   room.anonimLynchedCounts = {};
@@ -1458,7 +1458,7 @@ export function publicView(room: Room, viewerPlayerId: string | null) {
             .map((p) => ({ id: p.id, nickname: p.nickname, roleId: p.roleId }))
         : [],
     // Hoca'ya özel: dua kullanıldı mı?
-    hokaUsed: viewerRole === "hoca" ? room.hokaUsed : undefined,
+    hocaUsed: viewerRole === "hoca" ? room.hocaUsed : undefined,
     // Anonim'e özel: işaretlediği kişiler
     anonimMarks: viewerRole === "anonim" && viewerPlayerId
       ? (room.anonimMarks[viewerPlayerId] ?? [])
