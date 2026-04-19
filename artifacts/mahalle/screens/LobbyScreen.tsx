@@ -5,6 +5,7 @@ import * as Linking from "expo-linking";
 import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  AccessibilityInfo,
   Alert,
   Animated,
   Dimensions,
@@ -52,6 +53,15 @@ export default function LobbyScreen() {
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+  const skeletonOpacity = useRef(new Animated.Value(0.3)).current;
+  const inputFadeAnim = useRef(new Animated.Value(0)).current;
+  const [reduceMotion, setReduceMotion] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    const sub = AccessibilityInfo.addEventListener("reduceMotionChanged", setReduceMotion);
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     Animated.parallel([
@@ -59,6 +69,27 @@ export default function LobbyScreen() {
       Animated.spring(slideAnim, { toValue: 0, tension: 60, friction: 10, useNativeDriver: false }),
     ]).start();
   }, []);
+
+  useEffect(() => {
+    if (myNickname !== null || reduceMotion !== false) return;
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(skeletonOpacity, { toValue: 0.6, duration: 600, useNativeDriver: true }),
+        Animated.timing(skeletonOpacity, { toValue: 0.3, duration: 600, useNativeDriver: true }),
+      ])
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [myNickname, reduceMotion]);
+
+  useEffect(() => {
+    if (myNickname === null) return;
+    Animated.timing(inputFadeAnim, {
+      toValue: 1,
+      duration: reduceMotion ? 0 : 200,
+      useNativeDriver: true,
+    }).start();
+  }, [myNickname]);
 
   useEffect(() => {
     Linking.getInitialURL().then((url) => {
@@ -176,24 +207,26 @@ export default function LobbyScreen() {
             <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
               <Text style={[styles.label, { color: c.mutedForeground }]}>Adın</Text>
               {myNickname === null ? (
-                <View
+                <Animated.View
                   style={[
                     styles.input,
-                    { borderColor: c.border, backgroundColor: c.input, opacity: 0.4 },
+                    { borderColor: c.border, backgroundColor: c.input, opacity: reduceMotion === false ? skeletonOpacity : 0.4 },
                   ]}
                 />
               ) : (
-                <TextInput
-                  value={myNickname}
-                  onChangeText={setNickname}
-                  placeholder="Ör: Selim Abi"
-                  placeholderTextColor={c.mutedForeground}
-                  maxLength={20}
-                  style={[
-                    styles.input,
-                    { color: c.foreground, borderColor: c.border, backgroundColor: c.input },
-                  ]}
-                />
+                <Animated.View style={{ opacity: inputFadeAnim }}>
+                  <TextInput
+                    value={myNickname}
+                    onChangeText={setNickname}
+                    placeholder="Ör: Selim Abi"
+                    placeholderTextColor={c.mutedForeground}
+                    maxLength={20}
+                    style={[
+                      styles.input,
+                      { color: c.foreground, borderColor: c.border, backgroundColor: c.input },
+                    ]}
+                  />
+                </Animated.View>
               )}
 
               <View style={styles.actionRow}>
