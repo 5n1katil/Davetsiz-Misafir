@@ -99,6 +99,8 @@ interface GameCtx {
   toggleVoice: () => void;
   vibrationsEnabled: boolean;
   toggleVibrations: () => void;
+  toastsEnabled: boolean;
+  toggleToasts: () => void;
   systemToast: SystemToast | null;
   dismissToast: () => void;
 }
@@ -119,6 +121,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [myNickname, setMyNickname] = useState<string | null>(null);
   const [voiceMuted, setVoiceMutedState] = useState(false);
   const [vibrationsEnabled, setVibrationsEnabledState] = useState(true);
+  const [toastsEnabled, setToastsEnabledState] = useState(true);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [systemToast, setSystemToast] = useState<SystemToast | null>(null);
   const lastPhaseRef = useRef<string | null>(null);
@@ -166,8 +169,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       AsyncStorage.getItem("mahalle:nickname"),
       AsyncStorage.getItem("mahalle:vibrationsEnabled"),
       AsyncStorage.getItem("mahalle:voiceMuted"),
+      AsyncStorage.getItem("mahalle:toastsEnabled"),
     ])
-      .then(([n, vib, mute]) => {
+      .then(([n, vib, mute, toasts]) => {
         setMyNickname(n ?? "");
         const enabled = vib !== "false";
         initVibrationsEnabled(enabled);
@@ -176,6 +180,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           setVoiceMutedState(true);
           setMuted(true);
         }
+        setToastsEnabledState(toasts !== "false");
         setPrefsLoaded(true);
       })
       .catch(() => {
@@ -303,6 +308,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const toggleToasts = useCallback(() => {
+    setToastsEnabledState((prev) => {
+      const next = !prev;
+      AsyncStorage.setItem("mahalle:toastsEnabled", String(next));
+      return next;
+    });
+  }, []);
+
   const dismissToast = useCallback(() => {
     setSystemToast(null);
   }, []);
@@ -323,7 +336,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       toggleVoice,
       vibrationsEnabled,
       toggleVibrations,
-      systemToast,
+      toastsEnabled,
+      toggleToasts,
+      systemToast: toastsEnabled ? systemToast : null,
       dismissToast,
     }),
     [
@@ -340,6 +355,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       toggleVoice,
       vibrationsEnabled,
       toggleVibrations,
+      toastsEnabled,
+      toggleToasts,
       systemToast,
       dismissToast,
     ],

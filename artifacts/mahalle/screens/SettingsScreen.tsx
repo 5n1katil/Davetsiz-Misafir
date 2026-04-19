@@ -19,7 +19,7 @@ interface SettingsScreenProps {
 
 export default function SettingsScreen({ visible, onClose }: SettingsScreenProps) {
   const c = useColors();
-  const { voiceMuted, toggleVoice, vibrationsEnabled, toggleVibrations } = useGame();
+  const { voiceMuted, toggleVoice, vibrationsEnabled, toggleVibrations, toastsEnabled, toggleToasts } = useGame();
 
   return (
     <Modal
@@ -81,6 +81,34 @@ export default function SettingsScreen({ visible, onClose }: SettingsScreenProps
               <Switch
                 value={vibrationsEnabled}
                 onValueChange={toggleVibrations}
+                trackColor={{ false: c.border, true: c.primary }}
+                thumbColor="#fff"
+              />
+            </View>
+          </View>
+
+          <Text style={[styles.sectionLabel, { color: c.mutedForeground }]}>
+            BİLDİRİMLER
+          </Text>
+
+          <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
+            <View style={[styles.row, { borderBottomWidth: 0 }]}>
+              <View style={styles.rowLeft}>
+                <Feather
+                  name={toastsEnabled ? "bell" : "bell-off"}
+                  size={20}
+                  color={toastsEnabled ? c.primary : c.mutedForeground}
+                />
+                <View style={styles.rowText}>
+                  <Text style={[styles.rowTitle, { color: c.foreground }]}>Oyun Bildirimleri</Text>
+                  <Text style={[styles.rowSub, { color: c.mutedForeground }]}>
+                    Oyun olaylarında ekranda bildirim göster
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={toastsEnabled}
+                onValueChange={toggleToasts}
                 trackColor={{ false: c.border, true: c.primary }}
                 thumbColor="#fff"
               />
