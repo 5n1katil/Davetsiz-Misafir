@@ -21,6 +21,7 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ThemeTransitionLayer } from "@/components/ThemeTransitionLayer";
 import { GameProvider } from "@/contexts/GameContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
@@ -49,6 +50,7 @@ function ThemedApp() {
         >
           <Stack.Screen name="index" />
         </Stack>
+        <ThemeTransitionLayer />
       </KeyboardProvider>
     </GestureHandlerRootView>
   );
