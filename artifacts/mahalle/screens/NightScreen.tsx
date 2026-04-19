@@ -21,7 +21,7 @@ const BG = "#060310";
 export default function NightScreen() {
   const c = useColors();
   const { state, myPlayerId, emit } = useGame();
-  const remaining = useCountdown(state?.phaseDeadline ?? null);
+  const remaining = useCountdown(state?.phaseDeadline ?? null, state?.paused ?? false);
   const me = state?.players.find((p) => p.id === myPlayerId);
   const isHost = state && me && me.id === state.hostId;
   const isDead = !me?.isAlive;

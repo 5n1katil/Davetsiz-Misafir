@@ -13,7 +13,7 @@ import { useGhostActivity } from "@/hooks/useGhostActivity";
 export default function DayScreen() {
   const c = useColors();
   const { state, myPlayerId, emit } = useGame();
-  const remaining = useCountdown(state?.phaseDeadline ?? null);
+  const remaining = useCountdown(state?.phaseDeadline ?? null, state?.paused ?? false);
   if (!state) return null;
   const me = state.players.find((p) => p.id === myPlayerId);
   const alive = state.players.filter((p) => p.isAlive && p.isConnected);

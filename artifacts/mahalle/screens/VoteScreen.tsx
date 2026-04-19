@@ -12,7 +12,7 @@ import { useGhostActivity } from "@/hooks/useGhostActivity";
 export default function VoteScreen() {
   const c = useColors();
   const { state, myPlayerId, emit } = useGame();
-  const remaining = useCountdown(state?.phaseDeadline ?? null);
+  const remaining = useCountdown(state?.phaseDeadline ?? null, state?.paused ?? false);
   if (!state) return null;
   const me = state.players.find((p) => p.id === myPlayerId);
   const candidates = state.players.filter((p) => state.runoffCandidates.includes(p.id));
