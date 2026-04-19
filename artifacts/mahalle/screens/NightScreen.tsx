@@ -88,9 +88,9 @@ export default function NightScreen() {
         <Text style={{ color: "#9B7FD4", marginTop: 8, fontFamily: "Inter_400Regular", textAlign: "center" }}>
           Gözlerinizi kapatın
         </Text>
-        {ghostActive ? (
+        {ghostActive > 0 ? (
           <View style={{ marginTop: 12 }}>
-            <GhostActivityBadge />
+            <GhostActivityBadge count={ghostActive} />
           </View>
         ) : null}
         {isHost ? (
@@ -122,9 +122,9 @@ export default function NightScreen() {
         <Text style={{ color: "#9B7FD4", marginTop: 8, fontFamily: "Inter_400Regular", textAlign: "center" }}>
           Sen uyu. Aksiyon başkasına ait.
         </Text>
-        {ghostActive ? (
+        {ghostActive > 0 ? (
           <View style={{ marginTop: 12 }}>
-            <GhostActivityBadge />
+            <GhostActivityBadge count={ghostActive} />
           </View>
         ) : null}
         <Text style={{ color: "#F5C842", fontFamily: "Inter_700Bold", fontSize: 34, marginTop: 28, fontVariant: ["tabular-nums"] }}>
@@ -154,9 +154,9 @@ export default function NightScreen() {
         <Text style={{ color: "#F5C842", fontFamily: "Inter_700Bold", fontSize: 34, marginTop: 8, fontVariant: ["tabular-nums"] }}>
           {remaining}s
         </Text>
-        {ghostActive ? (
+        {ghostActive > 0 ? (
           <View style={{ marginTop: 8 }}>
-            <GhostActivityBadge />
+            <GhostActivityBadge count={ghostActive} />
           </View>
         ) : null}
       </View>
