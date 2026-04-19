@@ -245,8 +245,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const toggleVoice = useCallback(() => {
     setVoiceMutedState((v) => {
-      setMuted(!v);
-      return !v;
+      const next = !v;
+      setMuted(next);
+      setSystemToast({
+        message: next ? "Ses kapatıldı" : "Ses açıldı",
+        id: Date.now(),
+      });
+      return next;
     });
   }, []);
 
