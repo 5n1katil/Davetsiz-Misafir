@@ -1,0 +1,386 @@
+Replit'e yapıştır:
+
+---
+
+> Update the game "Davetsiz Misafir" with complete role mechanics and game dynamics. Do not change the existing UI theme or structure. Only add/update the game logic, role definitions, and night engine.
+>
+> **GAME NAME:** Davetsiz Misafir
+> **PLAYERS:** 4-30
+> **SETTING:** Turkish neighborhood (mahalle), night theme
+>
+> ---
+>
+> ## PLAYER COUNT → ROLE DISTRIBUTION
+>
+> ```
+> 4-6 players:  1 Davetsiz Misafir, 1 Tahsildar, rest Mahalle
+> 7-9 players:  1 Davetsiz Misafir, 1 Tahsildar, 1 Sahte Dernek Başkanı, + 1 special Mahalle role, rest Mahalle
+> 10-13 players: 2 Davetsiz Misafir, 1 Tahsildar, 1 Sahte Dernek Başkanı, + 2 special roles, rest Mahalle
+> 14-18 players: 3 Davetsiz Misafir, 2 Tahsildar, 1 Sahte Dernek Başkanı, 1 İçten Pazarlıklı, + 3 special roles, rest Mahalle
+> 19-24 players: 4 Davetsiz Misafir, 2 Tahsildar, 1 Sahte Dernek Başkanı, 1 İçten Pazarlıklı, + 1 Kaos role, + 4 special roles, rest Mahalle
+> 25-30 players: 5 Davetsiz Misafir, 3 Tahsildar, 1 Sahte Dernek Başkanı, 1 İçten Pazarlıklı, + 2 Kaos roles, + 2 Yalnız Kurt roles, + 5 special roles, rest Mahalle
+> ```
+>
+> Host can manually override these numbers in room settings before game starts.
+>
+> ---
+>
+> ## ALL 18 ROLES — COMPLETE MECHANICS
+>
+> Store all roles in `roles.js` as JSON config with this structure:
+>
+> ```javascript
+> {
+>   id: string,
+>   name: string,
+>   emoji: string,
+>   team: "mahalle" | "kotu" | "kaos" | "tarafsiz",
+>   nightOrder: number, // execution order, lower = earlier
+>   nightAction: {
+>     type: "kill" | "protect" | "query_team" | "query_role" | "lock" | "swap" | "copy" | "mark" | "independent_kill" | "passive" | null,
+>     targetType: "any_alive" | "good_only" | "evil_only" | "any_except_self",
+>     duration: 12, // seconds
+>     voicePrompt: string, // Turkish TTS text
+>     canUseEveryNight: boolean,
+>     usesTotal: number | null // null = unlimited
+>   },
+>   passiveAbility: string | null,
+>   winCondition: string,
+>   storyText: string,
+>   tacticTips: string[]
+> }
+> ```
+>
+> ---
+>
+> ### MAHALLE TAKIMI (good team)
+>
+> **1. MUHTAR**
+> ```
+> id: "muhtar", emoji: "🕌", team: "mahalle", nightOrder: null
+> nightAction: null (no night action)
+> passiveAbility: "Oyu 1.5 sayılır. Bu durum herkesçe bilinir."
+> winCondition: "Tüm Davetsiz Misafir çetesi ve tehlikeli kargaşacılar etkisiz hale getirilmeli."
+> storyText: "Mahallenin saygın lideri. Söz onun, karar onun. Ama bu güç onu hedef yapar."
+> tacticTips: ["Gündüz tartışmayı yönet", "Oyunu erkenden ifşa etme", "Çete seni ilk hedef alır, dikkatli ol"]
+> specialRule: "If Muhtar is alive, their vote counts as 1.5 in lynch voting. Server rounds up. This is public knowledge — everyone knows who Muhtar is from day 1."
+> ```
+>
+> **2. BEKÇİ**
+> ```
+> id: "bekci", emoji: "🔦", team: "mahalle", nightOrder: 6
+> nightAction: { type: "query_team", targetType: "any_except_self", duration: 12 }
+> voicePrompt: "Bekçi... fenerini yak. Bu gece hangi evi kontrol edeceksin?"
+> result: Returns "Mahalle" or "Davetsiz" (good/evil) — does NOT reveal exact role
+> passiveAbility: null
+> winCondition: "Tüm çete etkisiz hale getirilmeli."
+> storyText: "Geceleri mahalleyi dolaşır. Kapıları yoklar, pencerelere bakar. Bir şeyler hissediyor."
+> tacticTips: ["Öğrendiğini hemen söyleme, hedef olursun", "Yanlış kişiyi ihbar etme, güven kaybedersin", "Bekçiyi öldürmek çetenin önceliğidir"]
+> specialRule: "If Kapıcı locked the target's house, Bekçi cannot enter — returns no result. If target was swapped by Kumarbaz, Bekçi sees the new role's team."
+> ```
+>
+> **3. OTACI TEYZE**
+> ```
+> id: "otaci_teyze", emoji: "🌿", team: "mahalle", nightOrder: 5
+> nightAction: { type: "protect", targetType: "any_alive", duration: 12, canUseEveryNight: true }
+> voicePrompt: "Otacı Teyze... bitkisel çantanı al. Bu gece kimin kapısını çalacaksın?"
+> specialRule: "Cannot protect the same person two nights in a row. Can protect herself once per game. If she protects someone the Davetsiz Misafir targets, that person survives — morning announces 'Bu sabah kimse kaybolmadı.' If Kapıcı locked target's house, Otacı cannot enter — protection fails silently."
+> winCondition: "Tüm çete etkisiz hale getirilmeli."
+> storyText: "Bitkisel ilaçları, nazar boncukları ve sezgisiyle mahallenin sağlıkçısı. Kapısı her gece açık."
+> tacticTips: ["Aynı kişiyi üst üste koruma", "Kendini korumayı unutma", "Kimi koruduğunu asla söyleme"]
+> ```
+>
+> **4. FALCI**
+> ```
+> id: "falci", emoji: "🔮", team: "mahalle", nightOrder: 7
+> nightAction: { type: "query_role", targetType: "any_except_self", duration: 12, canUseEveryNight: true }
+> voicePrompt: "Falcı... fincanı çevir. Bu gece kimin kaderine bakacaksın?"
+> result: Returns exact role name. BUT: 20% chance of returning a random wrong role (server-side Math.random()). Falcı is NOT told when the result is wrong.
+> winCondition: "Tüm çete etkisiz hale getirilmeli."
+> storyText: "Kahve fincanları ona sırları fısıldar. Ama yıldızlar bazen yalan söyler."
+> tacticTips: ["Sonuç yanlış çıkabilir, kesin doğru sanma", "Bilgiyi muğlak paylaş", "İki kez aynı kişiyi sorgula doğrulamak için"]
+> ```
+>
+> **5. KAPICI**
+> ```
+> id: "kapici", emoji: "🧹", team: "mahalle", nightOrder: 4
+> nightAction: { type: "lock", targetType: "any_alive", duration: 12, canUseEveryNight: true }
+> voicePrompt: "Kapıcı... anahtarlarını al. Bu gece hangi kapıyı kilitleyeceksin?"
+> specialRule: "Locked house blocks ALL night visitors — Davetsiz kill fails, Otacı protection fails, Bekçi query fails, Falcı query fails. Kapıcı cannot lock their own house. Locking the Davetsiz Misafir's target saves that target (kill blocked). Locking Otacı's target means Otacı cannot protect."
+> winCondition: "Tüm çete etkisiz hale getirilmeli."
+> storyText: "Her anahtarın bir sırrı var. Bu gece hangi kapıyı kapatırsan o kapı korunur — içeriden de dışarıdan da."
+> tacticTips: ["Kimi koruyacağını tahmin et", "Otacı Teyze ile koordineli ol", "Kendi evini kilitleme, işe yaramaz"]
+> ```
+>
+> **6. MUHABİR**
+> ```
+> id: "muhabir", emoji: "📰", team: "mahalle", nightOrder: null
+> nightAction: null
+> passiveAbility: "Öldüğünde o ana kadar öğrendiği tüm bilgiler (sorgu sonuçları, gözlemler) herkese otomatik açıklanır."
+> specialRule: "Muhabir has a private 'notes' field in their game state. Any information they receive during the game (query results from other roles sharing info, public announcements they note) is stored. On death, server broadcasts all stored notes to all players. If Muhabir has no notes, nothing is revealed."
+> winCondition: "Tüm çete etkisiz hale getirilmeli."
+> storyText: "Her şeyi not alır, kimseye söylemez. Ama ölürse dosyalar açılır."
+> tacticTips: ["Bilgiyi biriktir, erken açıklama", "Çete seni susturmak ister", "Ölmeden önce birini güven"]
+> ```
+>
+> **7. ŞEHİR TİYATROCUSU**
+> ```
+> id: "tiyatrocu", emoji: "🎭", team: "mahalle", nightOrder: null
+> nightAction: null
+> passiveAbility: "Öldüğünde gerçek rolü yerine sahte bir rol kartı gösterilir."
+> specialRule: "At game start, server assigns Tiyatrocu a random 'fake role' from the role pool (different from their real role). On death (night kill or lynch), all players see the fake role revealed. Host panel shows real role. Fake role can be any role including evil roles — this can cause chaos."
+> winCondition: "Tüm çete etkisiz hale getirilmeli."
+> storyText: "Hayat bir sahnedir. Ve o en iyi oyuncudur. Ölümü bile bir performanstır."
+> tacticTips: ["Sahte rolünü stratejik kullan", "Çeteyi yanlış yönlendir", "Gerçek rolünü asla açıklama"]
+> ```
+>
+> **8. HOCA**
+> ```
+> id: "hoca", emoji: "📿", team: "mahalle", nightOrder: 8
+> nightAction: { type: "protect", targetType: "any_alive", duration: 12, canUseEveryNight: false, usesTotal: 1 }
+> voicePrompt: "Hoca... duanı et. Bu gece kime bereket vereceksin?"
+> specialRule: "One-time use protection. Stronger than Otacı — works even if house is locked by Kapıcı. If used on Davetsiz Misafir or evil role, it protects them too (Hoca doesn't know alignment). Once used, Hoca becomes a regular villager for remaining nights — night phase skips their action."
+> winCondition: "Tüm çete etkisiz hale getirilmeli."
+> storyText: "Bir duası vardır. Bir kez eder. Kime ettiği her şeyi değiştirir."
+> tacticTips: ["Tek kullanımlık, acele etme", "Bekçi veya Falcı'yı koru", "Yanlış kişiye kullanırsan çeteyi korumuş olursun"]
+> ```
+>
+> ---
+>
+> ### DAVETSİZ MİSAFİR ÇETESİ (evil team)
+>
+> **9. DAVETSİZ MİSAFİR**
+> ```
+> id: "davetsiz_misafir", emoji: "🚪", team: "kotu", nightOrder: 3
+> nightAction: { type: "kill", targetType: "good_only", duration: 15 }
+> voicePrompt: "Davetsiz Misafir uyanıyor... Bu gece kimin kapısını çalacaksınız?"
+> specialRule: "All evil team members see each other's names at game start. During night phase, evil team votes together on a target — majority wins, tie = random. If Davetsiz Misafir (leader) is dead, Tahsildar leads. Kill is blocked by: Otacı protection, Hoca protection, Kapıcı lock."
+> winCondition: "Evil team count >= good team count alive."
+> storyText: "Mahallede yeni biri var. Kim davet etti, kimse bilmiyor. Her gece biri daha kayboluyor."
+> tacticTips: ["Gündüz en masum görün", "Bekçi ve Otacı'yı önce temizle", "Sahte Dernek Başkanı'nı koru"]
+> ```
+>
+> **10. TAHSİLDAR**
+> ```
+> id: "tahsildar", emoji: "🗡️", team: "kotu", nightOrder: 3
+> nightAction: { type: "kill", targetType: "good_only", duration: 15 }
+> voicePrompt: "Davetsiz Misafir uyanıyor... Bu gece kimin kapısını çalacaksınız?"
+> specialRule: "Participates in same evil team vote as Davetsiz Misafir. If Davetsiz Misafir is eliminated, Tahsildar becomes the leader — they now make the kill decision alone. Multiple Tahsildars vote among themselves."
+> winCondition: "Evil team count >= good team count alive."
+> storyText: "Soru sormaz, tahsilat yapar. Onun için iş iştir."
+> tacticTips: ["Davetsiz Misafir düşerse liderliği al", "Dikkat çekme, arka planda kal", "Linç oylamalarında Davetsiz'i koru"]
+> ```
+>
+> **11. SAHTE DERNEK BAŞKANI**
+> ```
+> id: "sahte_dernek", emoji: "😇", team: "kotu", nightOrder: null
+> nightAction: null
+> passiveAbility: "Linç edilirse o tur çete otomatik kazanır."
+> specialRule: "CRITICAL RULE: If Sahte Dernek Başkanı is lynched (not night killed), the evil team wins immediately — game ends that moment regardless of player counts. Evil team knows who Sahte Dernek Başkanı is and must protect them during voting. If night killed by Kahraman Dede or another source, this ability does NOT trigger — only lynch triggers it. Bekçi query returns 'Davetsiz' team for this role."
+> winCondition: "Evil team count >= good team count, OR self gets lynched (instant evil win)."
+> storyText: "Hayır işleri yapıyor görünür. Ama asıl görevi çeteye kalkan olmaktır."
+> tacticTips: ["Asla kendini belli etme", "Çete seni her şeye rağmen korur", "Masum rollerin davranışını taklit et"]
+> ```
+>
+> **12. İÇTEN PAZARLIKLI**
+> ```
+> id: "icten_pazarlikli", emoji: "🐍", team: "kotu", nightOrder: null
+> nightAction: null
+> passiveAbility: "Bekçi sorguladığında 'Mahalle' sonucu döner. Çeteye her gece bir kişinin rolünü sızdırır."
+> specialRule: "When Bekçi queries İçten Pazarlıklı, server returns 'Mahalle' instead of 'Davetsiz' — this is the only role that fools Bekçi. Each night, İçten Pazarlıklı passively observes one player (server randomly selects) and sends that player's role to the evil team's private channel. İçten Pazarlıklı does not choose who to spy on — it's automatic."
+> winCondition: "Evil team count >= good team count alive."
+> storyText: "Komşu gibi görünür. Gülümser. Ama her gece çeteye bilgi sızdırır."
+> tacticTips: ["Bekçi seni temiz görür, bunu kullan", "Mahalle gibi davran, oy ver, tartış", "Çete seni bilir ama sen onları tanıma"]
+> ```
+>
+> ---
+>
+> ### KARGAŞACILAR (chaos team)
+>
+> **13. KUMARBAZ**
+> ```
+> id: "kumarbaz", emoji: "🎰", team: "kaos", nightOrder: 1
+> nightAction: { type: "swap", targetType: "any_alive", duration: 15, canUseEveryNight: true }
+> voicePrompt: "Kumarbaz... zarlarını at. Bu gece kimlerin kaderini takas edeceksin?"
+> specialRule: "Selects TWO players. Their roles are swapped for the ENTIRE remaining game — permanently, not just one night. Kumarbaz does not know which roles they swapped. All subsequent night actions use the new roles. Bekçi/Falcı queries return new role. Win condition for swapped players also changes to match new role. Kumarbaz cannot swap the same pair twice."
+> winCondition: "Oyun bittiğinde hayatta kalan son 3 oyuncudan biri olmak."
+> storyText: "Kimsenin rolü güvende değil. Kumarbaz zarı attı mı herkes başkası olabilir."
+> tacticTips: ["Kim olduğunu asla söyleme", "Kaos yarat, hayatta kal", "Son 3'e girersen kazanırsın"]
+> ```
+>
+> **14. KISKANÇKOMŞU**
+> ```
+> id: "kiskanc_komsu", emoji: "🧂", team: "kaos", nightOrder: 2
+> nightAction: { type: "copy", targetType: "any_except_self", duration: 12, canUseEveryNight: true }
+> voicePrompt: "Kıskanç Komşu... perdeyi aralamadan izle. Bu gece kimi taklit edeceksin?"
+> specialRule: "Copies the night action of chosen player. Server executes the copy AFTER the original (nightOrder 11 effectively). Kıskanç Komşu does not know what action they copied or its result. If chosen player has no night action (Muhtar, Köylü), nothing happens. If chosen player is Kumarbaz, Kıskanç Komşu also swaps two random players. Cannot copy Davetsiz Misafir kill action."
+> winCondition: "Seçtiği kişi hayatta olduğu sürece hayatta kal. Her ikisi oyun sonuna ulaşırsa kazanır."
+> storyText: "Komşusunda ne varsa onu ister. Ne yapıyorsa onu yapar. Farkında bile olmadan."
+> tacticTips: ["Güçlü rolleri kopyala", "Aşık olduğun kişiyi hayatta tut", "Kim olduğunu gizle"]
+> ```
+>
+> **15. KIRIK KALP**
+> ```
+> id: "kirik_kalp", emoji: "💔", team: "kaos", nightOrder: null
+> nightAction: null
+> passiveAbility: "Oyun başında rastgele bir oyuncuyla 'aşk bağı' oluşur. Bağlı olduğu kişi ölürse Kırık Kalp de aynı gece ölür."
+> specialRule: "At game start, server randomly selects one other player as Kırık Kalp's 'aşık'. Both are privately notified of each other (Kırık Kalp sees aşık's name, aşık does NOT know they are loved). If aşık dies for any reason (night kill, lynch, chain death), Kırık Kalp dies the same moment — announced together in morning. Kırık Kalp dying does NOT kill aşık. Kırık Kalp can be any team."
+> winCondition: "Aşığıyla birlikte oyun sonuna kadar ikisi de hayatta kalırsa kazanır — takım gözetmeksizin bağımsız kazanma."
+> storyText: "Kalbini birine bağladı. O giderse o da gider. Aşk bu mahallede tehlikeli bir şey."
+> tacticTips: ["Aşığını her şeyden önce koru", "Aşığın kim olduğunu kimseye söyleme", "Aşığın çeteyse bile onu koru"]
+> ```
+>
+> **16. DEDİKODUCU**
+> ```
+> id: "dedikoducu", emoji: "🗣️", team: "kaos", nightOrder: null
+> nightAction: null
+> passiveAbility: "Öldüğü turda yapılan linç oylaması ters döner — en az oy alan elenir."
+> specialRule: "If Dedikoducu dies during the NIGHT phase, the NEXT day's lynch is reversed. If Dedikoducu is lynched during DAY phase, that same lynch is reversed (the vote that killed them reverses — least voted player is eliminated instead, Dedikoducu is still eliminated). This can cause Sahte Dernek Başkanı instant-win if reversal causes them to be lynched."
+> winCondition: "Hayatta kaldığı sürece en az 2 yanlış linç gerçekleşmeli (masum biri linç edilmeli). Bunu başarırsa oyun sonunda kişisel kazanma puanı alır — takım kazanmasına bakılmaksızın."
+> storyText: "Her şeyi bilir, herkese anlatır. Ölümü bile bir dedikodudur."
+> tacticTips: ["Ne kadar çok konuşursan o kadar güvenilmezsin", "Ölümün bile bir silah", "Yanlış yönlendir, izle"]
+> ```
+>
+> ---
+>
+> ### YALNIZ KURTLAR (neutral/solo)
+>
+> **17. ANONİM**
+> ```
+> id: "anonim", emoji: "🎭", team: "tarafsiz", nightOrder: 10
+> nightAction: { type: "mark", targetType: "any_alive", duration: 12, canUseEveryNight: true }
+> voicePrompt: "Anonim... gölgede kal. Bu gece kimi işaretliyorsun?"
+> specialRule: "Marks one player per night. Marks are private — only Anonim and server know. If 3 marked players are LYNCHED (not night killed — must be community vote), Anonim wins immediately and alone. Anonim must be alive when the 3rd lynch happens. Anonim loses if eliminated before completing 3 marks. Marked players are not notified."
+> winCondition: "İşaretlediği 3 kişi linç yoluyla öldürülmeli. Anonim hayatta olmalı. Herkese karşı tek başına kazanır."
+> storyText: "Kimse tanımıyor. Kimse bilmiyor. Ama o herkesi izliyor ve hesabını görüyor."
+> tacticTips: ["Linç tartışmalarını yönlendir", "İşaretlediklerini hedef göster", "Kim olduğunu asla açıklama"]
+> ```
+>
+> **18. KAHRAMAN DEDE**
+> ```
+> id: "kahraman_dede", emoji: "🪬", team: "tarafsiz", nightOrder: 9
+> nightAction: { type: "independent_kill", targetType: "any_alive", duration: 12, canUseEveryNight: true }
+> voicePrompt: "Kahraman Dede... çıkma vakti. Bu gece kim mahallemi bozuyor?"
+> specialRule: "Kills independently — separate from evil team kill. Both kills can happen same night (two deaths possible). Kahraman Dede's kill IS blocked by Otacı protection and Hoca protection. NOT blocked by Kapıcı lock (Dede doesn't need a door). Kahraman Dede can kill evil team members too. Cannot kill themselves. If Kahraman Dede is the last player alive, they win — even if technically the evil team would have won by numbers."
+> winCondition: "Hayatta kalan tek kişi olmak. Herkese karşı — iyiye, kötüye, kaosa karşı."
+> storyText: "Yıllarca mahalleyi korudu. Artık kimseye güvenmiyor. Tek başına temizleyecek."
+> tacticTips: ["Hem çeteyi hem mahalleyi öldürebilirsin", "Son kalmak zorundasın", "Otacı seni bile koruyabilir"]
+> ```
+>
+> ---
+>
+> ## NIGHT ACTION PRIORITY / CONFLICT RULES
+>
+> Execute in this exact order each night:
+>
+> ```
+> 1. Kumarbaz swap (nightOrder: 1) — permanent role swap applied immediately
+> 2. Kıskanç Komşu target selection (nightOrder: 2) — stores target, executes at end
+> 3. Evil team kill vote (nightOrder: 3) — target selected, not executed yet
+> 4. Kapıcı lock (nightOrder: 4) — locked houses recorded
+> 5. Otacı Teyze protect (nightOrder: 5) — protections recorded
+> 6. Bekçi query (nightOrder: 6) — blocked if target house locked
+> 7. Falcı query (nightOrder: 7) — blocked if target house locked, 20% wrong result
+> 8. Hoca protect (nightOrder: 8) — overrides Kapıcı lock
+> 9. Kahraman Dede kill (nightOrder: 9) — blocked by Otacı/Hoca, NOT by Kapıcı
+> 10. Anonim mark (nightOrder: 10)
+> 11. Kıskanç Komşu copy executes — copies action of their target
+>
+> THEN resolve deaths:
+> - Evil kill: blocked if target has Otacı/Hoca protection OR Kapıcı lock
+> - Kahraman Dede kill: blocked if target has Otacı/Hoca protection
+> - Kırık Kalp chain: if aşık died, Kırık Kalp also dies
+> - Check win conditions
+> - Generate morning announcement
+> ```
+>
+> ---
+>
+> ## WIN CONDITION CHECK
+>
+> Run `checkWinConditions()` after every death (night or lynch):
+>
+> ```javascript
+> // Priority order if multiple trigger simultaneously:
+> // 1. Anonim, 2. Kırık Kalp, 3. Kahraman Dede, 4. Evil team, 5. Mahalle
+>
+> function checkWinConditions(gameState) {
+>   const alive = gameState.players.filter(p => p.alive);
+>   const evilAlive = alive.filter(p => p.team === 'kotu').length;
+>   const goodAlive = alive.filter(p => p.team === 'mahalle').length;
+>
+>   // Anonim: 3 marked players lynched and Anonim alive
+>   if (gameState.anonimMarksLynched >= 3 && isAlive('anonim')) return 'anonim_wins';
+>
+>   // Kırık Kalp: both Kırık Kalp and aşık alive at game end
+>   if (gameState.ended && isAlive('kirik_kalp') && isAlive(gameState.kirikKalpAsik)) return 'kirik_kalp_wins';
+>
+>   // Kahraman Dede: last player standing
+>   if (alive.length === 1 && alive[0].id === 'kahraman_dede') return 'kahraman_dede_wins';
+>
+>   // Kumarbaz: alive in last 3 players
+>   if (alive.length <= 3 && alive.find(p => p.id === 'kumarbaz')) return 'kumarbaz_wins';
+>
+>   // Evil team wins: evil >= good
+>   if (evilAlive >= goodAlive && evilAlive > 0) return 'evil_wins';
+>
+>   // Sahte Dernek Başkanı lynched: instant evil win (handled separately on lynch)
+>
+>   // Mahalle wins: all evil and dangerous neutrals eliminated
+>   const dangerousNeutrals = alive.filter(p => ['kahraman_dede', 'anonim'].includes(p.id)).length;
+>   if (evilAlive === 0 && dangerousNeutrals === 0) return 'mahalle_wins';
+>
+>   return null; // game continues
+> }
+> ```
+>
+> ---
+>
+> ## VOICE PROMPTS — complete list for Web Speech API
+>
+> ```javascript
+> const voiceLines = {
+>   nightStart: "Mahalle uykuya daldı... Gece çöktü sokaklara. Gözlerinizi kapatın.",
+>   kumarbaz: "Kumarbaz... zarlarını at. Bu gece kimlerin kaderini takas edeceksin?",
+>   kiskanc: "Kıskanç Komşu... perdeyi aralamadan izle. Bu gece kimi taklit edeceksin?",
+>   evilTeam: "Davetsiz Misafir uyanıyor... Bu gece kimin kapısını çalacaksınız? Gizli kanalda oyunuzu kullanın.",
+>   kapici: "Kapıcı... anahtarlarını al. Bu gece hangi kapıyı kilitleyeceksin?",
+>   otaci: "Otacı Teyze... bitkisel çantanı al. Bu gece kimin kapısını çalacaksın?",
+>   bekci: "Bekçi... fenerini yak. Bu gece hangi evi kontrol edeceksin?",
+>   falci: "Falcı... fincanı çevir. Bu gece kimin kaderine bakacaksın?",
+>   hoca: "Hoca... duanı et. Bu gece kime bereket vereceksin?",
+>   kahramanDede: "Kahraman Dede... çıkma vakti. Bu gece kim mahallemi bozuyor?",
+>   anonim: "Anonim... gölgede kal. Bu gece kimi işaretliyorsun?",
+>   morningDeath: (names) => `Mahalle uyanıyor... Gözlerinizi açabilirsiniz. Bu sabah ${names} kaybolmuş.`,
+>   morningClear: "Mahalle uyanıyor... Bu sabah mahalle sakindir. Kimse kaybolmamış.",
+>   dayStart: (minutes) => `Mahalle meydanında toplanın. ${minutes} dakikanız var. Suçluyu bulun.`,
+>   voteStart: "Oylama başlıyor. Telefonlarınızdan oyunuzu kullanın. Otuz saniye.",
+>   lynch: (name, role) => `Mahalle kararını verdi. ${name} uzaklaştırılıyor. Rolü: ${role}.`,
+>   tieBraker: "Oylar eşit. İkinci tur başlıyor.",
+>   tieNoLynch: "Oylar yine eşit. Bu sefer kimse elenmedi.",
+>   winMahalle: "Mahalle zafere ulaştı! Tüm karanlık güçler temizlendi.",
+>   winEvil: "Davetsiz Misafir kazandı. Mahalle artık onların...",
+>   winDede: "Kahraman Dede tek başına ayakta! Herkes gitti, o kaldı.",
+>   winAnonim: "Anonim planını tamamladı. Kimse fark etmedi bile.",
+>   winKirikKalp: "Aşk kazandı. İkisi de hayatta, ikisi de birlikte.",
+>   winKumarbaz: "Kumarbaz son gülen oldu. Zarlar hep ona döndü."
+> }
+> ```
+>
+> ---
+>
+> ## ROLE SELECTION SCREEN
+>
+> When it's a player's turn to pick:
+> - Show 3 random role cards from the pool (not yet taken)
+> - Each card shows: emoji (large), role name, team color badge, one-line description
+> - "Seç" button on each card
+> - "🎲 Rastgele Seç — kaderini koy ortaya!" button below
+> - 25 second countdown — auto-random if expired
+> - After selection: show full role detail screen with story, ability, win condition, 3 tips
+> - "✅ Anladım, Hazırım" button to proceed
+> - Evil team members: after ready screen, show extra screen "Çete üyeleriniz: [names]"
+> - Kırık Kalp: after ready screen, show "Aşığın: [name]" privately
+>
+> Apply existing color theme throughout. Use team colors for badges:
+> mahalle=#F5C842, kotu=#C8102E, kaos=#1ECBE1, tarafsiz=#9B7FD4
