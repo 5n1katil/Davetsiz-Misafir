@@ -228,6 +228,7 @@ export function attachSocketServer(http: HTTPServer) {
       const newHost = res.players.find((p) => p.id === normalizedNewHostId);
       if (newHost) {
         io.to(s.roomCode).emit("hostTransferred", {
+          newHostId: normalizedNewHostId,
           nickname: newHost.nickname,
           message: `${newHost.nickname} oyun yöneticisi oldu`,
         });
@@ -267,6 +268,7 @@ export function attachSocketServer(http: HTTPServer) {
       if (room) {
         if (newHost) {
           io.to(room.code).emit("hostTransferred", {
+            newHostId: newHost.id,
             nickname: newHost.nickname,
             message: `${newHost.nickname} oyun yöneticisi oldu`,
           });

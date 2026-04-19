@@ -34,11 +34,23 @@ const ACTIVE_PHASES = ["ROLE_SELECT", "ROLE_REVEAL", "DAY", "VOTE", "VOTE_RUNOFF
 export default function HostPanel() {
   const c = useColors();
   const insets = useSafeAreaInsets();
-  const { state, myPlayerId, emit } = useGame();
+  const { state, myPlayerId, emit, hostJustReceived, clearHostJustReceived } = useGame();
   const [open, setOpen] = useState(false);
   const [ticker, setTicker] = useState(0);
   const slideAnim = useRef(new Animated.Value(400)).current;
+  const fabPulseAnim = useRef(new Animated.Value(1)).current;
   const frozenRemainingRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!hostJustReceived) return;
+    Animated.sequence([
+      Animated.timing(fabPulseAnim, { toValue: 1.35, duration: 160, useNativeDriver: true }),
+      Animated.timing(fabPulseAnim, { toValue: 0.9, duration: 120, useNativeDriver: true }),
+      Animated.timing(fabPulseAnim, { toValue: 1.25, duration: 120, useNativeDriver: true }),
+      Animated.timing(fabPulseAnim, { toValue: 0.95, duration: 100, useNativeDriver: true }),
+      Animated.timing(fabPulseAnim, { toValue: 1, duration: 100, useNativeDriver: true }),
+    ]).start(() => clearHostJustReceived());
+  }, [hostJustReceived]);
 
   useEffect(() => {
     const id = setInterval(() => setTicker((t) => t + 1), 1000);
@@ -176,21 +188,32 @@ export default function HostPanel() {
 
   return (
     <>
-      <Pressable
-        onPress={openPanel}
+      <Animated.View
         style={[
           styles.fab,
           {
-            backgroundColor: "#F5C842",
             bottom: insets.bottom + 20,
+            transform: [{ scale: fabPulseAnim }],
           },
         ]}
       >
-        <Feather name="sliders" size={20} color="#0A0614" />
-        {gs.paused && (
-          <View style={styles.pauseDot} />
-        )}
-      </Pressable>
+        <Pressable
+          onPress={openPanel}
+          style={{
+            flex: 1,
+            width: "100%",
+            alignItems: "center",
+            justifyContent: "center",
+            borderRadius: 28,
+            backgroundColor: "#F5C842",
+          }}
+        >
+          <Feather name="sliders" size={20} color="#0A0614" />
+          {gs.paused && (
+            <View style={styles.pauseDot} />
+          )}
+        </Pressable>
+      </Animated.View>
 
       <Modal
         visible={open}

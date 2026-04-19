@@ -106,6 +106,8 @@ interface GameCtx {
   toggleKeepAwake: () => void;
   systemToast: SystemToast | null;
   dismissToast: () => void;
+  hostJustReceived: boolean;
+  clearHostJustReceived: () => void;
 }
 
 const Ctx = createContext<GameCtx | null>(null);
@@ -121,6 +123,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [connected, setConnected] = useState(false);
   const [state, setState] = useState<GameState | null>(null);
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
+  const myPlayerIdRef = useRef<string | null>(null);
   const [myNickname, setMyNickname] = useState<string | null>(null);
   const [voiceMuted, setVoiceMutedState] = useState(false);
   const [vibrationsEnabled, setVibrationsEnabledState] = useState(true);
@@ -128,6 +131,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [keepAwake, setKeepAwakeState] = useState(false);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [systemToast, setSystemToast] = useState<SystemToast | null>(null);
+  const [hostJustReceived, setHostJustReceived] = useState(false);
+  const hostNotifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastPhaseRef = useRef<string | null>(null);
   const wasAliveRef = useRef<boolean | null>(null);
 
@@ -246,14 +251,32 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     });
     s.on("kicked", () => {
       setState(null);
+      myPlayerIdRef.current = null;
       setMyPlayerId(null);
+      setHostJustReceived(false);
+      if (hostNotifyTimerRef.current) {
+        clearTimeout(hostNotifyTimerRef.current);
+        hostNotifyTimerRef.current = null;
+      }
     });
-    s.on("hostTransferred", ({ message }: { nickname: string; message: string }) => {
+    s.on("hostTransferred", ({ newHostId, message }: { newHostId: string; nickname: string; message: string }) => {
       setSystemToast({ message, id: Date.now() });
+      if (newHostId && myPlayerIdRef.current === newHostId) {
+        setHostJustReceived(true);
+        if (hostNotifyTimerRef.current) clearTimeout(hostNotifyTimerRef.current);
+        hostNotifyTimerRef.current = setTimeout(() => {
+          setSystemToast({ message: "Sen artık oyun yöneticisisin! 👑", id: Date.now() });
+          hostNotifyTimerRef.current = null;
+        }, 4500);
+      }
     });
     setSocket(s);
     return () => {
       s.disconnect();
+      if (hostNotifyTimerRef.current) {
+        clearTimeout(hostNotifyTimerRef.current);
+        hostNotifyTimerRef.current = null;
+      }
     };
   }, [prefsLoaded]);
 
@@ -268,13 +291,18 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [socket],
   );
 
+  const setMyPlayerIdAndRef = useCallback((id: string | null) => {
+    myPlayerIdRef.current = id;
+    setMyPlayerId(id);
+  }, []);
+
   const createRoom = useCallback(
     async (nickname: string) => {
       const res = await emit("createRoom", { nickname });
-      if (res.ok && (res as any).playerId) setMyPlayerId((res as any).playerId);
+      if (res.ok && (res as any).playerId) setMyPlayerIdAndRef((res as any).playerId);
       return res;
     },
-    [emit],
+    [emit, setMyPlayerIdAndRef],
   );
 
   const joinRoom = useCallback(
@@ -283,15 +311,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         code: code.trim().toUpperCase(),
         nickname,
       });
-      if (res.ok && (res as any).playerId) setMyPlayerId((res as any).playerId);
+      if (res.ok && (res as any).playerId) setMyPlayerIdAndRef((res as any).playerId);
       return res;
     },
-    [emit],
+    [emit, setMyPlayerIdAndRef],
   );
 
   const leave = useCallback(() => {
     setState(null);
-    setMyPlayerId(null);
+    setMyPlayerIdAndRef(null);
+    setHostJustReceived(false);
+    if (hostNotifyTimerRef.current) {
+      clearTimeout(hostNotifyTimerRef.current);
+      hostNotifyTimerRef.current = null;
+    }
     if (socket) {
       socket.disconnect();
       socket.connect();
@@ -351,6 +384,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setSystemToast(null);
   }, []);
 
+  const clearHostJustReceived = useCallback(() => {
+    setHostJustReceived(false);
+  }, []);
+
   const value = useMemo<GameCtx>(
     () => ({
       socket,
@@ -373,6 +410,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       toggleKeepAwake,
       systemToast: toastsEnabled ? systemToast : null,
       dismissToast,
+      hostJustReceived,
+      clearHostJustReceived,
     }),
     [
       socket,
@@ -394,6 +433,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       toggleKeepAwake,
       systemToast,
       dismissToast,
+      hostJustReceived,
+      clearHostJustReceived,
     ],
   );
 
