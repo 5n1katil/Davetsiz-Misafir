@@ -12,7 +12,7 @@ import React, {
 import { io, Socket } from "socket.io-client";
 
 import { ROLE_DEFS } from "@/constants/roles";
-import { speak, setMuted, initMuted } from "@/lib/speech";
+import { speak, setMuted, initMuted, isSpeakingAsync } from "@/lib/speech";
 import { haptic, hapticNotification, initVibrationsEnabled, setVibrationsEnabled } from "@/lib/haptics";
 
 const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN;
@@ -211,6 +211,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     });
     s.on("voice", (lines: string[]) => {
       for (const line of lines) speak(line);
+      if (lines.length > 0) {
+        setSystemToast({ message: "Anlatım başladı", id: Date.now(), icon: "volume-2" });
+      }
     });
     s.on("kicked", () => {
       setState(null);
@@ -266,16 +269,21 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [socket]);
 
-  const toggleVoice = useCallback(() => {
+  const toggleVoice = useCallback(async () => {
+    const speaking = await isSpeakingAsync();
     setVoiceMutedState((v) => {
       const next = !v;
       setMuted(next);
       AsyncStorage.setItem("mahalle:voiceMuted", String(next));
-      setSystemToast({
-        message: next ? "Ses kapatıldı" : "Ses açıldı",
-        id: Date.now(),
-        icon: next ? "volume-x" : "volume-2",
-      });
+      if (next && speaking) {
+        setSystemToast({ message: "Anlatım kesildi", id: Date.now(), icon: "volume-x" });
+      } else {
+        setSystemToast({
+          message: next ? "Ses kapatıldı" : "Ses açıldı",
+          id: Date.now(),
+          icon: next ? "volume-x" : "volume-2",
+        });
+      }
       return next;
     });
   }, []);

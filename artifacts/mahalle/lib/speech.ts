@@ -13,8 +13,8 @@ export function setMuted(value: boolean) {
   if (value) Speech.stop();
 }
 
-export function isSpeaking(): boolean {
-  return false;
+export async function isSpeakingAsync(): Promise<boolean> {
+  return Speech.isSpeakingAsync();
 }
 
 export function speak(text: string) {
