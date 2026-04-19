@@ -13,7 +13,7 @@ import { io, Socket } from "socket.io-client";
 
 import { ROLE_DEFS } from "@/constants/roles";
 import { speak, setMuted } from "@/lib/speech";
-import { setVibrationsEnabled } from "@/lib/haptics";
+import { haptic, hapticNotification, initVibrationsEnabled, setVibrationsEnabled } from "@/lib/haptics";
 
 const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN;
 const SOCKET_URL = DOMAIN ? `https://${DOMAIN}` : "http://localhost";
@@ -128,7 +128,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const me = state.players.find((p) => p.id === myPlayerId);
     const isAlive = me?.isAlive ?? true;
     if (wasAliveRef.current === true && !isAlive) {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      haptic(Haptics.ImpactFeedbackStyle.Heavy);
     }
     wasAliveRef.current = isAlive;
   }, [state?.players, myPlayerId]);
@@ -138,10 +138,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const prev = lastPhaseRef.current;
     const next = state.phase;
     if ((prev === "VOTE" || prev === "VOTE_RUNOFF") && next === "DAY") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      haptic(Haptics.ImpactFeedbackStyle.Medium);
     }
     if (prev !== "ENDED" && next === "ENDED") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      haptic(Haptics.ImpactFeedbackStyle.Heavy);
       if (state.winner && myPlayerId) {
         const myGraveEntry = state.graveyard.find((g) => g.playerId === myPlayerId);
         const myRoleId = state.myRole ?? myGraveEntry?.roleId ?? "koylu";
@@ -149,7 +149,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         const myTeam = myRoleDef?.team ?? "iyi";
         const won = myTeam === state.winner;
         setTimeout(() => {
-          Haptics.notificationAsync(
+          hapticNotification(
             won
               ? Haptics.NotificationFeedbackType.Success
               : Haptics.NotificationFeedbackType.Error,
@@ -164,12 +164,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     AsyncStorage.getItem("mahalle:nickname").then((n) => {
       if (n) setMyNickname(n);
     });
-    AsyncStorage.getItem("mahalle:vibrationsEnabled").then((v) => {
-      if (v === "false") {
-        setVibrationsEnabledState(false);
-        setVibrationsEnabled(false);
-      }
-    });
+    AsyncStorage.getItem("mahalle:vibrationsEnabled")
+      .then((v) => {
+        const enabled = v !== "false";
+        initVibrationsEnabled(enabled);
+        setVibrationsEnabledState(enabled);
+      })
+      .catch(() => {
+        initVibrationsEnabled(true);
+      });
   }, []);
 
   useEffect(() => {

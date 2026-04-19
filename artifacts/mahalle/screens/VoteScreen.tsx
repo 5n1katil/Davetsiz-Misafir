@@ -7,6 +7,7 @@ import { GraveyardChat } from "@/components/GraveyardChat";
 import { GhostActivityBadge } from "@/components/GhostActivityBadge";
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
+import { haptic } from "@/lib/haptics";
 import { useCountdown } from "@/hooks/useCountdown";
 import { useGhostActivity } from "@/hooks/useGhostActivity";
 
@@ -69,7 +70,7 @@ export default function VoteScreen() {
             <Pressable
               key={p.id}
               onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                haptic(Haptics.ImpactFeedbackStyle.Light);
                 emit("castVote", { targetId: p.id });
               }}
               style={({ pressed }) => [
