@@ -10,11 +10,19 @@ import React, {
   useRef,
   useState,
 } from "react";
+import {
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { io, Socket } from "socket.io-client";
 
 import { ROLE_DEFS } from "@/constants/roles";
 import { speak, setMuted, initMuted, isSpeakingAsync } from "@/lib/speech";
 import { haptic, hapticNotification, initVibrationsEnabled, setVibrationsEnabled } from "@/lib/haptics";
+import { useColors } from "@/hooks/useColors";
 
 const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN;
 const SOCKET_URL = DOMAIN ? `https://${DOMAIN}` : "http://localhost";
@@ -121,6 +129,7 @@ export function useGame() {
 }
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
+  const c = useColors();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
   const [state, setState] = useState<GameState | null>(null);
@@ -136,6 +145,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [hostJustReceived, setHostJustReceived] = useState(false);
   const [openHostPanelTrigger, setOpenHostPanelTrigger] = useState(0);
   const hostNotifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [spectatorKeepAwake, setSpectatorKeepAwake] = useState<boolean | null>(null);
+  const [showSpectatorPrompt, setShowSpectatorPrompt] = useState(false);
   const lastPhaseRef = useRef<string | null>(null);
   const wasAliveRef = useRef<boolean | null>(null);
 
@@ -145,6 +156,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     const isAlive = me?.isAlive ?? true;
     if (wasAliveRef.current === true && !isAlive) {
       haptic(Haptics.ImpactFeedbackStyle.Heavy);
+      setSpectatorKeepAwake(null);
+      setShowSpectatorPrompt(true);
     }
     wasAliveRef.current = isAlive;
   }, [state?.players, myPlayerId]);
@@ -212,6 +225,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       });
   }, []);
 
+  useEffect(() => {
+    if (!state || state.phase === "LOBBY" || state.phase === "ENDED") {
+      setSpectatorKeepAwake(null);
+      setShowSpectatorPrompt(false);
+      wasAliveRef.current = null;
+    }
+  }, [state?.phase, state]);
+
   const keepAwakeActiveRef = useRef(false);
   useEffect(() => {
     const isActivePhase =
@@ -219,15 +240,21 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       state.phase !== "LOBBY" &&
       state.phase !== "ENDED";
     const me = state?.players.find((p) => p.id === myPlayerId);
-    const isParticipating = me ? me.isAlive || me.isHost : true;
-    if (keepAwake && isActivePhase && isParticipating) {
+    const isAlive = me?.isAlive ?? true;
+    const isHost = me?.isHost ?? false;
+    const isParticipating = isAlive || isHost;
+    const isSpectating = !isAlive && !isHost;
+    const shouldKeepAwake =
+      isActivePhase &&
+      ((keepAwake && isParticipating) || (isSpectating && spectatorKeepAwake === true));
+    if (shouldKeepAwake) {
       activateKeepAwakeAsync();
       keepAwakeActiveRef.current = true;
     } else if (keepAwakeActiveRef.current) {
       deactivateKeepAwake();
       keepAwakeActiveRef.current = false;
     }
-  }, [keepAwake, state?.phase, state?.players, myPlayerId]);
+  }, [keepAwake, spectatorKeepAwake, state?.phase, state?.players, myPlayerId]);
 
   useEffect(() => {
     if (myNickname === null) return;
@@ -447,5 +474,99 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     ],
   );
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  function handleSpectatorPromptChoice(keepAwakeWhileSpectating: boolean) {
+    setSpectatorKeepAwake(keepAwakeWhileSpectating);
+    setShowSpectatorPrompt(false);
+  }
+
+  return (
+    <Ctx.Provider value={value}>
+      {children}
+      <Modal
+        visible={showSpectatorPrompt}
+        transparent
+        animationType="fade"
+        onRequestClose={() => handleSpectatorPromptChoice(false)}
+      >
+        <View style={promptStyles.overlay}>
+          <View style={[promptStyles.card, { backgroundColor: c.card, borderColor: c.border }]}>
+            <Text style={[promptStyles.title, { color: c.foreground }]}>
+              Elendikten Sonra Ekran
+            </Text>
+            <Text style={[promptStyles.body, { color: c.mutedForeground }]}>
+              Oyunu izlerken ekranın açık kalmasını ister misin?
+            </Text>
+            <View style={promptStyles.buttons}>
+              <Pressable
+                style={[promptStyles.btn, { backgroundColor: c.primary }]}
+                onPress={() => {
+                  haptic(Haptics.ImpactFeedbackStyle.Light);
+                  handleSpectatorPromptChoice(true);
+                }}
+              >
+                <Text style={[promptStyles.btnText, { color: c.primaryForeground }]}>
+                  Evet, açık kalsın
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[promptStyles.btn, { backgroundColor: "transparent", borderWidth: 1, borderColor: c.border }]}
+                onPress={() => {
+                  haptic(Haptics.ImpactFeedbackStyle.Light);
+                  handleSpectatorPromptChoice(false);
+                }}
+              >
+                <Text style={[promptStyles.btnText, { color: c.foreground }]}>
+                  Hayır, kapansın
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </Ctx.Provider>
+  );
 }
+
+const promptStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  card: {
+    width: "100%",
+    maxWidth: 360,
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 24,
+    gap: 12,
+  },
+  title: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 17,
+    textAlign: "center",
+  },
+  body: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  buttons: {
+    marginTop: 8,
+    gap: 10,
+  },
+  btn: {
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: "center",
+  },
+  btnText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 15,
+    letterSpacing: 0.3,
+  },
+});
