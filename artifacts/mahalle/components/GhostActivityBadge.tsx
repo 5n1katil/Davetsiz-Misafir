@@ -1,7 +1,11 @@
 import React, { useEffect, useRef } from "react";
 import { Animated, StyleSheet, Text, View } from "react-native";
 
-export function GhostActivityBadge() {
+interface GhostActivityBadgeProps {
+  count?: number;
+}
+
+export function GhostActivityBadge({ count = 0 }: GhostActivityBadgeProps) {
   const opacityAnim = useRef(new Animated.Value(0.35)).current;
 
   useEffect(() => {
@@ -18,7 +22,13 @@ export function GhostActivityBadge() {
   return (
     <Animated.View style={[styles.badge, { opacity: opacityAnim }]}>
       <Text style={styles.ghost}>👻</Text>
-      <View style={styles.dot} />
+      {count > 0 ? (
+        <View style={styles.countBubble}>
+          <Text style={styles.countText}>{count}</Text>
+        </View>
+      ) : (
+        <View style={styles.dot} />
+      )}
     </Animated.View>
   );
 }
@@ -37,5 +47,20 @@ const styles = StyleSheet.create({
     height: 5,
     borderRadius: 3,
     backgroundColor: "#9B6FFF",
+  },
+  countBubble: {
+    backgroundColor: "#9B6FFF",
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 4,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  countText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontFamily: "Inter_700Bold",
+    lineHeight: 12,
   },
 });

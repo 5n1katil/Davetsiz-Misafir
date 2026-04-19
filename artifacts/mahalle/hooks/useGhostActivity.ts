@@ -1,28 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 import { useGame } from "@/contexts/GameContext";
 
-export function useGhostActivity() {
+export function useGhostActivity(): number {
   const { state, myPlayerId } = useGame();
   const baselineRef = useRef<number | null>(null);
-  const [hasActivity, setHasActivity] = useState(false);
+  const [count, setCount] = useState(0);
 
   const phase = state?.phase ?? null;
 
   useEffect(() => {
     baselineRef.current = state?.graveyardChat.length ?? 0;
-    setHasActivity(false);
+    setCount(0);
   }, [phase]);
 
   useEffect(() => {
     if (baselineRef.current === null) return;
     const current = state?.graveyardChat.length ?? 0;
-    if (current > baselineRef.current) {
-      setHasActivity(true);
-    }
+    const newCount = Math.max(0, current - baselineRef.current);
+    setCount(newCount);
   }, [state?.graveyardChat.length]);
 
   const me = state?.players.find((p) => p.id === myPlayerId);
   const isAlive = me?.isAlive ?? false;
 
-  return isAlive ? hasActivity : false;
+  return isAlive ? count : 0;
 }

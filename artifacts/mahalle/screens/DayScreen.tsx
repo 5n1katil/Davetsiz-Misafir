@@ -112,7 +112,7 @@ export default function DayScreen() {
           <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", fontSize: 11, letterSpacing: 1.5 }}>
             HAYATTA OLAN ({alive.length})
           </Text>
-          {ghostActive ? <GhostActivityBadge /> : null}
+          {ghostActive > 0 ? <GhostActivityBadge count={ghostActive} /> : null}
         </View>
         <View style={[styles.playerCard, { backgroundColor: c.card, borderColor: c.border }]}>
           {state.players.map((p) => (

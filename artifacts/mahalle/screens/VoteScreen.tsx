@@ -43,9 +43,9 @@ export default function VoteScreen() {
         <Text style={{ color: c.mutedForeground, marginTop: 4, fontFamily: "Inter_400Regular", fontSize: 13 }}>
           {state.voteCount} oy verildi
         </Text>
-        {ghostActive ? (
+        {ghostActive > 0 ? (
           <View style={{ marginTop: 8 }}>
-            <GhostActivityBadge />
+            <GhostActivityBadge count={ghostActive} />
           </View>
         ) : null}
       </View>
