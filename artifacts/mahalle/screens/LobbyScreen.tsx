@@ -78,19 +78,19 @@ export default function LobbyScreen() {
   }
 
   async function handleCreate() {
-    if (!myNickname.trim()) {
+    if (!(myNickname ?? "").trim()) {
       Alert.alert("Adını yaz", "Önce mahalleli adını girmelisin.");
       return;
     }
     setBusy(true);
     haptic(Haptics.ImpactFeedbackStyle.Medium);
-    const res = await createRoom(myNickname.trim());
+    const res = await createRoom((myNickname ?? "").trim());
     setBusy(false);
     if (!res.ok) Alert.alert("Hata", res.error ?? "Bilinmeyen hata");
   }
 
   async function handleJoin() {
-    if (!myNickname.trim()) {
+    if (!(myNickname ?? "").trim()) {
       Alert.alert("Adını yaz", "Önce mahalleli adını girmelisin.");
       return;
     }
@@ -100,7 +100,7 @@ export default function LobbyScreen() {
     }
     setBusy(true);
     haptic(Haptics.ImpactFeedbackStyle.Medium);
-    const res = await joinRoom(code.trim(), myNickname.trim());
+    const res = await joinRoom(code.trim(), (myNickname ?? "").trim());
     setBusy(false);
     if (!res.ok) Alert.alert("Hata", res.error ?? "Bilinmeyen hata");
   }
@@ -175,17 +175,26 @@ export default function LobbyScreen() {
             >
             <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
               <Text style={[styles.label, { color: c.mutedForeground }]}>Adın</Text>
-              <TextInput
-                value={myNickname}
-                onChangeText={setNickname}
-                placeholder="Ör: Selim Abi"
-                placeholderTextColor={c.mutedForeground}
-                maxLength={20}
-                style={[
-                  styles.input,
-                  { color: c.foreground, borderColor: c.border, backgroundColor: c.input },
-                ]}
-              />
+              {myNickname === null ? (
+                <View
+                  style={[
+                    styles.input,
+                    { borderColor: c.border, backgroundColor: c.input, opacity: 0.4 },
+                  ]}
+                />
+              ) : (
+                <TextInput
+                  value={myNickname}
+                  onChangeText={setNickname}
+                  placeholder="Ör: Selim Abi"
+                  placeholderTextColor={c.mutedForeground}
+                  maxLength={20}
+                  style={[
+                    styles.input,
+                    { color: c.foreground, borderColor: c.border, backgroundColor: c.input },
+                  ]}
+                />
+              )}
 
               <View style={styles.actionRow}>
                 <Pressable

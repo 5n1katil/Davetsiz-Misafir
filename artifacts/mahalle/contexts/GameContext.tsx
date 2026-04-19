@@ -86,7 +86,7 @@ interface GameCtx {
   connected: boolean;
   state: GameState | null;
   myPlayerId: string | null;
-  myNickname: string;
+  myNickname: string | null;
   setNickname: (n: string) => void;
   createRoom: (nickname: string) => Promise<{ ok: boolean; error?: string }>;
   joinRoom: (
@@ -116,7 +116,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [connected, setConnected] = useState(false);
   const [state, setState] = useState<GameState | null>(null);
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
-  const [myNickname, setMyNickname] = useState("");
+  const [myNickname, setMyNickname] = useState<string | null>(null);
   const [voiceMuted, setVoiceMutedState] = useState(false);
   const [vibrationsEnabled, setVibrationsEnabledState] = useState(true);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
@@ -168,7 +168,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       AsyncStorage.getItem("mahalle:voiceMuted"),
     ])
       .then(([n, vib, mute]) => {
-        if (n) setMyNickname(n);
+        setMyNickname(n ?? "");
         const enabled = vib !== "false";
         initVibrationsEnabled(enabled);
         setVibrationsEnabledState(enabled);
@@ -194,6 +194,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (myNickname === null) return;
     AsyncStorage.setItem("mahalle:nickname", myNickname);
   }, [myNickname]);
 
