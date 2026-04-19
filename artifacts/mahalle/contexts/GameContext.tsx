@@ -119,6 +119,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [myNickname, setMyNickname] = useState("");
   const [voiceMuted, setVoiceMutedState] = useState(false);
   const [vibrationsEnabled, setVibrationsEnabledState] = useState(true);
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [systemToast, setSystemToast] = useState<SystemToast | null>(null);
   const lastPhaseRef = useRef<string | null>(null);
   const wasAliveRef = useRef<boolean | null>(null);
@@ -161,17 +162,25 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [state?.phase, myPlayerId]);
 
   useEffect(() => {
-    AsyncStorage.getItem("mahalle:nickname").then((n) => {
-      if (n) setMyNickname(n);
-    });
-    AsyncStorage.getItem("mahalle:vibrationsEnabled")
-      .then((v) => {
-        const enabled = v !== "false";
+    Promise.all([
+      AsyncStorage.getItem("mahalle:nickname"),
+      AsyncStorage.getItem("mahalle:vibrationsEnabled"),
+      AsyncStorage.getItem("mahalle:voiceMuted"),
+    ])
+      .then(([n, vib, mute]) => {
+        if (n) setMyNickname(n);
+        const enabled = vib !== "false";
         initVibrationsEnabled(enabled);
         setVibrationsEnabledState(enabled);
+        if (mute === "true") {
+          setVoiceMutedState(true);
+          setMuted(true);
+        }
+        setPrefsLoaded(true);
       })
       .catch(() => {
         initVibrationsEnabled(true);
+        setPrefsLoaded(true);
       });
     AsyncStorage.getItem("mahalle:voiceMuted")
       .then((v) => {
@@ -189,6 +198,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [myNickname]);
 
   useEffect(() => {
+    if (!prefsLoaded) return;
     const s = io(SOCKET_URL, {
       path: "/api/socket.io",
       transports: ["websocket", "polling"],
@@ -213,7 +223,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return () => {
       s.disconnect();
     };
-  }, []);
+  }, [prefsLoaded]);
 
   const emit = useCallback(
     (event: string, payload: any = {}) =>
