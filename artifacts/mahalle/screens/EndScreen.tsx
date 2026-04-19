@@ -61,7 +61,7 @@ export default function EndScreen() {
           position: "absolute",
           left: 0,
           right: 0,
-          top: 0,
+          top: 60,
           height: 400,
           opacity: burstAnim.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0, 0.18, 0.1] }),
           transform: [{ scale: burstAnim.interpolate({ inputRange: [0, 1], outputRange: [0, 3] }) }],
@@ -69,7 +69,6 @@ export default function EndScreen() {
           backgroundColor: winnerColor,
           alignSelf: "center",
           width: 300,
-          top: 60,
         }}
       />
       <LinearGradient

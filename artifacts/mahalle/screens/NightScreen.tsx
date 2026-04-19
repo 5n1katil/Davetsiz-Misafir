@@ -1,28 +1,50 @@
 import { Feather } from "@expo/vector-icons";
-import React, { useEffect, useRef } from "react";
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  Easing,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 import { Btn } from "@/components/Btn";
 import { GhostActivityBadge } from "@/components/GhostActivityBadge";
 import { GraveyardChat } from "@/components/GraveyardChat";
-import { ROLE_DEFS } from "@/constants/roles";
+import roleImages from "@/constants/roleImages";
+import { ROLE_DEFS, ROLE_TEAM_COLOR } from "@/constants/roles";
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
 import { useCountdown } from "@/hooks/useCountdown";
 import { useGhostActivity } from "@/hooks/useGhostActivity";
 import { useReduceMotion } from "@/hooks/useReduceMotion";
 
-const ROLE_LABELS: Record<string, string> = {
-  _cete: "Davetsiz Misafir",
-  bekci: "Bekçi",
-  otaci: "Otacı Teyze",
-  falci: "Falcı",
-};
-
 const BG = "#060310";
 
+const ROLE_INSTRUCTIONS: Record<string, string> = {
+  _cete: "Hedef seçin. Çoğunluk kazanır.",
+  bekci: "Bu gece kimin ekibini sorguluyorsun?",
+  otaci: "Bu gece kimi koruyorsun?",
+  falci: "Bu gece kimin falına bakıyorsun?",
+  kapici: "Bu gece hangi evi kilitleyeceksin?",
+  hoca: "Kime dua edeceksin? (Tek kullanımlık güç)",
+  kumarbaz: "İki kişiyi seç — rolleri kalıcı olarak takas edilecek.",
+  kiskanc_komsu: "Bu gece kimin eylemini taklit edeceksin?",
+  anonim: "Bu gece gizlice kimi işaretliyorsun?",
+  kahraman_dede: "Bu gece kim mahalleni bozuyor?",
+};
+
+function getRoleAccent(roleId: string): string {
+  if (roleId === "_cete") return ROLE_TEAM_COLOR.kotu;
+  const def = ROLE_DEFS[roleId];
+  if (!def) return "#1ECBE1";
+  return ROLE_TEAM_COLOR[def.team] ?? "#1ECBE1";
+}
+
 export default function NightScreen() {
-  const c = useColors();
   const { state, myPlayerId, emit } = useGame();
   const remaining = useCountdown(state?.phaseDeadline ?? null, state?.paused ?? false);
   const reduceMotion = useReduceMotion();
@@ -31,14 +53,13 @@ export default function NightScreen() {
   const isDead = !me?.isAlive;
   const ghostActive = useGhostActivity();
 
+  const [kumarbazFirst, setKumarbazFirst] = useState<string | null>(null);
+
   const moonAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    if (reduceMotion) {
-      moonAnim.setValue(0.5);
-      return;
-    }
+    if (reduceMotion) { moonAnim.setValue(0.5); return; }
     const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(moonAnim, { toValue: 1, duration: 2400, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
@@ -50,10 +71,7 @@ export default function NightScreen() {
   }, [moonAnim, reduceMotion]);
 
   useEffect(() => {
-    if (reduceMotion) {
-      pulseAnim.setValue(1);
-      return;
-    }
+    if (reduceMotion) { pulseAnim.setValue(1); return; }
     const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
@@ -64,12 +82,20 @@ export default function NightScreen() {
     return () => anim.stop();
   }, [pulseAnim, reduceMotion]);
 
+  // Reset kumarbaz selection when night step changes
+  const step = state?.nightStep;
+  const stepRoleId = step?.roleId;
+  useEffect(() => {
+    setKumarbazFirst(null);
+  }, [stepRoleId]);
+
   if (!state) return null;
 
+  // ── Dead player view ────────────────────────────────────────────────────────
   if (isDead) {
     return (
       <View style={{ flex: 1, backgroundColor: "#05070F" }}>
-        <View style={[styles.deadHeader]}>
+        <View style={styles.deadHeader}>
           <Feather name="moon" size={18} color="#7E7C92" />
           <Text style={{ color: "#7E7C92", fontFamily: "Inter_500Medium", fontSize: 12, letterSpacing: 1, marginLeft: 6 }}>
             GECE — SEN MEZARLIKTASIN
@@ -82,6 +108,7 @@ export default function NightScreen() {
     );
   }
 
+  // ── NIGHT intro screen (before startNight is pressed) ───────────────────────
   if (state.phase === "NIGHT") {
     return (
       <View style={[styles.intro, { backgroundColor: BG }]}>
@@ -89,9 +116,7 @@ export default function NightScreen() {
           style={{
             fontSize: 80,
             opacity: moonAnim.interpolate({ inputRange: [0, 1], outputRange: [0.5, 1] }),
-            transform: [
-              { scale: moonAnim.interpolate({ inputRange: [0, 1], outputRange: [0.93, 1.07] }) },
-            ],
+            transform: [{ scale: moonAnim.interpolate({ inputRange: [0, 1], outputRange: [0.93, 1.07] }) }],
           }}
         >
           🌙
@@ -118,18 +143,26 @@ export default function NightScreen() {
     );
   }
 
-  const step = state.nightStep;
+  // ── Night role phase ─────────────────────────────────────────────────────────
   if (!step) return null;
-  const roleLabel = ROLE_LABELS[step.roleId] ?? step.roleId;
-  const isMyTurn =
-    step.roleId === "_cete"
-      ? !!me && step.actorIds.includes(me.id)
-      : me?.roleId === step.roleId;
 
+  const roleId = step.roleId;
+  const roleDef = roleId !== "_cete" ? ROLE_DEFS[roleId] : null;
+  const roleLabel = roleId === "_cete" ? "Davetsiz Misafir" : (roleDef?.name ?? roleId);
+  const roleEmoji = roleId === "_cete" ? "🚪" : (roleDef?.emoji ?? "🌙");
+  const accent = getRoleAccent(roleId);
+  const instruction = ROLE_INSTRUCTIONS[roleId] ?? "Bu gece kimi hedefleyeceksin?";
+
+  const isMyTurn =
+    roleId === "_cete"
+      ? !!me && step.actorIds.includes(me.id)
+      : state.myRole === roleId;
+
+  // ── "Someone else's turn" waiting screen ─────────────────────────────────────
   if (!isMyTurn) {
     return (
       <View style={[styles.intro, { backgroundColor: BG }]}>
-        <Feather name="moon" size={52} color="#F5C842" />
+        <Text style={{ fontSize: 52 }}>{roleEmoji}</Text>
         <Text style={{ color: "#E8DEFF", fontFamily: "Cinzel_700Bold", fontSize: 20, marginTop: 16, textAlign: "center", letterSpacing: 2 }}>
           {roleLabel} uyanıyor...
         </Text>
@@ -148,67 +181,216 @@ export default function NightScreen() {
     );
   }
 
+  // ── Hoca: if already used, show passive note ──────────────────────────────
+  if (roleId === "hoca" && state.hocaUsed) {
+    return (
+      <View style={[styles.intro, { backgroundColor: BG }]}>
+        <Text style={{ fontSize: 64 }}>📿</Text>
+        <Text style={{ color: "#E8DEFF", fontFamily: "Cinzel_700Bold", fontSize: 20, marginTop: 16, textAlign: "center", letterSpacing: 2 }}>
+          Hoca
+        </Text>
+        <View style={[styles.infoNote, { borderColor: accent + "55" }]}>
+          <Feather name="check-circle" size={18} color={accent} />
+          <Text style={{ color: "#C3AEFF", fontFamily: "Inter_400Regular", fontSize: 14, lineHeight: 20, flex: 1, marginLeft: 10 }}>
+            Duan edildi — bu gece eylemsizsin.{"\n"}
+            <Text style={{ color: "#7E7C92", fontSize: 12 }}>Gücünü daha önce kullandın.</Text>
+          </Text>
+        </View>
+        <Text style={{ color: "#F5C842", fontFamily: "Inter_700Bold", fontSize: 34, marginTop: 28, fontVariant: ["tabular-nums"] }}>
+          {remaining}s
+        </Text>
+      </View>
+    );
+  }
+
+  // ── Build target list ─────────────────────────────────────────────────────────
   const ceteIds = new Set(state.ceteMembers.map((m) => m.id));
-  const targets = state.players.filter((p) => {
+  const allTargets = state.players.filter((p) => {
     if (!p.isAlive) return false;
     if (p.id === me!.id) return false;
-    if (step.roleId === "_cete" && ceteIds.has(p.id)) return false;
+    if (roleId === "_cete" && ceteIds.has(p.id)) return false;
     return true;
   });
 
+  // Kumarbaz second selection: exclude already-selected first target
+  const targets = roleId === "kumarbaz" && kumarbazFirst
+    ? allTargets.filter((p) => p.id !== kumarbazFirst)
+    : allTargets;
+
+  const firstPlayerNick = kumarbazFirst
+    ? state.players.find((p) => p.id === kumarbazFirst)?.nickname
+    : null;
+
   return (
-    <View style={{ flex: 1, padding: 18, backgroundColor: BG }}>
-      <View style={{ alignItems: "center", paddingVertical: 14 }}>
-        <Text style={{ color: "#9B7FD4", fontFamily: "Inter_500Medium", letterSpacing: 1.5, fontSize: 11 }}>
-          GECE AKSİYONU
-        </Text>
-        <Text style={{ color: "#E8DEFF", fontFamily: "Cinzel_700Bold", fontSize: 22, marginTop: 6, letterSpacing: 2 }}>
-          {roleLabel}
-        </Text>
-        <Text style={{ color: "#F5C842", fontFamily: "Inter_700Bold", fontSize: 34, marginTop: 8, fontVariant: ["tabular-nums"] }}>
+    <View style={{ flex: 1, backgroundColor: BG }}>
+      {/* ── Header ── */}
+      <View style={styles.header}>
+        {/* Role avatar */}
+        <View style={[styles.avatarContainer, { borderColor: accent }]}>
+          {roleImages[roleId] ? (
+            <Image source={roleImages[roleId]} style={styles.roleAvatar} resizeMode="cover" />
+          ) : (
+            <Text style={{ fontSize: 32 }}>{roleEmoji}</Text>
+          )}
+        </View>
+
+        {/* Role label + team chip */}
+        <View style={{ alignItems: "center", marginTop: 10 }}>
+          <View style={[styles.teamChip, { backgroundColor: accent + "22", borderColor: accent + "88" }]}>
+            <Text style={{ color: accent, fontFamily: "Inter_600SemiBold", fontSize: 10, letterSpacing: 1.5 }}>
+              {roleId === "_cete" ? "ÇETE" : (roleDef ? roleDef.team.toUpperCase() : "GECE")}
+            </Text>
+          </View>
+          <Text style={{ color: "#E8DEFF", fontFamily: "Cinzel_700Bold", fontSize: 22, marginTop: 6, letterSpacing: 2 }}>
+            {roleLabel}
+          </Text>
+        </View>
+
+        {/* Timer */}
+        <Text style={[styles.timer, { color: accent }]}>
           {remaining}s
         </Text>
+
         {ghostActive > 0 ? (
-          <View style={{ marginTop: 8 }}>
+          <View style={{ marginTop: 4 }}>
             <GhostActivityBadge count={ghostActive} />
           </View>
         ) : null}
       </View>
-      <Text style={{ color: "#9B7FD4", fontFamily: "Inter_400Regular", textAlign: "center", marginBottom: 14 }}>
-        {step.roleId === "_cete"
-          ? "Hedef seç. Çoğunluk kazanır."
-          : "Bu gece kimi hedefleyeceksin?"}
-      </Text>
-      {targets.map((p) => (
-        <Pressable
-          key={p.id}
-          onPress={() => emit("nightAction", { targetId: p.id })}
-          style={({ pressed }) => [
-            styles.targetRow,
-            {
-              backgroundColor: pressed ? "#1A0A3E" : "#2A1060",
-              borderColor: pressed ? "#1ECBE155" : "#3B1F8C",
-              opacity: pressed ? 0.85 : 1,
-            },
-          ]}
-        >
-          <View style={styles.avatar}>
-            <Text style={{ color: "#E8DEFF", fontFamily: "Inter_700Bold" }}>
-              {p.nickname[0]?.toUpperCase()}
-            </Text>
-          </View>
-          <Text style={{ color: "#E8DEFF", flex: 1, fontFamily: "Inter_600SemiBold", fontSize: 16 }}>
-            {p.nickname}
+
+      {/* ── Instruction ── */}
+      <View style={[styles.instructionBar, { borderColor: accent + "33" }]}>
+        {roleId === "kumarbaz" && kumarbazFirst ? (
+          <Text style={{ color: "#C3AEFF", fontFamily: "Inter_400Regular", textAlign: "center", fontSize: 14, lineHeight: 20 }}>
+            <Text style={{ color: accent, fontFamily: "Inter_600SemiBold" }}>{firstPlayerNick}</Text>
+            {" "}seçildi. Şimdi ikinci kişiyi seç.
           </Text>
-          <Feather name="target" size={18} color="#1ECBE1" />
-        </Pressable>
-      ))}
+        ) : (
+          <Text style={{ color: "#9B7FD4", fontFamily: "Inter_400Regular", textAlign: "center", fontSize: 14 }}>
+            {instruction}
+          </Text>
+        )}
+      </View>
+
+      {/* ── Target list ── */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: 24, paddingTop: 6 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {targets.map((p) => {
+          const isFirstSelected = roleId === "kumarbaz" && p.id === kumarbazFirst;
+          return (
+            <Pressable
+              key={p.id}
+              onPress={() => {
+                if (roleId === "kumarbaz") {
+                  if (!kumarbazFirst) {
+                    setKumarbazFirst(p.id);
+                  } else {
+                    emit("nightAction", { targetId: kumarbazFirst, targetId2: p.id });
+                    setKumarbazFirst(null);
+                  }
+                } else {
+                  emit("nightAction", { targetId: p.id });
+                }
+              }}
+              style={({ pressed }) => [
+                styles.targetRow,
+                {
+                  backgroundColor: isFirstSelected
+                    ? accent + "33"
+                    : pressed ? "#1A0A3E" : "#2A1060",
+                  borderColor: isFirstSelected
+                    ? accent
+                    : pressed ? (accent + "55") : "#3B1F8C",
+                  opacity: pressed ? 0.85 : 1,
+                },
+              ]}
+            >
+              <View style={[styles.playerAvatar, { backgroundColor: isFirstSelected ? accent + "44" : "#1A0A3E" }]}>
+                <Text style={{ color: "#E8DEFF", fontFamily: "Inter_700Bold", fontSize: 15 }}>
+                  {p.nickname[0]?.toUpperCase()}
+                </Text>
+              </View>
+              <Text style={{ color: "#E8DEFF", flex: 1, fontFamily: "Inter_600SemiBold", fontSize: 16 }}>
+                {p.nickname}
+              </Text>
+              {isFirstSelected ? (
+                <View style={[styles.firstBadge, { backgroundColor: accent }]}>
+                  <Text style={{ color: "#000", fontFamily: "Inter_700Bold", fontSize: 10 }}>1.</Text>
+                </View>
+              ) : (
+                <Feather
+                  name={roleId === "anonim" ? "eye" : roleId === "kapici" ? "lock" : roleId === "kumarbaz" ? "refresh-cw" : "target"}
+                  size={18}
+                  color={accent}
+                />
+              )}
+            </Pressable>
+          );
+        })}
+
+        {/* Kumarbaz: cancel first selection button */}
+        {roleId === "kumarbaz" && kumarbazFirst ? (
+          <Pressable
+            onPress={() => setKumarbazFirst(null)}
+            style={[styles.cancelBtn, { borderColor: "#3B1F8C" }]}
+          >
+            <Feather name="x" size={14} color="#9B7FD4" />
+            <Text style={{ color: "#9B7FD4", fontFamily: "Inter_500Medium", fontSize: 13, marginLeft: 6 }}>
+              İlk seçimi iptal et
+            </Text>
+          </Pressable>
+        ) : null}
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   intro: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
+  header: {
+    alignItems: "center",
+    paddingTop: 20,
+    paddingBottom: 12,
+    paddingHorizontal: 18,
+  },
+  avatarContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 2,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1A0A3E",
+  },
+  roleAvatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+  },
+  teamChip: {
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  timer: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 32,
+    marginTop: 8,
+    fontVariant: ["tabular-nums"],
+  },
+  instructionBar: {
+    marginHorizontal: 18,
+    marginBottom: 10,
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    backgroundColor: "#0E0628",
+  },
   targetRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -218,13 +400,38 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 10,
   },
-  avatar: {
+  playerAvatar: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: "#1A0A3E",
     alignItems: "center",
     justifyContent: "center",
+  },
+  firstBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cancelBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginTop: 4,
+  },
+  infoNote: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginTop: 24,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    backgroundColor: "#0E0628",
+    maxWidth: 320,
   },
   deadHeader: {
     flexDirection: "row",

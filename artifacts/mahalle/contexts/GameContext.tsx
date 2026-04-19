@@ -82,6 +82,9 @@ export interface GameState {
   privateMessages: { msg: string; ts: number }[];
   ceteMembers: { id: string; nickname: string; roleId: string | null }[];
   paused: boolean;
+  hocaUsed?: boolean;
+  nextLynchReversed?: boolean;
+  anonimMarks?: string[];
 }
 
 export interface SystemToast {
