@@ -1,0 +1,39 @@
+Güzel ilerleme! Görsele bakıyorum — "Nasıl oynanır?" bölümü ana ekranda duruyor çünkü Replit muhtemelen bunu bir onboarding/açıklama alanı olarak koymuş. Bu bilgiler ana ekranda değil, ayrı bir yerde olmalı.
+
+**Sorunun kökü:** Prompta "host hem oyuncu hem yönetici" demiştik ama Replit bunu UI'a yansıtmamış. Şu an "Oda Kur" ve "Odaya Katıl" butonu var ama host ile normal oyuncu arasında fark yok.
+
+---
+
+Replit'e şu düzeltme promptunu ver:
+
+---
+
+> Fix the main screen and host system with these exact changes:
+>
+> **1. Remove "Nasıl oynanır?" section from the main screen entirely.** This information should not be on the home screen. Move it to a separate modal/screen accessible via a small "?" icon button in the top right corner of the main screen.
+>
+> **2. The main screen should only have:**
+> - Game title "DAVETSİZ MİSAFİR"
+> - Subtitle: "Davetsiz Misafir'i bul. Yoksa mahalle onların olur."
+> - Name input field (ADINIZ)
+> - Two equal buttons side by side: "Oda Kur" and "Odaya Katıl"
+> - Small "?" icon top right for rules
+>
+> **3. Fix the HOST system — this is critical:**
+> When a player taps "Oda Kur" they become HOST. The host is simultaneously a regular player AND the game manager. Implement this exactly:
+>
+> HOST gets a special HOST PANEL visible only on their screen, shown as a floating bottom drawer or a separate tab. It contains:
+> - Current phase indicator (GÜNDÜZ / GECE) with timer
+> - List of all players with their status (alive/dead) — only host sees roles of dead players
+> - Night phase progress bar showing which role is currently acting
+> - "Geceyi Başlat" button to trigger night phase
+> - "Beklet / Devam Et" pause button that stops timer and audio
+> - "Oyuncuyu Çıkar" option for disconnected players
+>
+> HOST also has their own role card and plays normally like every other player. They are NOT a separate narrator — they are a player whose phone also acts as the game's speaker/announcer via Web Speech API (Turkish TTS).
+>
+> The host panel should be visually distinct: a thin #F5C842 amber border around the entire screen edge, and a small "HOST" badge in top right corner.
+>
+> **4. Normal players ("Odaya Katıl") never see the host panel.** They only see their own role, game events, voting screen, and night action screen.
+>
+> Apply the existing color theme: #0A0614 background, #F5C842 amber accents, #2A1060 card backgrounds.
