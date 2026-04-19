@@ -43,14 +43,14 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     winCondition: "Çete kazanırsa sen de kazanırsın.",
     tips: [
       "Sessiz kal, dikkat çekme.",
-      "İyi rolden olduğunu iddia et (ör. Köylü).",
+      "İyi rolden olduğunu iddia et (ör. Dedikoducu).",
       "Çete arkadaşını uzaktan koru.",
     ],
     voteWeight: 1,
   },
   sahte_dernek: {
     id: "sahte_dernek",
-    name: "Sahte Dernek Başkanı",
+    name: "Dernek Başkanı",
     emoji: "🎩",
     team: "kotu",
     description: "Saygın görünür ama çetenin perde arkasıdır.",
@@ -60,7 +60,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "Çete oylamasına katılırsın. Eğer linç edilirsen oyun anında biter — çete kazanır!",
     winCondition: "Linç edilmemen yeterli; çete kazanırsa sen kazanırsın.",
     tips: [
-      "Saygın bir rol gibi davran (Muhtar, Hoca).",
+      "Saygın bir rol gibi davran (Muhtar, Şifacı Teyze).",
       "Asla suçlama altında kalma.",
       "Riskli durumda başkasını öne sür.",
     ],
@@ -68,12 +68,12 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
   },
   koylu: {
     id: "koylu",
-    name: "Köylü",
-    emoji: "👨‍🌾",
+    name: "Dedikoducu",
+    emoji: "💬",
     team: "iyi",
-    description: "Sıradan mahalle sakini. Tek silahı sezgisi.",
+    description: "Mahallenin hafızası. Her şeyi duyar, her şeyi bilir — ama silahı yalnızca sözü.",
     story:
-      "Sabah simit alır, akşam çay içer. Geceleri evden çıkmaz ama kulağı kirişte.",
+      "Sabah simit alır, akşam balkon muhabbeti. Kapı kapı dolaşır, kulağı kirişte. Dedikodu çoğu zaman gerçeği taşır.",
     ability: "Özel gece yetkisi yok. Gündüz oylamada söz hakkın var.",
     winCondition: "Tüm çete elenirse mahalle kazanır.",
     tips: [
@@ -88,7 +88,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     name: "Muhtar",
     emoji: "🎖️",
     team: "iyi",
-    description: "Mahallenin resmi sözcüsü. Oyun 1.5 sayılır.",
+    description: "Mahallenin resmi sözcüsü. Oyum 1.5 sayılır.",
     story: "Her sabah kahvede oturur, kararı o verir. Mührü cebinde, otoritesi sözünde.",
     ability: "Oylama gücün 1.5'tir. Diğer iyi roller seninle daha güçlü.",
     winCondition: "Tüm çete elenirse kazanırsın.",
@@ -119,7 +119,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
   },
   otaci: {
     id: "otaci",
-    name: "Otacı Teyze",
+    name: "Şifacı Teyze",
     emoji: "🌿",
     team: "iyi",
     description: "Bitki şifacısı. Geceleri bir kişiyi korur.",

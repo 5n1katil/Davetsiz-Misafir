@@ -1,13 +1,16 @@
 import * as Haptics from "expo-haptics";
 import { haptic } from "@/lib/haptics";
 import React, { useEffect, useRef } from "react";
-import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Btn } from "@/components/Btn";
 import { ROLE_DEFS, ROLE_TEAM_LABEL } from "@/constants/roles";
+import roleImages from "@/constants/roleImages";
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
 import { useCountdown } from "@/hooks/useCountdown";
+
+const AVATAR_SIZE = 72;
 
 export default function RoleSelectScreen() {
   const c = useColors();
@@ -84,6 +87,7 @@ function CardFan({ opts, remaining, emit, c, myPlayerId }: any) {
         const r = ROLE_DEFS[rid];
         if (!r) return null;
         const teamColor = r.team === "iyi" ? c.factionGood : c.factionBad;
+        const img = roleImages[rid];
         return (
           <Animated.View
             key={rid}
@@ -110,7 +114,13 @@ function CardFan({ opts, remaining, emit, c, myPlayerId }: any) {
                 },
               ]}
             >
-              <Text style={{ fontSize: 38 }}>{r.emoji}</Text>
+              {img ? (
+                <View style={[styles.avatarCircle, { borderColor: teamColor + "88" }]}>
+                  <Image source={img} style={styles.avatarImg} />
+                </View>
+              ) : (
+                <Text style={{ fontSize: 38 }}>{r.emoji}</Text>
+              )}
               <View style={{ flex: 1 }}>
                 <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 17 }}>
                   {r.name}
@@ -151,6 +161,18 @@ const styles = StyleSheet.create({
     gap: 14,
     padding: 16,
     borderRadius: 12,
-    alignItems: "flex-start",
+    alignItems: "center",
+  },
+  avatarCircle: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+    overflow: "hidden",
+    borderWidth: 2,
+    flexShrink: 0,
+  },
+  avatarImg: {
+    width: "100%",
+    height: "100%",
   },
 });

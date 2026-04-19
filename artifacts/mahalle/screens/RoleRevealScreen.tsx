@@ -1,11 +1,14 @@
 import { Feather } from "@expo/vector-icons";
 import React, { useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Btn } from "@/components/Btn";
 import { ROLE_DEFS, ROLE_TEAM_LABEL } from "@/constants/roles";
+import roleImages from "@/constants/roleImages";
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
+
+const AVATAR_SIZE = 140;
 
 export default function RoleRevealScreen() {
   const c = useColors();
@@ -15,6 +18,7 @@ export default function RoleRevealScreen() {
   const role = ROLE_DEFS[state.myRole];
   if (!role) return null;
   const me = state.players.find((p) => p.id === myPlayerId);
+  const img = roleImages[state.myRole];
 
   if (!revealed) {
     return (
@@ -38,8 +42,7 @@ export default function RoleRevealScreen() {
     );
   }
 
-  const teamColor =
-    role.team === "iyi" ? c.factionGood : c.factionBad;
+  const teamColor = role.team === "iyi" ? c.factionGood : c.factionBad;
 
   return (
     <ScrollView
@@ -47,8 +50,14 @@ export default function RoleRevealScreen() {
       contentContainerStyle={{ padding: 20, gap: 14 }}
     >
       <View style={[styles.heroCard, { backgroundColor: c.card, borderColor: teamColor }]}>
-        <Text style={{ fontSize: 68 }}>{role.emoji}</Text>
-        <Text style={{ color: c.foreground, fontFamily: "Cinzel_700Bold", fontSize: 26, marginTop: 8, letterSpacing: 2 }}>
+        {img ? (
+          <View style={[styles.avatarCircle, { borderColor: teamColor, shadowColor: teamColor }]}>
+            <Image source={img} style={styles.avatarImg} />
+          </View>
+        ) : (
+          <Text style={{ fontSize: 68 }}>{role.emoji}</Text>
+        )}
+        <Text style={{ color: c.foreground, fontFamily: "Cinzel_700Bold", fontSize: 26, marginTop: 14, letterSpacing: 2 }}>
           {role.name}
         </Text>
         <View style={{ paddingHorizontal: 14, paddingVertical: 5, borderRadius: 999, backgroundColor: teamColor + "20", marginTop: 10, borderWidth: 1, borderColor: teamColor + "55" }}>
@@ -116,8 +125,24 @@ const styles = StyleSheet.create({
   heroCard: {
     alignItems: "center",
     paddingVertical: 32,
+    paddingHorizontal: 20,
     borderRadius: 16,
     borderWidth: 2,
+  },
+  avatarCircle: {
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: AVATAR_SIZE / 2,
+    overflow: "hidden",
+    borderWidth: 3,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  avatarImg: {
+    width: "100%",
+    height: "100%",
   },
   tipsCard: { padding: 16, borderRadius: 12, borderWidth: 1 },
 });

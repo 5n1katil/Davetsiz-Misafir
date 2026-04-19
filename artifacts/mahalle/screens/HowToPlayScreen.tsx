@@ -1,6 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
+  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -11,6 +12,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ROLE_DEFS } from "@/constants/roles";
+import roleImages from "@/constants/roleImages";
 import { useColors } from "@/hooks/useColors";
 
 interface Props {
@@ -28,7 +30,7 @@ const PHASES = [
       "Tüm oyuncular gözlerini kapatır.",
       "Çete üyeleri kendi aralarında hedef seçer.",
       "Bekçi bir kişinin ekibini sorguluyor.",
-      "Otacı Teyze bir kişiyi koruyor.",
+      "Şifacı Teyze bir kişiyi koruyor.",
       "Falcı bir kişinin tam rolünü görüyor.",
       "Sabah olur — kurban açıklanır.",
     ],
@@ -238,7 +240,13 @@ function RoleCard({ c, role, teamColor }: any) {
       style={[s.roleCard, { backgroundColor: c.card, borderColor: c.border }]}
     >
       <View style={s.roleTop}>
-        <Text style={s.roleEmoji}>{role.emoji}</Text>
+        {roleImages[role.id] ? (
+          <View style={[s.roleAvatarCircle, { borderColor: teamColor + "66" }]}>
+            <Image source={roleImages[role.id]} style={s.roleAvatarImg} />
+          </View>
+        ) : (
+          <Text style={s.roleEmoji}>{role.emoji}</Text>
+        )}
         <View style={{ flex: 1 }}>
           <View style={s.roleNameRow}>
             <Text style={[s.roleName, { color: c.foreground }]}>{role.name}</Text>
@@ -412,7 +420,16 @@ const s = StyleSheet.create({
     gap: 12,
     padding: 14,
   },
-  roleEmoji: { fontSize: 32, width: 40, textAlign: "center" },
+  roleEmoji: { fontSize: 32, width: 48, textAlign: "center" },
+  roleAvatarCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    overflow: "hidden",
+    borderWidth: 2,
+    flexShrink: 0,
+  },
+  roleAvatarImg: { width: "100%", height: "100%" },
   roleNameRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 3 },
   roleName: { fontFamily: "Inter_700Bold", fontSize: 15 },
   voteBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
