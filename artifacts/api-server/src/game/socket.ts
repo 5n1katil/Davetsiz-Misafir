@@ -173,10 +173,10 @@ export function attachSocketServer(http: HTTPServer) {
       broadcast(s.roomCode);
     });
 
-    socket.on("nightAction", ({ targetId }, cb) => {
+    socket.on("nightAction", ({ targetId, targetId2 }, cb) => {
       const s = sessions.get(socket.id);
       if (!s) return cb?.({ ok: false, error: "session yok" });
-      const res = submitNightAction(s.roomCode, s.playerId, targetId);
+      const res = submitNightAction(s.roomCode, s.playerId, targetId, targetId2);
       if (typeof res === "object" && "error" in res)
         return cb?.({ ok: false, error: res.error });
       cb?.({ ok: true });

@@ -81,6 +81,17 @@ export interface Room {
   winnerLabel: string | null;
   paused: boolean;
   pausedAt: number | null;
+
+  // ── 18-Rol Genişletilmiş Durum ──────────────────────────────────────────
+  hokaUsed: boolean;                          // Hoca tek kullanımlık bayrağı
+  lockedHouses: string[];                     // Kapıcı kilitli ev (playerId)
+  anonimMarks: Record<string, string[]>;      // anonimId -> [işaretlenen playerIds]
+  anonimLynchedCounts: Record<string, number>;// anonimId -> linç edilen işaretli sayısı
+  kirikKalpBonds: Record<string, string>;     // kirikKalpId -> aşık playerId
+  tiyatrocuFakeRoles: Record<string, string>; // tiyatrocuId -> sahte roleId
+  kumarbazPairs: [string, string][];          // takas edilen çiftler (geçmiş)
+  nextLynchReversed: boolean;                 // Dedikoducu sonraki linç ters
+  kiskanKopyaTargets: Record<string, string>; // kiskancId -> kopyalanacak playerId
 }
 
 const rooms = new Map<string, Room>();
@@ -168,6 +179,15 @@ export function createRoom(socketId: string, nickname: string): Room {
     winnerLabel: null,
     paused: false,
     pausedAt: null,
+    hokaUsed: false,
+    lockedHouses: [],
+    anonimMarks: {},
+    anonimLynchedCounts: {},
+    kirikKalpBonds: {},
+    tiyatrocuFakeRoles: {},
+    kumarbazPairs: [],
+    nextLynchReversed: false,
+    kiskanKopyaTargets: {},
   };
   rooms.set(code, room);
   return room;
@@ -277,16 +297,24 @@ export function startGame(
   if (room.hostId !== playerId) return { error: "Sadece host başlatabilir" };
   if (room.players.length < 4) return { error: "En az 4 oyuncu gerek" };
 
-  room.rolePool = shuffle(
-    buildRolePool(
-      room.players.length,
-      room.settings.ceteCount,
-      room.settings.activeSpecialRoles,
-    ),
-  );
+  room.rolePool = shuffle(buildRolePool(room.players.length));
   room.roleSelectQueue = shuffle(room.players).map((p) => p.id);
   room.roleSelectIndex = 0;
   room.phase = "ROLE_SELECT";
+
+  // Reset 18-rol state
+  room.hokaUsed = false;
+  room.lockedHouses = [];
+  room.anonimMarks = {};
+  room.anonimLynchedCounts = {};
+  room.kirikKalpBonds = {};
+  room.tiyatrocuFakeRoles = {};
+  room.kumarbazPairs = [];
+  room.nextLynchReversed = false;
+  room.kiskanKopyaTargets = {};
+
+  // Tiyatrocu'nun sahte rollerini şimdi ata (rol seçilmeden önce)
+  // Kırık Kalp bağı oyun başladıktan sonra (roller dağıtılınca) atanacak
   startNextRoleChoice(room);
   return room;
 }
@@ -375,12 +403,52 @@ function enterDayPhase(room: Room, firstDay: boolean) {
   room.votes = [];
   room.voteOpenBy = [];
   room.phaseDeadline = Date.now() + room.settings.dayDurationSec * 1000;
+
   if (firstDay) {
+    // Kırık Kalp bağını ata: her Kırık Kalp için rastgele başka bir oyuncu seç
+    const kirikKalpPlayers = room.players.filter((p) => p.roleId === "kirik_kalp");
+    const allOthers = room.players.filter((p) => p.roleId !== "kirik_kalp");
+    for (const kk of kirikKalpPlayers) {
+      if (allOthers.length > 0) {
+        const loved = allOthers[Math.floor(Math.random() * allOthers.length)];
+        room.kirikKalpBonds[kk.id] = loved.id;
+        // Kırık Kalp'e özel mesaj: "Aşığın: [nickname]"
+        pushPrivate(room, kk.id, `💔 Kırık Kalp: Aşığın → ${loved.nickname}`);
+      }
+    }
+
+    // Tiyatrocu sahte rolünü ata
+    const allRoleIds = Object.keys(ROLES).filter((id) => id !== "tiyatrocu" && id !== "koylu");
+    const tiyatrocuPlayers = room.players.filter((p) => p.roleId === "tiyatrocu");
+    for (const t of tiyatrocuPlayers) {
+      const fakeId = allRoleIds[Math.floor(Math.random() * allRoleIds.length)];
+      room.tiyatrocuFakeRoles[t.id] = fakeId;
+      pushPrivate(room, t.id, `🎭 Tiyatrocu: Sahte rolün → ${ROLES[fakeId]?.name ?? fakeId}`);
+    }
+
+    // Anonim başlangıç veri hazırlığı
+    const anonimPlayers = room.players.filter((p) => p.roleId === "anonim");
+    for (const a of anonimPlayers) {
+      room.anonimMarks[a.id] = [];
+      room.anonimLynchedCounts[a.id] = 0;
+    }
+
+    // İçten Pazarlıklı: çete üyelerine kimliklerini bildir
+    const ictenPlayers = room.players.filter((p) => p.roleId === "icten_pazarlikli");
+    for (const ip of ictenPlayers) {
+      const ceteMsgs = room.players
+        .filter((p) => ROLES[p.roleId ?? ""]?.isMafia && p.id !== ip.id)
+        .map((p) => p.nickname)
+        .join(", ");
+      if (ceteMsgs) {
+        pushPrivate(room, ip.id, `🐍 İçten Pazarlıklı: Çete üyelerin → ${ceteMsgs}`);
+      }
+    }
+
     room.morningEvents = [
       {
         kind: "info",
-        message:
-          "İlk sabah oldu. Mahalleye dikkat — herkes birbirini tartıyor.",
+        message: "İlk sabah oldu. Mahalleye dikkat — herkes birbirini tartıyor.",
       },
     ];
     room.voiceQueue.push(
@@ -545,6 +613,10 @@ export function kickPlayer(
 }
 
 function resolveVote(room: Room, isRunoff: boolean) {
+  // Dedikoducu bayrağı: oy yönünü ters çevir mi?
+  const reversed = room.nextLynchReversed;
+  room.nextLynchReversed = false;
+
   // Oy ağırlığı uygula (Muhtar 1.5)
   const tally: Record<string, number> = {};
   for (const v of room.votes) {
@@ -554,46 +626,80 @@ function resolveVote(room: Room, isRunoff: boolean) {
     const w = role?.voteWeight ?? 1;
     tally[v.targetId] = (tally[v.targetId] ?? 0) + w;
   }
+
   if (Object.keys(tally).length === 0) {
-    room.morningEvents.push({
-      kind: "info",
-      message: "Kimse oy kullanmadı, kimse elenmedi.",
-    });
+    room.morningEvents.push({ kind: "info", message: "Kimse oy kullanmadı, kimse elenmedi." });
     startNight(room);
     return;
   }
+
   const max = Math.max(...Object.values(tally));
-  const top = Object.entries(tally)
-    .filter(([, c]) => c === max)
-    .map(([id]) => id);
+  const min = Math.min(...Object.values(tally));
+
+  // reversed: en az oyu alan elenir
+  const top = reversed
+    ? Object.entries(tally).filter(([, c]) => c === min).map(([id]) => id)
+    : Object.entries(tally).filter(([, c]) => c === max).map(([id]) => id);
+
+  if (reversed) {
+    room.morningEvents.push({ kind: "info", message: "⚡ Dedikoducu etkisi: oylar tersine döndü! En az oyu alan elendi." });
+    room.voiceQueue.push("Dedikoducu konuştu. Oylar tersine döndü.");
+  }
 
   if (top.length === 1) {
     const target = room.players.find((p) => p.id === top[0]);
     if (target) {
+      // Dedikoducu gündüz linç edilirse oylama tersine döner (kendisi elenir ama sıradaki ters de söz konusu değil)
+      if (target.roleId === "dedikoducu" && !reversed) {
+        room.nextLynchReversed = true;
+      }
       target.isAlive = false;
       const role = target.roleId ? ROLES[target.roleId] : null;
+
+      // Tiyatrocu sahte rol göster
+      const displayRoleId = target.roleId === "tiyatrocu" && room.tiyatrocuFakeRoles[target.id]
+        ? room.tiyatrocuFakeRoles[target.id]
+        : target.roleId;
+      const displayRole = displayRoleId ? ROLES[displayRoleId] : null;
+
       room.graveyard.push({
         playerId: target.id,
         nickname: target.nickname,
-        roleId: target.roleId ?? "?",
+        roleId: displayRoleId ?? "?",
         cause: "Linç edildi",
       });
+
+      // Muhabir öldü mü? Notlarını aç
+      if (target.roleId === "muhabir") {
+        const notes = privateMessages.get(room.code)?.filter((m) => m.playerId === target.id) ?? [];
+        for (const note of notes) {
+          room.morningEvents.push({ kind: "info", message: `📰 Muhabir notları: ${note.msg}` });
+        }
+      }
+
       room.morningEvents.push({
         kind: "info",
-        message: `${target.nickname} mahalleden uzaklaştırıldı. Rolü: ${
-          role?.name ?? "?"
-        }`,
+        message: `${target.nickname} mahalleden uzaklaştırıldı. Rolü: ${displayRole?.name ?? "?"}`,
       });
       room.voiceQueue.push(
-        `Mahalle kararını verdi. ${target.nickname} uzaklaştırılıyor. Rolü: ${
-          role?.name ?? "bilinmiyor"
-        }.`,
+        `Mahalle kararını verdi. ${target.nickname} uzaklaştırılıyor. Rolü: ${displayRole?.name ?? "bilinmiyor"}.`,
       );
 
+      // Politikacı linç → çete anında kazanır
       if (target.roleId === "sahte_dernek") {
-        endGame(room, "kotu", "Sahte Dernek Başkanı linç edildi! Davetsiz Misafir kazandı.");
+        endGame(room, "kotu", "Politikacı linç edildi! Davetsiz Misafir kazandı.");
         return;
       }
+
+      // Anonim işaret sayısını güncelle
+      for (const [anonimId, marks] of Object.entries(room.anonimMarks)) {
+        if (marks.includes(target.id)) {
+          room.anonimLynchedCounts[anonimId] = (room.anonimLynchedCounts[anonimId] ?? 0) + 1;
+        }
+      }
+
+      // Kırık Kalp bağ ölümü
+      checkKirikKalpDeath(room, target.id, "Aşığı linç edildi.");
     }
     if (checkWin(room)) return;
     startNight(room);
@@ -609,25 +715,60 @@ function resolveVote(room: Room, isRunoff: boolean) {
     room.voiceQueue.push("Oylar eşit. İkinci tur başlıyor.");
     return;
   }
-  room.morningEvents.push({
-    kind: "info",
-    message: "Oylar yine eşit. Bu sefer kimse elenmedi.",
-  });
+  room.morningEvents.push({ kind: "info", message: "Oylar yine eşit. Bu sefer kimse elenmedi." });
   room.voiceQueue.push("Oylar yine eşit. Bu sefer kimse elenmedi.");
   startNight(room);
+}
+
+function checkKirikKalpDeath(room: Room, deadPlayerId: string, cause: string) {
+  for (const [kkId, lovedId] of Object.entries(room.kirikKalpBonds)) {
+    if (lovedId === deadPlayerId) {
+      const kk = room.players.find((p) => p.id === kkId);
+      if (kk && kk.isAlive) {
+        kk.isAlive = false;
+        room.graveyard.push({
+          playerId: kk.id,
+          nickname: kk.nickname,
+          roleId: kk.roleId ?? "?",
+          cause: `Kırık Kalp: ${cause}`,
+        });
+        room.morningEvents.push({
+          kind: "info",
+          message: `💔 ${kk.nickname} aşığından sonra yaşayamadı ve öldü.`,
+        });
+        room.voiceQueue.push(`${kk.nickname} aşığını kaybetti. Kırık Kalp artık yok.`);
+      }
+    }
+  }
 }
 
 function startNight(room: Room) {
   room.phase = "NIGHT";
   room.nightActions = [];
   room.ceteVotes = {};
+  room.lockedHouses = [];
+  room.kiskanKopyaTargets = {};
   room.voiceQueue.push(
     "Mahalle uykuya daldı... Gece çöktü sokaklara. Gözlerinizi kapatın.",
   );
-  // Gece sırası: aktif rollere göre kuyruk oluştur
+
+  // Gece kuyruğu: nightOrder'a göre sıralı (Kumarbaz:1, Kıskanç:2, Çete:3, Kapıcı:4,
+  // Şifacı:5, Bekçi:6, Falcı:7, Hoca:8, Kahraman Dede:9, Anonim:10)
   const queue: { roleId: string; actorIds: string[] }[] = [];
 
-  // Çete (3)
+  // 1: Kumarbaz
+  for (const rid of ["kumarbaz"]) {
+    const actors = room.players.filter((p) => p.isAlive && p.roleId === rid);
+    if (actors.length > 0) queue.push({ roleId: rid, actorIds: actors.map((a) => a.id) });
+  }
+
+  // 2: Kıskanç Komşu (hedef seçimi)
+  for (const rid of ["kiskanc_komsu"]) {
+    const actors = room.players.filter((p) => p.isAlive && p.roleId === rid);
+    if (actors.length > 0) queue.push({ roleId: rid, actorIds: actors.map((a) => a.id) });
+  }
+
+  // 3: Çete toplu oylama
   const ceteAlive = room.players.filter(
     (p) => p.isAlive && p.roleId && ROLES[p.roleId].isMafia,
   );
@@ -635,14 +776,46 @@ function startNight(room: Room) {
     queue.push({ roleId: "_cete", actorIds: ceteAlive.map((p) => p.id) });
   }
 
-  // Otacı, Bekçi, Falcı sırasıyla
-  for (const rid of ["otaci", "bekci", "falci"]) {
-    const actors = room.players.filter(
-      (p) => p.isAlive && p.roleId === rid,
-    );
-    if (actors.length > 0) {
-      queue.push({ roleId: rid, actorIds: actors.map((a) => a.id) });
-    }
+  // 4: Kapıcı
+  for (const rid of ["kapici"]) {
+    const actors = room.players.filter((p) => p.isAlive && p.roleId === rid);
+    if (actors.length > 0) queue.push({ roleId: rid, actorIds: actors.map((a) => a.id) });
+  }
+
+  // 5: Şifacı Teyze (otaci)
+  for (const rid of ["otaci"]) {
+    const actors = room.players.filter((p) => p.isAlive && p.roleId === rid);
+    if (actors.length > 0) queue.push({ roleId: rid, actorIds: actors.map((a) => a.id) });
+  }
+
+  // 6: Bekçi
+  for (const rid of ["bekci"]) {
+    const actors = room.players.filter((p) => p.isAlive && p.roleId === rid);
+    if (actors.length > 0) queue.push({ roleId: rid, actorIds: actors.map((a) => a.id) });
+  }
+
+  // 7: Falcı
+  for (const rid of ["falci"]) {
+    const actors = room.players.filter((p) => p.isAlive && p.roleId === rid);
+    if (actors.length > 0) queue.push({ roleId: rid, actorIds: actors.map((a) => a.id) });
+  }
+
+  // 8: Hoca (yalnızca kullanılmadıysa)
+  if (!room.hokaUsed) {
+    const actors = room.players.filter((p) => p.isAlive && p.roleId === "hoca");
+    if (actors.length > 0) queue.push({ roleId: "hoca", actorIds: actors.map((a) => a.id) });
+  }
+
+  // 9: Kahraman Dede
+  for (const rid of ["kahraman_dede"]) {
+    const actors = room.players.filter((p) => p.isAlive && p.roleId === rid);
+    if (actors.length > 0) queue.push({ roleId: rid, actorIds: actors.map((a) => a.id) });
+  }
+
+  // 10: Anonim
+  for (const rid of ["anonim"]) {
+    const actors = room.players.filter((p) => p.isAlive && p.roleId === rid);
+    if (actors.length > 0) queue.push({ roleId: rid, actorIds: actors.map((a) => a.id) });
   }
 
   room.nightOrderQueue = queue;
@@ -684,6 +857,7 @@ export function submitNightAction(
   code: string,
   actorId: string,
   targetId: string,
+  targetId2?: string, // Kumarbaz için ikinci hedef
 ): Room | { error: string } {
   const room = rooms.get(code);
   if (!room) return { error: "Oda yok" };
@@ -694,22 +868,74 @@ export function submitNightAction(
   const step = room.nightOrderQueue[room.nightStepIndex];
   if (!step) return { error: "Faz hatası" };
 
+  // Çete toplu oylaması
   if (step.roleId === "_cete") {
     if (!ROLES[actor.roleId].isMafia) return { error: "Çete üyesi değilsin" };
+    const t = room.players.find((p) => p.id === targetId);
+    if (!t || !t.isAlive) return { error: "Geçersiz hedef" };
+    if (ROLES[actor.roleId].isMafia && t.roleId && ROLES[t.roleId]?.isMafia)
+      return { error: "Çete kendi üyesini öldüremez" };
     room.ceteVotes[actorId] = targetId;
-    // Tüm çete oy verdi mi?
     if (Object.keys(room.ceteVotes).length >= step.actorIds.length) {
       finishNightStep(room);
     }
     return room;
   }
 
-  if (actor.roleId !== step.roleId) return { error: "Sıran değil" };
-  room.nightActions.push({
-    actorId,
-    targetId,
-    type: ROLES[actor.roleId].nightAction ?? "",
-  });
+  if (!step.actorIds.includes(actorId)) return { error: "Sıran değil" };
+
+  const roleId = actor.roleId;
+  const t1 = room.players.find((p) => p.id === targetId);
+
+  // Kumarbaz: iki hedef seçer (takas)
+  if (roleId === "kumarbaz") {
+    if (!targetId2) return { error: "Kumarbaz iki hedef seçmeli" };
+    if (targetId === actorId || targetId2 === actorId) return { error: "Kendini seçemezsin" };
+    if (targetId === targetId2) return { error: "Farklı iki oyuncu seçmeli" };
+    const t2 = room.players.find((p) => p.id === targetId2);
+    if (!t1 || !t1.isAlive || !t2 || !t2.isAlive) return { error: "Geçersiz hedef" };
+    room.nightActions.push({ actorId, targetId, type: "swap" });
+    room.nightActions.push({ actorId, targetId: targetId2, type: "swap" });
+    finishNightStep(room);
+    return room;
+  }
+
+  // Kıskanç Komşu: kopyalanacak kişiyi seç
+  if (roleId === "kiskanc_komsu") {
+    if (!t1 || !t1.isAlive) return { error: "Geçersiz hedef" };
+    if (targetId === actorId) return { error: "Kendini kopyalayamazsın" };
+    room.kiskanKopyaTargets[actorId] = targetId;
+    room.nightActions.push({ actorId, targetId, type: "kopya_hedef" });
+    finishNightStep(room);
+    return room;
+  }
+
+  // Hoca: tek kullanımlık, eğer kullanılmışsa geç
+  if (roleId === "hoca") {
+    if (room.hokaUsed) {
+      finishNightStep(room);
+      return room;
+    }
+    if (!t1 || !t1.isAlive) return { error: "Geçersiz hedef" };
+    room.hokaUsed = true;
+    room.nightActions.push({ actorId, targetId, type: "koruma_guclu" });
+    finishNightStep(room);
+    return room;
+  }
+
+  // Kapıcı: ev kilitle
+  if (roleId === "kapici") {
+    if (targetId === actorId) return { error: "Kendi evini kilitleyemezsin" };
+    if (!t1 || !t1.isAlive) return { error: "Geçersiz hedef" };
+    room.nightActions.push({ actorId, targetId, type: "kilit" });
+    finishNightStep(room);
+    return room;
+  }
+
+  // Diğer roller için genel işlem
+  if (!t1 || !t1.isAlive) return { error: "Geçersiz hedef" };
+  const actionType = ROLES[roleId]?.nightAction ?? "";
+  room.nightActions.push({ actorId, targetId, type: actionType });
   finishNightStep(room);
   return room;
 }
@@ -720,7 +946,53 @@ function finishNightStep(room: Room) {
 }
 
 function resolveMorning(room: Room) {
-  // Çete hedefi
+  room.morningEvents = [];
+  const victims: string[] = [];
+
+  // ── ADIM 1: Kumarbaz takası ──────────────────────────────────────────────
+  const swapActions = room.nightActions.filter((a) => a.type === "swap");
+  if (swapActions.length === 2 && swapActions[0].actorId === swapActions[1].actorId) {
+    const p1 = room.players.find((p) => p.id === swapActions[0].targetId);
+    const p2 = room.players.find((p) => p.id === swapActions[1].targetId);
+    if (p1 && p2 && p1.isAlive && p2.isAlive) {
+      const tmp = p1.roleId;
+      p1.roleId = p2.roleId;
+      p2.roleId = tmp;
+      room.kumarbazPairs.push([p1.id, p2.id]);
+      // Kumarbaz'a bildir
+      const kumarbaz = room.players.find((p) => p.id === swapActions[0].actorId);
+      if (kumarbaz) {
+        pushPrivate(room, kumarbaz.id, `🎰 Kumarbaz: ${p1.nickname} ve ${p2.nickname} rolleri takas edildi.`);
+      }
+      room.morningEvents.push({ kind: "info", message: `Gece içinde iki kişinin kaderi yer değiştirdi...` });
+    }
+  }
+
+  // ── ADIM 2: Kapıcı kilitleri uygula ──────────────────────────────────────
+  for (const a of room.nightActions) {
+    if (a.type === "kilit") {
+      room.lockedHouses.push(a.targetId);
+    }
+  }
+
+  // ── ADIM 3: Korumalar ────────────────────────────────────────────────────
+  // Şifacı Teyze (engellenir kapı kilitliyse)
+  const protectedIds = new Set<string>();
+  for (const a of room.nightActions) {
+    if (a.type === "koruma") {
+      if (!room.lockedHouses.includes(a.targetId)) {
+        protectedIds.add(a.targetId);
+      }
+    }
+  }
+  // Hoca (Kapıcı kilidini aşar)
+  for (const a of room.nightActions) {
+    if (a.type === "koruma_guclu") {
+      protectedIds.add(a.targetId); // Hoca kilidi aşar
+    }
+  }
+
+  // ── ADIM 4: Çete hedefi belirle ──────────────────────────────────────────
   let ceteTarget: string | null = null;
   if (Object.keys(room.ceteVotes).length > 0) {
     const tally: Record<string, number> = {};
@@ -732,52 +1004,109 @@ function resolveMorning(room: Room) {
     ceteTarget = top[Math.floor(Math.random() * top.length)];
   }
 
-  // Otacı koruma
-  const protectedIds = new Set<string>();
-  for (const a of room.nightActions) {
-    if (a.type === "koruma") protectedIds.add(a.targetId);
+  // İçten Pazarlıklı: çeteye bu geceki rastgele bir oyuncunun rolünü sızdır
+  const ictenPlayer = room.players.find((p) => p.isAlive && p.roleId === "icten_pazarlikli");
+  if (ictenPlayer) {
+    const spyTargets = room.players.filter((p) => p.isAlive && !ROLES[p.roleId ?? ""]?.isMafia && p.id !== ictenPlayer.id);
+    if (spyTargets.length > 0) {
+      const spy = spyTargets[Math.floor(Math.random() * spyTargets.length)];
+      const ceteMembers = room.players.filter((p) => ROLES[p.roleId ?? ""]?.isMafia);
+      for (const cm of ceteMembers) {
+        pushPrivate(room, cm.id, `🐍 İçten Pazarlıklı raporu: ${spy.nickname} → ${ROLES[spy.roleId ?? ""]?.name ?? "?"}`);
+      }
+    }
   }
 
-  const morningMsgs: string[] = [];
-  const victims: string[] = [];
-
+  // ── ADIM 5: Çete öldürme ─────────────────────────────────────────────────
   if (ceteTarget) {
-    if (protectedIds.has(ceteTarget)) {
-      morningMsgs.push("Bu sabah mahalle sakindir. Kimse kaybolmamış.");
+    // Çete hedefi kilitli evde mi? (Kapıcı etkisi)
+    const isLocked = room.lockedHouses.includes(ceteTarget);
+    // Hoca güçlü koruma kapı kilidini de aşar, ama çete açısından kilit engel
+    const isProtected = protectedIds.has(ceteTarget);
+
+    if (isLocked && !isProtected) {
+      room.morningEvents.push({ kind: "calm", message: "Bu sabah mahalle sakindir. Kimse kaybolmamış." });
+    } else if (isProtected) {
+      room.morningEvents.push({ kind: "calm", message: "Bu sabah mahalle sakindir. Kimse kaybolmamış." });
     } else {
       const v = room.players.find((p) => p.id === ceteTarget);
-      if (v) {
-        v.isAlive = false;
-        const role = v.roleId ? ROLES[v.roleId] : null;
-        room.graveyard.push({
-          playerId: v.id,
-          nickname: v.nickname,
-          roleId: v.roleId ?? "?",
-          cause: `Çete tarafından öldürüldü (${role?.name ?? "?"})`,
-        });
-        victims.push(v.nickname);
-        morningMsgs.push(`Bu sabah ${v.nickname} kaybolmuş.`);
+      if (v && v.isAlive) {
+        killPlayer(room, v, "Çete tarafından öldürüldü", victims);
       }
     }
   } else {
-    morningMsgs.push("Bu sabah mahalle sakindir.");
+    room.morningEvents.push({ kind: "calm", message: "Bu sabah mahalle sakindir." });
   }
 
-  // Bekçi sorgu sonuçları
+  // ── ADIM 6: Kahraman Dede bağımsız öldürme ───────────────────────────────
+  for (const a of room.nightActions) {
+    if (a.type === "bagimsiz_oldurme") {
+      const kdTarget = room.players.find((p) => p.id === a.targetId);
+      if (kdTarget && kdTarget.isAlive) {
+        // Kahraman Dede Kapıcı tarafından engellenemez
+        if (protectedIds.has(kdTarget.id)) {
+          room.morningEvents.push({ kind: "info", message: `${kdTarget.nickname} bu gece korunuyordu.` });
+        } else {
+          killPlayer(room, kdTarget, "Kahraman Dede tarafından öldürüldü", victims);
+        }
+      }
+    }
+  }
+
+  // ── ADIM 7: Kıskanç Komşu kopyası ────────────────────────────────────────
+  for (const [kiskancId, targetPlayerId] of Object.entries(room.kiskanKopyaTargets)) {
+    const targetPlayer = room.players.find((p) => p.id === targetPlayerId);
+    if (!targetPlayer || !targetPlayer.isAlive) continue;
+    // Hedefin bu gece yaptığı eylem neydi?
+    const copiedAction = room.nightActions.find(
+      (a) => a.actorId === targetPlayerId && a.type !== "cete_oylama" && a.type !== "swap",
+    );
+    if (!copiedAction) continue;
+    const kiskancActor = room.players.find((p) => p.id === kiskancId);
+    if (!kiskancActor || !kiskancActor.isAlive) continue;
+
+    // Kopyalanan eylem türüne göre işlem (çete öldürmesi kopyalanamaz)
+    if (copiedAction.type === "koruma" || copiedAction.type === "koruma_guclu") {
+      protectedIds.add(copiedAction.targetId);
+      pushPrivate(room, kiskancId, `🧂 Kıskanç Komşu: ${targetPlayer.nickname}'nin eylemini kopyaladın.`);
+    } else if (copiedAction.type === "sorgu_ekip") {
+      const sq = room.players.find((p) => p.id === copiedAction.targetId);
+      if (sq) {
+        const team = sq.roleId ? ROLES[sq.roleId].team : "iyi";
+        pushPrivate(room, kiskancId, `🧂 Kıskanç kopya: ${sq.nickname} → ${team === "iyi" || team === "kaos" || team === "tarafsiz" ? "İYİ EKİP" : "KÖTÜ EKİP (çete)"}`);
+      }
+    } else if (copiedAction.type === "sorgu_rol") {
+      const sq = room.players.find((p) => p.id === copiedAction.targetId);
+      if (sq) {
+        pushPrivate(room, kiskancId, `🧂 Kıskanç kopya: ${sq.nickname} → ${ROLES[sq.roleId ?? ""]?.name ?? "?"}`);
+      }
+    } else if (copiedAction.type === "kilit") {
+      room.lockedHouses.push(copiedAction.targetId);
+    }
+  }
+
+  // ── ADIM 8: Bekçi sorgu sonuçları ────────────────────────────────────────
   for (const a of room.nightActions) {
     if (a.type === "sorgu_ekip") {
+      if (room.lockedHouses.includes(a.targetId)) continue; // kilit engel
       const target = room.players.find((p) => p.id === a.targetId);
       const actor = room.players.find((p) => p.id === a.actorId);
       if (target && actor) {
-        const team = target.roleId ? ROLES[target.roleId].team : "iyi";
-        actor.isReady = false; // re-use to indicate has unread info? we'll use a separate channel
-        // not stored anywhere; let's add a private message system below
-        pushPrivate(room, actor.id, `🔦 Bekçi raporu: ${target.nickname} → ${
-          team === "iyi" ? "İYİ EKIP" : "KÖTÜ EKIP (çete)"
-        }`);
+        let team = target.roleId ? ROLES[target.roleId].team : "iyi";
+        // İçten Pazarlıklı aldatmaca: "iyi" göster
+        if (target.roleId === "icten_pazarlikli") team = "iyi";
+        pushPrivate(
+          room, actor.id,
+          `🔦 Bekçi raporu: ${target.nickname} → ${team === "kotu" ? "KÖTÜ EKİP (çete)" : "İYİ EKİP"}`,
+        );
       }
     }
+  }
+
+  // ── ADIM 9: Falcı rol sorgusu ─────────────────────────────────────────────
+  for (const a of room.nightActions) {
     if (a.type === "sorgu_rol") {
+      if (room.lockedHouses.includes(a.targetId)) continue; // kilit engel
       const target = room.players.find((p) => p.id === a.targetId);
       const actor = room.players.find((p) => p.id === a.actorId);
       if (target && actor) {
@@ -789,23 +1118,81 @@ function resolveMorning(room: Room) {
           display = all[Math.floor(Math.random() * all.length)];
         }
         pushPrivate(
-          room,
-          actor.id,
-          `🔮 Falcı vizyonu: ${target.nickname} → ${display?.emoji ?? ""} ${
-            display?.name ?? "?"
-          }`,
+          room, actor.id,
+          `🔮 Falcı vizyonu: ${target.nickname} → ${display?.emoji ?? ""} ${display?.name ?? "?"}`,
         );
       }
     }
   }
 
-  // Sabah duyurusu
-  const mainMsg = morningMsgs.join(" ");
-  room.morningEvents = [{ kind: "info", message: mainMsg, victims }];
-  room.voiceQueue.push("Mahalle uyanıyor... " + mainMsg);
+  // ── ADIM 10: Anonim işaretleme ────────────────────────────────────────────
+  for (const a of room.nightActions) {
+    if (a.type === "isaretle") {
+      const anonimId = a.actorId;
+      if (!room.anonimMarks[anonimId]) room.anonimMarks[anonimId] = [];
+      if (!room.anonimMarks[anonimId].includes(a.targetId)) {
+        room.anonimMarks[anonimId].push(a.targetId);
+      }
+    }
+  }
+
+  // ── ADIM 11: Kırık Kalp zinciri ───────────────────────────────────────────
+  // (Bekçi/Falcı sorgu aktörleri zaten hayatta olduğu için gerek yok; ancak ölen aktörler olabilir)
+  // Kırık Kalp bağ ölümleri killPlayer() içinde zaten çağrılıyor
+
+  // ── SABAH DUYURUSU ────────────────────────────────────────────────────────
+  if (victims.length === 0 && !room.morningEvents.some((e) => e.kind === "death")) {
+    room.morningEvents.push({ kind: "calm", message: "Bu sabah mahalle sakindir. Kimse kaybolmamış." });
+  }
+  const voiceMsg = victims.length > 0
+    ? `Mahalle uyanıyor... Bu sabah kayıplar var: ${victims.join(", ")}.`
+    : "Mahalle uyanıyor... Bu sabah herkes sağ salim.";
+  room.voiceQueue.push(voiceMsg);
 
   if (checkWin(room)) return;
   enterDayPhase(room, false);
+}
+
+function killPlayer(room: Room, player: Player, cause: string, victims: string[]) {
+  if (!player.isAlive) return;
+  player.isAlive = false;
+
+  // Tiyatrocu: sahte rol göster
+  const displayRoleId = player.roleId === "tiyatrocu" && room.tiyatrocuFakeRoles[player.id]
+    ? room.tiyatrocuFakeRoles[player.id]
+    : player.roleId;
+  const displayRole = displayRoleId ? ROLES[displayRoleId] : null;
+
+  room.graveyard.push({
+    playerId: player.id,
+    nickname: player.nickname,
+    roleId: displayRoleId ?? "?",
+    cause: `${cause} (${displayRole?.name ?? "?"})`,
+  });
+  victims.push(player.nickname);
+  room.morningEvents.push({
+    kind: "death",
+    message: `Bu sabah ${player.nickname} kaybolmuş. Rolü: ${displayRole?.name ?? "?"}`,
+    victims: [player.nickname],
+  });
+
+  // Muhabir öldü mü? Notlarını aç
+  if (player.roleId === "muhabir") {
+    const notes = privateMessages.get(room.code)?.filter((m) => m.playerId === player.id) ?? [];
+    for (const note of notes) {
+      room.morningEvents.push({ kind: "info", message: `📰 Muhabir notları: ${note.msg}` });
+    }
+  }
+
+  // Dedikoducu gece öldürüldü → sonraki linç ters
+  if (player.roleId === "dedikoducu") {
+    room.nextLynchReversed = true;
+    room.morningEvents.push({ kind: "info", message: "🗣️ Dedikoducu bu gece öldü. Bugünkü linç oylaması tersine dönecek!" });
+    room.voiceQueue.push("Dedikoducu aramızdan ayrıldı. Bugünkü oylama tersine dönecek.");
+  }
+
+  // Kırık Kalp zinciri
+  checkKirikKalpDeath(room, player.id, cause);
 }
 
 function pushPrivate(room: Room, _playerId: string, _msg: string) {
@@ -829,25 +1216,67 @@ export function getPrivateMessagesFor(
 }
 
 function checkWin(room: Room): boolean {
-  const aliveBad = room.players.filter(
-    (p) => p.isAlive && p.roleId && ROLES[p.roleId].isMafia,
-  ).length;
-  const aliveGood = room.players.filter(
-    (p) => p.isAlive && p.roleId && !ROLES[p.roleId].isMafia,
-  ).length;
+  const alivePlayers = room.players.filter((p) => p.isAlive);
+  const aliveCount = alivePlayers.length;
 
-  if (aliveBad === 0) {
-    endGame(
-      room,
-      "iyi",
-      "Mahalle zafere ulaştı! Tüm karanlık güçler temizlendi.",
-    );
+  // ── Anonim kazanma: 3 işaretli linç edildi + hayatta ───────────────────
+  for (const [anonimId, lynchedCount] of Object.entries(room.anonimLynchedCounts)) {
+    if (lynchedCount >= 3) {
+      const anonim = room.players.find((p) => p.id === anonimId);
+      if (anonim && anonim.isAlive) {
+        endGame(room, "anonim", `Anonim kazandı! İşaretlediği 3 kişi mahalleden uzaklaştırıldı.`);
+        return true;
+      }
+    }
+  }
+
+  // ── Kumarbaz kazanma: son 3'te ──────────────────────────────────────────
+  if (aliveCount <= 3) {
+    const kumarbaz = alivePlayers.find((p) => p.roleId === "kumarbaz");
+    if (kumarbaz) {
+      endGame(room, "kumarbaz", `Kumarbaz kazandı! Son 3'e kadar hayatta kaldı.`);
+      return true;
+    }
+  }
+
+  // ── Kahraman Dede kazanma: hayatta kalan tek kişi ──────────────────────
+  if (aliveCount === 1 && alivePlayers[0].roleId === "kahraman_dede") {
+    endGame(room, "kahraman_dede", `Kahraman Dede kazandı! Mahallede tek kişi kaldı.`);
     return true;
   }
-  if (aliveBad >= aliveGood) {
+
+  // ── Kırık Kalp kazanma: aşığıyla ikisi de hayatta son ikili ───────────
+  if (aliveCount === 2) {
+    for (const [kkId, lovedId] of Object.entries(room.kirikKalpBonds)) {
+      const kk = alivePlayers.find((p) => p.id === kkId);
+      const loved = alivePlayers.find((p) => p.id === lovedId);
+      if (kk && loved) {
+        endGame(room, "kirik_kalp", `Kırık Kalp ve aşığı kazandı! İkisi birlikte son ikili olarak kaldı.`);
+        return true;
+      }
+    }
+  }
+
+  // ── Çete kazanma: çete sayısı ≥ diğerleri ──────────────────────────────
+  const aliveMafia = alivePlayers.filter((p) => p.roleId && ROLES[p.roleId]?.isMafia).length;
+  const aliveNonMafia = aliveCount - aliveMafia;
+
+  if (aliveMafia >= aliveNonMafia && aliveMafia > 0) {
     endGame(room, "kotu", "Davetsiz Misafir kazandı — Mahalle ele geçirildi.");
     return true;
   }
+
+  // ── Mahalle kazanma: tüm çete + tehlikeli tarafsızlar elenince ─────────
+  const aliveDangerousNeutral = alivePlayers.filter(
+    (p) => p.roleId === "anonim" || p.roleId === "kahraman_dede",
+  ).length;
+
+  if (aliveMafia === 0 && aliveDangerousNeutral === 0) {
+    endGame(room, "iyi", "Mahalle zafere ulaştı! Tüm karanlık güçler temizlendi.");
+    return true;
+  }
+
+  // Çete elendi ama tehlikeli tarafsızlar hâlâ var — devam
   return false;
 }
 
@@ -927,11 +1356,25 @@ export function restartGame(
   room.winnerLabel = null;
   room.paused = false;
   room.pausedAt = null;
+  room.hokaUsed = false;
+  room.lockedHouses = [];
+  room.anonimMarks = {};
+  room.anonimLynchedCounts = {};
+  room.kirikKalpBonds = {};
+  room.tiyatrocuFakeRoles = {};
+  room.kumarbazPairs = [];
+  room.nextLynchReversed = false;
+  room.kiskanKopyaTargets = {};
   privateMessages.delete(code);
   return room;
 }
 
 export function publicView(room: Room, viewerPlayerId: string | null) {
+  const viewer = viewerPlayerId ? room.players.find((p) => p.id === viewerPlayerId) : null;
+  const viewerRole = viewer?.roleId ?? null;
+  const isViewerMafia = viewerRole ? ROLES[viewerRole]?.isMafia : false;
+  const isViewerIcten = viewerRole === "icten_pazarlikli";
+
   return {
     code: room.code,
     hostId: room.hostId,
@@ -974,12 +1417,25 @@ export function publicView(room: Room, viewerPlayerId: string | null) {
       ? getPrivateMessagesFor(room.code, viewerPlayerId)
       : [],
     ceteMembers:
-      viewerPlayerId &&
-      room.players.find((p) => p.id === viewerPlayerId)?.roleId &&
-      ROLES[room.players.find((p) => p.id === viewerPlayerId)!.roleId!]?.isMafia
+      (isViewerMafia || isViewerIcten)
         ? room.players
             .filter((p) => p.roleId && ROLES[p.roleId].isMafia)
             .map((p) => ({ id: p.id, nickname: p.nickname, roleId: p.roleId }))
         : [],
+    // Hoca'ya özel: dua kullanıldı mı?
+    hokaUsed: viewerRole === "hoca" ? room.hokaUsed : undefined,
+    // Anonim'e özel: işaretlediği kişiler
+    anonimMarks: viewerRole === "anonim" && viewerPlayerId
+      ? (room.anonimMarks[viewerPlayerId] ?? [])
+      : undefined,
+    anonimLynchedCount: viewerRole === "anonim" && viewerPlayerId
+      ? (room.anonimLynchedCounts[viewerPlayerId] ?? 0)
+      : undefined,
+    // Kırık Kalp'e özel: aşığı
+    kirikKalpLovedId: viewerRole === "kirik_kalp" && viewerPlayerId
+      ? (room.kirikKalpBonds[viewerPlayerId] ?? null)
+      : undefined,
+    // Dedikoducu bayrağı (public)
+    nextLynchReversed: room.nextLynchReversed,
   };
 }
