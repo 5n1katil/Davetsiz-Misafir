@@ -41,7 +41,7 @@ export default function HostPanel() {
   const fabPulseAnim = useRef(new Animated.Value(1)).current;
   const frozenRemainingRef = useRef<number | null>(null);
 
-  const openPanelRef = useRef<() => void>();
+  const openPanelRef = useRef<(() => void) | undefined>(undefined);
 
   const prevTriggerRef = useRef(0);
   useEffect(() => {

@@ -23,6 +23,13 @@ export default function Index() {
   const insets = useSafeAreaInsets();
   const { connected, state, voiceMuted, toggleVoice } = useGame();
   const [settingsVisible, setSettingsVisible] = useState(false);
+  const isPaused = state?.paused === true;
+
+  useEffect(() => {
+    if (!isPaused) {
+      setSettingsVisible(false);
+    }
+  }, [isPaused]);
 
   if (!connected && !state) {
     return (
@@ -64,14 +71,6 @@ export default function Index() {
       body = <EndScreen />;
     }
   }
-
-  const isPaused = state?.paused === true;
-
-  useEffect(() => {
-    if (!isPaused) {
-      setSettingsVisible(false);
-    }
-  }, [isPaused]);
 
   return (
     <View style={[styles.root, { backgroundColor: c.background, paddingTop: insets.top }]}>
