@@ -26,6 +26,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Btn } from "@/components/Btn";
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
+import SettingsScreen from "@/screens/SettingsScreen";
 import StatsScreen from "@/screens/StatsScreen";
 
 const SCREEN_W = Dimensions.get("window").width;
@@ -50,6 +51,7 @@ export default function LobbyScreen() {
   const [mode, setMode] = useState<"create" | "join">("create");
   const [statsVisible, setStatsVisible] = useState(false);
   const [helpVisible, setHelpVisible] = useState(false);
+  const [settingsVisible, setSettingsVisible] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -165,6 +167,13 @@ export default function LobbyScreen() {
                 style={[styles.iconBtn, { backgroundColor: c.card, borderColor: c.border }]}
               >
                 <Feather name="bar-chart-2" size={17} color={c.foreground} />
+              </Pressable>
+              <Pressable
+                onPress={() => setSettingsVisible(true)}
+                hitSlop={12}
+                style={[styles.iconBtn, { backgroundColor: c.card, borderColor: c.border }]}
+              >
+                <Feather name="settings" size={17} color={c.foreground} />
               </Pressable>
               <Pressable
                 onPress={() => setHelpVisible(true)}
@@ -314,6 +323,7 @@ export default function LobbyScreen() {
         </KeyboardAvoidingView>
 
         <StatsScreen visible={statsVisible} onClose={() => setStatsVisible(false)} />
+        <SettingsScreen visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
 
         <Modal
           visible={helpVisible}
