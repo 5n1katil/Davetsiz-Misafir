@@ -167,13 +167,6 @@ export default function LobbyScreen() {
                 <Feather name="bar-chart-2" size={17} color={c.foreground} />
               </Pressable>
               <Pressable
-                onPress={() => setSettingsVisible(true)}
-                hitSlop={12}
-                style={[styles.iconBtn, { backgroundColor: c.card, borderColor: c.border }]}
-              >
-                <Feather name="settings" size={17} color={c.foreground} />
-              </Pressable>
-              <Pressable
                 onPress={() => setHelpVisible(true)}
                 hitSlop={12}
                 style={[styles.iconBtn, { backgroundColor: c.card, borderColor: c.border }]}
@@ -321,7 +314,6 @@ export default function LobbyScreen() {
         </KeyboardAvoidingView>
 
         <StatsScreen visible={statsVisible} onClose={() => setStatsVisible(false)} />
-        <SettingsScreen visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
 
         <Modal
           visible={helpVisible}
