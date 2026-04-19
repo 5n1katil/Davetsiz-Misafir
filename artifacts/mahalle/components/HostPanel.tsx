@@ -34,12 +34,22 @@ const ACTIVE_PHASES = ["ROLE_SELECT", "ROLE_REVEAL", "DAY", "VOTE", "VOTE_RUNOFF
 export default function HostPanel() {
   const c = useColors();
   const insets = useSafeAreaInsets();
-  const { state, myPlayerId, emit, hostJustReceived, clearHostJustReceived } = useGame();
+  const { state, myPlayerId, emit, hostJustReceived, clearHostJustReceived, openHostPanelTrigger } = useGame();
   const [open, setOpen] = useState(false);
   const [ticker, setTicker] = useState(0);
   const slideAnim = useRef(new Animated.Value(400)).current;
   const fabPulseAnim = useRef(new Animated.Value(1)).current;
   const frozenRemainingRef = useRef<number | null>(null);
+
+  const openPanelRef = useRef<() => void>();
+
+  const prevTriggerRef = useRef(0);
+  useEffect(() => {
+    if (openHostPanelTrigger === 0) return;
+    if (openHostPanelTrigger === prevTriggerRef.current) return;
+    prevTriggerRef.current = openHostPanelTrigger;
+    openPanelRef.current?.();
+  }, [openHostPanelTrigger]);
 
   useEffect(() => {
     if (!hostJustReceived) return;
@@ -91,6 +101,7 @@ export default function HostPanel() {
       friction: 11,
     }).start();
   }
+  openPanelRef.current = openPanel;
 
   function closePanel() {
     Animated.timing(slideAnim, {

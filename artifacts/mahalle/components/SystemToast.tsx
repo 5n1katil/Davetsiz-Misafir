@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import React, { useEffect, useRef } from "react";
-import { Animated, StyleSheet, Text, Pressable } from "react-native";
+import { Animated, StyleSheet, Text, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useGame } from "@/contexts/GameContext";
@@ -53,10 +53,24 @@ export default function SystemToast() {
 
   if (!systemToast) return null;
 
+  const hasTapAction = typeof systemToast.onPress === "function";
+
+  const handlePress = () => {
+    if (hasTapAction) {
+      systemToast.onPress!();
+      if (timerRef.current) clearTimeout(timerRef.current);
+      Animated.parallel([
+        Animated.timing(slideAnim, { toValue: -80, duration: 200, useNativeDriver: true }),
+        Animated.timing(opacityAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
+      ]).start(() => dismissToast());
+    }
+  };
+
   return (
     <Animated.View
       style={[
         styles.container,
+        hasTapAction && styles.containerTappable,
         {
           top: insets.top + 8,
           transform: [{ translateY: slideAnim }],
@@ -64,10 +78,21 @@ export default function SystemToast() {
         },
       ]}
     >
-      <Feather name={(systemToast.icon as any) ?? "award"} size={16} color="#F5C842" style={{ marginRight: 8 }} />
-      <Text style={styles.text} numberOfLines={2}>
-        {systemToast.message}
-      </Text>
+      <Pressable
+        onPress={hasTapAction ? handlePress : undefined}
+        style={styles.body}
+        android_ripple={hasTapAction ? { color: "#9B7FD430" } : undefined}
+      >
+        <Feather name={(systemToast.icon as any) ?? "award"} size={16} color="#F5C842" style={{ marginRight: 8 }} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.text} numberOfLines={2}>
+            {systemToast.message}
+          </Text>
+          {hasTapAction && (
+            <Text style={styles.tapHint}>Paneli açmak için dokun</Text>
+          )}
+        </View>
+      </Pressable>
       <Pressable onPress={dismissToast} hitSlop={10} style={styles.closeBtn}>
         <Feather name="x" size={14} color="#9B7FD4" />
       </Pressable>
@@ -95,12 +120,25 @@ const styles = StyleSheet.create({
     elevation: 10,
     zIndex: 999,
   },
-  text: {
+  containerTappable: {
+    borderColor: "#F5C842AA",
+  },
+  body: {
     flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  text: {
     color: "#F0EAF8",
     fontFamily: "Inter_600SemiBold",
     fontSize: 14,
     lineHeight: 20,
+  },
+  tapHint: {
+    color: "#9B7FD4",
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    marginTop: 2,
   },
   closeBtn: {
     marginLeft: 8,

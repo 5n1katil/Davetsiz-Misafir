@@ -80,6 +80,7 @@ export interface SystemToast {
   message: string;
   id: number;
   icon?: string;
+  onPress?: () => void;
 }
 
 interface GameCtx {
@@ -108,6 +109,7 @@ interface GameCtx {
   dismissToast: () => void;
   hostJustReceived: boolean;
   clearHostJustReceived: () => void;
+  openHostPanelTrigger: number;
 }
 
 const Ctx = createContext<GameCtx | null>(null);
@@ -132,6 +134,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [systemToast, setSystemToast] = useState<SystemToast | null>(null);
   const [hostJustReceived, setHostJustReceived] = useState(false);
+  const [openHostPanelTrigger, setOpenHostPanelTrigger] = useState(0);
   const hostNotifyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastPhaseRef = useRef<string | null>(null);
   const wasAliveRef = useRef<boolean | null>(null);
@@ -265,7 +268,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         setHostJustReceived(true);
         if (hostNotifyTimerRef.current) clearTimeout(hostNotifyTimerRef.current);
         hostNotifyTimerRef.current = setTimeout(() => {
-          setSystemToast({ message: "Sen artık oyun yöneticisisin! 👑", id: Date.now() });
+          setSystemToast({
+            message: "Sen artık oyun yöneticisisin! 👑",
+            id: Date.now(),
+            onPress: () => setOpenHostPanelTrigger((n) => n + 1),
+          });
           hostNotifyTimerRef.current = null;
         }, 4500);
       }
@@ -412,6 +419,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       dismissToast,
       hostJustReceived,
       clearHostJustReceived,
+      openHostPanelTrigger,
     }),
     [
       socket,
@@ -435,6 +443,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       dismissToast,
       hostJustReceived,
       clearHostJustReceived,
+      openHostPanelTrigger,
     ],
   );
 
