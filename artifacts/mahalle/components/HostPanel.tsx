@@ -199,14 +199,14 @@ export default function HostPanel() {
             </Text>
           </Pressable>
 
-          {gs.phase === "NIGHT" && (
+          {(gs.phase === "DAY" || gs.phase === "NIGHT") && (
             <Pressable
               onPress={handleStartNight}
               style={[styles.nightBtn, { backgroundColor: "#C8102E", borderColor: "#C8102E" }]}
             >
               <Feather name="moon" size={16} color="#fff" />
               <Text style={{ color: "#fff", fontFamily: "Inter_600SemiBold", marginLeft: 8 }}>
-                Geceyi Başlat
+                {gs.phase === "DAY" ? "Geceyi Başlat (Gündüzü Atla)" : "Geceyi Başlat"}
               </Text>
             </Pressable>
           )}

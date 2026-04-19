@@ -608,6 +608,11 @@ function startNight(room: Room) {
 export function advanceFromNightIntro(code: string): Room | null {
   const room = rooms.get(code);
   if (!room) return null;
+  if (room.phase === "DAY") {
+    // Host shortcut: skip day discussion and enter night immediately
+    startNight(room);
+    return room;
+  }
   if (room.phase !== "NIGHT") return null;
   advanceNightStep(room);
   return room;
@@ -858,6 +863,8 @@ export function restartGame(
   room.voiceQueue = [];
   room.winner = null;
   room.winnerLabel = null;
+  room.paused = false;
+  room.pausedAt = null;
   privateMessages.delete(code);
   return room;
 }
