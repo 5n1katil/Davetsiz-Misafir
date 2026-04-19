@@ -7,6 +7,7 @@ import {
   chooseRole,
   consumeVoiceQueue,
   createRoom,
+  endDayEarly,
   getRoom,
   joinRoom,
   kickPlayer,
@@ -139,6 +140,15 @@ export function attachSocketServer(http: HTTPServer) {
       const s = sessions.get(socket.id);
       if (!s) return cb?.({ ok: false, error: "session yok" });
       const res = proposeVote(s.roomCode, s.playerId);
+      if ("error" in res) return cb?.({ ok: false, error: res.error });
+      cb?.({ ok: true });
+      broadcast(s.roomCode);
+    });
+
+    socket.on("endDayEarly", (_p, cb) => {
+      const s = sessions.get(socket.id);
+      if (!s) return cb?.({ ok: false, error: "session yok" });
+      const res = endDayEarly(s.roomCode, s.playerId);
       if ("error" in res) return cb?.({ ok: false, error: res.error });
       cb?.({ ok: true });
       broadcast(s.roomCode);

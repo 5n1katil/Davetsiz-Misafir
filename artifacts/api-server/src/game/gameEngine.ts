@@ -378,6 +378,19 @@ function enterDayPhase(room: Room, firstDay: boolean) {
   }
 }
 
+export function endDayEarly(
+  code: string,
+  hostId: string,
+): Room | { error: string } {
+  const room = rooms.get(code);
+  if (!room) return { error: "Oda yok" };
+  if (room.hostId !== hostId) return { error: "Sadece host" };
+  if (room.phase !== "DAY") return { error: "Faz uygun değil" };
+  const alive = room.players.filter((p) => p.isAlive);
+  openVote(room, alive.map((p) => p.id));
+  return room;
+}
+
 export function proposeVote(
   code: string,
   playerId: string,

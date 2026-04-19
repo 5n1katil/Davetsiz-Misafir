@@ -102,6 +102,25 @@ export default function HostPanel() {
     if (!res.ok) Alert.alert("Hata", res.error ?? "Bilinmeyen hata");
   }
 
+  function handleEndDayEarly() {
+    Alert.alert(
+      "Oylamaya Geç",
+      "Gündüz tartışmasını bitirip hemen oylamaya geçmek istiyor musun?",
+      [
+        { text: "İptal", style: "cancel" },
+        {
+          text: "Oylamaya Geç",
+          style: "destructive",
+          onPress: async () => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            const res = await emit("endDayEarly");
+            if (!res.ok) Alert.alert("Hata", res.error ?? "Bilinmeyen hata");
+          },
+        },
+      ],
+    );
+  }
+
   function handleKick(targetId: string, nickname: string) {
     Alert.alert(
       "Oyuncuyu Çıkar",
@@ -208,6 +227,18 @@ export default function HostPanel() {
               {gs.paused ? "Devam Et" : "Beklet"}
             </Text>
           </Pressable>
+
+          {gs.phase === "DAY" && (
+            <Pressable
+              onPress={handleEndDayEarly}
+              style={[styles.nightBtn, { backgroundColor: "#1ECBE1", borderColor: "#1ECBE1" }]}
+            >
+              <Feather name="check-circle" size={16} color="#0A0614" />
+              <Text style={{ color: "#0A0614", fontFamily: "Inter_600SemiBold", marginLeft: 8 }}>
+                Oylamaya Geç
+              </Text>
+            </Pressable>
+          )}
 
           {(gs.phase === "DAY" || gs.phase === "NIGHT") && (
             <Pressable
