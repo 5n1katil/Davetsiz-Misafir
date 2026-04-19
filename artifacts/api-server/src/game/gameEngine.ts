@@ -809,8 +809,8 @@ function startNight(room: Room) {
     if (actors.length > 0) queue.push({ roleId: rid, actorIds: actors.map((a) => a.id) });
   }
 
-  // 8: Hoca (yalnızca kullanılmadıysa)
-  if (!room.hocaUsed) {
+  // 8: Hoca (her zaman kuyruğa alınır; kullanıldıysa submitNightAction otomatik atlar)
+  {
     const actors = room.players.filter((p) => p.isAlive && p.roleId === "hoca");
     if (actors.length > 0) queue.push({ roleId: "hoca", actorIds: actors.map((a) => a.id) });
   }

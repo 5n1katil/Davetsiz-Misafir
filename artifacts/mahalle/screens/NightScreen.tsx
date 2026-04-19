@@ -17,7 +17,6 @@ import { GraveyardChat } from "@/components/GraveyardChat";
 import roleImages from "@/constants/roleImages";
 import { ROLE_DEFS, ROLE_TEAM_COLOR } from "@/constants/roles";
 import { useGame } from "@/contexts/GameContext";
-import { useColors } from "@/hooks/useColors";
 import { useCountdown } from "@/hooks/useCountdown";
 import { useGhostActivity } from "@/hooks/useGhostActivity";
 import { useReduceMotion } from "@/hooks/useReduceMotion";
@@ -188,7 +187,6 @@ export default function NightScreen() {
     );
   }
 
-  // ── Hoca: if already used, show passive note ──────────────────────────────
   if (roleId === "hoca" && state.hocaUsed) {
     return (
       <View style={[styles.intro, { backgroundColor: BG }]}>
@@ -203,9 +201,14 @@ export default function NightScreen() {
             <Text style={{ color: "#7E7C92", fontSize: 12 }}>Gücünü daha önce kullandın.</Text>
           </Text>
         </View>
-        <Text style={{ color: "#F5C842", fontFamily: "Inter_700Bold", fontSize: 34, marginTop: 28, fontVariant: ["tabular-nums"] }}>
+        <Text style={{ color: "#F5C842", fontFamily: "Inter_700Bold", fontSize: 32, marginTop: 20, fontVariant: ["tabular-nums"] }}>
           {remaining}s
         </Text>
+        <Btn
+          label="Tamam"
+          onPress={() => emit("nightAction", { targetId: "" })}
+          style={{ marginTop: 16, alignSelf: "stretch", marginHorizontal: 30 }}
+        />
       </View>
     );
   }
