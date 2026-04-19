@@ -4,7 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { Animated, Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Btn } from "@/components/Btn";
-import { ROLE_DEFS, ROLE_TEAM_LABEL } from "@/constants/roles";
+import { ROLE_DEFS, ROLE_TEAM_COLOR, ROLE_TEAM_LABEL } from "@/constants/roles";
 import roleImages from "@/constants/roleImages";
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
@@ -86,7 +86,7 @@ function CardFan({ opts, remaining, emit, c, myPlayerId }: any) {
       {opts.map((rid: string, i: number) => {
         const r = ROLE_DEFS[rid];
         if (!r) return null;
-        const teamColor = r.team === "iyi" ? c.factionGood : c.factionBad;
+        const teamColor = ROLE_TEAM_COLOR[r.team] ?? c.factionGood;
         const img = roleImages[rid];
         return (
           <Animated.View

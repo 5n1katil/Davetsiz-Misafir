@@ -26,13 +26,14 @@ const PHASES = [
     label: "GECE",
     color: "#7C4DFF",
     steps: [
-      "Host oyunu başlatır, TTS anlatım devreye girer.",
+      "Host oyunu başlatır, TTS Türkçe anlatım devreye girer.",
       "Tüm oyuncular gözlerini kapatır.",
-      "Çete üyeleri kendi aralarında hedef seçer.",
-      "Bekçi bir kişinin ekibini sorguluyor.",
-      "Şifacı Teyze bir kişiyi koruyor.",
-      "Falcı bir kişinin tam rolünü görüyor.",
-      "Sabah olur — kurban açıklanır.",
+      "Kumarbaz ve Kıskanç Komşu ilk eylemlerini yapar.",
+      "Çete üyeleri gizli kanalda hedef oylaması yapar.",
+      "Kapıcı bir evi kilitler; Şifacı Teyze birini korur.",
+      "Bekçi ekip, Falcı tam rol sorgular.",
+      "Hoca (tek kullanım), Kahraman Dede ve Anonim eylemlerini yapar.",
+      "Sabah olur — ölümler ve özel olaylar açıklanır.",
     ],
   },
   {
@@ -40,7 +41,7 @@ const PHASES = [
     label: "GÜNDÜZ",
     color: "#E9B342",
     steps: [
-      "Ölen oyuncu rolü açıklanır.",
+      "Ölen oyuncunun rolü açıklanır.",
       "Hayatta kalanlar şüphelileri tartışır.",
       "Herkes argümanlarını sunar.",
       "Ölmüş oyuncular hayalet sohbetine erişir.",
@@ -53,9 +54,9 @@ const PHASES = [
     color: "#1ECBE1",
     steps: [
       "Her oyuncu linç edilecek kişiye oy verir.",
-      "En çok oy alan linç edilir.",
-      "Eşitlik olursa ikinci tur başlar.",
-      "Linç edilen oyuncunun rolü açıklanır.",
+      "En çok oy alan linç edilir — rolü açıklanır.",
+      "Eşitlik olursa ikinci tur başlar; yine eşit olursa kimse elenmez.",
+      "Politikacı linç edilirse çete ANINDA kazanır.",
       "Kazanma koşulu kontrol edilir.",
     ],
   },
@@ -66,21 +67,44 @@ const WIN_CONDITIONS = [
     team: "MAHALLE",
     color: "#1ECBE1",
     icon: "shield" as const,
-    condition: "Tüm Davetsiz Misafirler ve çete üyeleri linç edilirse mahalle kazanır.",
+    condition:
+      "Tüm Davetsiz Misafir çetesi ve tehlikeli yalnız kurtlar (Anonim, Kahraman Dede) etkisiz hale getirilirse mahalle kazanır.",
   },
   {
     team: "ÇETE",
     color: "#FF4D6D",
     icon: "zap" as const,
     condition:
-      "Çete, hayatta kalan mahallelilerle sayıca eşitlenirse veya geçerse kazanır.",
+      "Çete, hayatta kalan mahallelilerle sayıca eşitlenirse veya geçerse kazanır. Politikacı linç edilirse çete ANINDA kazanır.",
   },
   {
-    team: "ÇETE — Sahte Dernek",
-    color: "#FF8800",
-    icon: "alert-triangle" as const,
-    condition: "Sahte Dernek Başkanı linç edilirse çete ANINDA kazanır.",
+    team: "KARGAŞACILAR",
+    color: "#F5A623",
+    icon: "shuffle" as const,
+    condition:
+      "Kumarbaz son 3'e kalırsa kazanır. Kırık Kalp, aşığıyla ikisi birlikte oyun sonuna ulaşırsa kazanır. Dedikoducu, 2 masum linç edilirse kişisel puan alır.",
   },
+  {
+    team: "YALNIZ KURTLAR",
+    color: "#9B7FD4",
+    icon: "target" as const,
+    condition:
+      "Anonim, işaretlediği 3 kişi linç edilirse tek başına kazanır. Kahraman Dede, hayatta kalan son oyuncu olursa kazanır.",
+  },
+];
+
+const NAMED_ROLE_IDS = [
+  "muhtar", "bekci", "otaci", "falci", "kapici", "muhabir", "tiyatrocu", "hoca",
+  "tefeci_basi", "tahsildar", "sahte_dernek", "icten_pazarlikli",
+  "kumarbaz", "kiskanc_komsu", "kirik_kalp", "dedikoducu",
+  "anonim", "kahraman_dede",
+];
+
+const TEAM_GROUPS: { team: "iyi" | "kotu" | "kaos" | "tarafsiz"; title: string; color: string }[] = [
+  { team: "iyi", title: "MAHALLE — İYİ TARAF", color: "#1ECBE1" },
+  { team: "kotu", title: "ÇETE — KÖTÜ TARAF", color: "#FF4D6D" },
+  { team: "kaos", title: "KARGAŞACILAR", color: "#F5A623" },
+  { team: "tarafsiz", title: "YALNIZ KURTLAR", color: "#9B7FD4" },
 ];
 
 export default function HowToPlayScreen({ visible, onClose }: Props) {
@@ -88,8 +112,9 @@ export default function HowToPlayScreen({ visible, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<"oyun" | "roller">("oyun");
 
-  const mahalleRoles = Object.values(ROLE_DEFS).filter((r) => r.team === "iyi");
-  const ceteRoles = Object.values(ROLE_DEFS).filter((r) => r.team === "kotu");
+  const namedRoles = NAMED_ROLE_IDS
+    .map((id) => ROLE_DEFS[id])
+    .filter(Boolean);
 
   return (
     <Modal
@@ -127,7 +152,7 @@ export default function HowToPlayScreen({ visible, onClose }: Props) {
                   { color: tab === t ? "#E9B342" : c.mutedForeground },
                 ]}
               >
-                {t === "oyun" ? "🎮  OYUN AKIŞI" : "🃏  ROLLER"}
+                {t === "oyun" ? "🎮  OYUN AKIŞI" : "🃏  ROLLER (18)"}
               </Text>
             </Pressable>
           ))}
@@ -144,14 +169,15 @@ export default function HowToPlayScreen({ visible, onClose }: Props) {
             <>
               <View style={[s.introCard, { backgroundColor: c.card, borderColor: c.border }]}>
                 <Text style={[s.introTitle, { color: c.foreground }]}>
-                  4-30 Kişi · Tek Mekan
+                  4-30 Kişi · Tek Mekan · 18 Rol
                 </Text>
                 <Text style={[s.introText, { color: c.mutedForeground }]}>
                   Herkesin elinde telefon, host masanın ortasında. Mahalle
                   sakinleri arasına sızmış{" "}
                   <Text style={{ color: "#FF4D6D" }}>Davetsiz Misafir</Text>'i
                   bulup idam etmek için gece ile gündüz arasında gidip
-                  gelirsiniz.
+                  gelirsiniz. Kargaşacılar ve yalnız kurtlar kendi
+                  gündemlerini takip eder.
                 </Text>
               </View>
 
@@ -197,18 +223,19 @@ export default function HowToPlayScreen({ visible, onClose }: Props) {
             </>
           ) : (
             <>
-              <TeamSection
-                c={c}
-                title="MAHALLE — İYİ TARAF"
-                teamColor="#1ECBE1"
-                roles={mahalleRoles}
-              />
-              <TeamSection
-                c={c}
-                title="ÇETE — KÖTÜ TARAF"
-                teamColor="#FF4D6D"
-                roles={ceteRoles}
-              />
+              {TEAM_GROUPS.map((group) => {
+                const roles = namedRoles.filter((r) => r.team === group.team);
+                if (roles.length === 0) return null;
+                return (
+                  <TeamSection
+                    key={group.team}
+                    c={c}
+                    title={group.title}
+                    teamColor={group.color}
+                    roles={roles}
+                  />
+                );
+              })}
             </>
           )}
         </ScrollView>
@@ -223,6 +250,9 @@ function TeamSection({ c, title, teamColor, roles }: any) {
       <View style={[s.teamHeader, { borderColor: teamColor + "55" }]}>
         <View style={[s.teamDot, { backgroundColor: teamColor }]} />
         <Text style={[s.teamTitle, { color: teamColor }]}>{title}</Text>
+        <View style={[s.teamCount, { backgroundColor: teamColor + "22" }]}>
+          <Text style={[s.teamCountText, { color: teamColor }]}>{roles.length}</Text>
+        </View>
       </View>
       {roles.map((role: any) => (
         <RoleCard key={role.id} c={c} role={role} teamColor={teamColor} />
@@ -406,7 +436,9 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   teamDot: { width: 8, height: 8, borderRadius: 4 },
-  teamTitle: { fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 1.5 },
+  teamTitle: { fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 1.5, flex: 1 },
+  teamCount: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
+  teamCountText: { fontFamily: "Inter_700Bold", fontSize: 11 },
 
   roleCard: {
     borderRadius: 14,

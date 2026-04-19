@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Btn } from "@/components/Btn";
-import { ROLE_DEFS, ROLE_TEAM_LABEL } from "@/constants/roles";
+import { ROLE_DEFS, ROLE_TEAM_COLOR, ROLE_TEAM_LABEL } from "@/constants/roles";
 import roleImages from "@/constants/roleImages";
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
@@ -42,7 +42,7 @@ export default function RoleRevealScreen() {
     );
   }
 
-  const teamColor = role.team === "iyi" ? c.factionGood : c.factionBad;
+  const teamColor = ROLE_TEAM_COLOR[role.team] ?? c.factionGood;
 
   return (
     <ScrollView
