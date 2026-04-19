@@ -55,9 +55,9 @@ export default function LobbyScreen() {
             style={styles.heroBg}
           />
           <View style={styles.hero}>
-            <Text style={styles.brand}>MAHALLE</Text>
+            <Text style={styles.brand}>DAVETSİZ MİSAFİR</Text>
             <Text style={[styles.tag, { color: c.mutedForeground }]}>
-              Tefeci çetesini bul. Yoksa mahalle onların olur.
+              Davetsiz Misafir'i bul. Yoksa mahalle onların olur.
             </Text>
           </View>
 
@@ -363,9 +363,10 @@ const styles = StyleSheet.create({
   hero: { paddingTop: 28, paddingBottom: 24, alignItems: "center" },
   brand: {
     fontFamily: "Inter_700Bold",
-    fontSize: 44,
-    letterSpacing: 6,
+    fontSize: 30,
+    letterSpacing: 3,
     color: "#E9B342",
+    textAlign: "center",
   },
   tag: { fontFamily: "Inter_400Regular", fontSize: 13, marginTop: 8, textAlign: "center", paddingHorizontal: 18 },
   card: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 12 },

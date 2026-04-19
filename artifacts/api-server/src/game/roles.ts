@@ -26,26 +26,26 @@ export interface RoleDef {
 export const ROLES: Record<string, RoleDef> = {
   tefeci_basi: {
     id: "tefeci_basi",
-    name: "Tefeci Başı",
-    emoji: "💰",
+    name: "Davetsiz Misafir",
+    emoji: "🚪",
     team: "kotu",
     isMafia: true,
-    description: "Çetenin reisi. Çete oylamasını yönetir.",
+    description: "Kimse onu davet etmedi. Ama o burada. Ve her gece biri kayboluyor.",
     story:
-      "Mahalle senin borcunla yaşıyor. Geceleri tahsildarınla otur, kimi sileceğine karar ver.",
+      "Geçen ay taşındı. Kapıda kibarca güldü, elini sıktı. Ama o gülümseme hiç gözlerine yansımadı. Elindeki anahtar — binada o numaralı daire yok.",
     ability:
-      "Her gece çete üyeleriyle birlikte bir hedef seçer. Çoğunluk kimi seçtiyse o kişi tasfiye edilir.",
+      "Her gece ekibiyle birlikte bir hedef seçer. Çoğunluk kimi seçtiyse o kişi sabah kaybolur.",
     winCondition:
-      "Çete sayısı, hayatta kalan iyi oyuncu sayısına eşitlenirse veya geçerse kazanırsınız.",
+      "Davetsiz misafirler sayıca mahallelilere eşitlenirse veya geçerse, mahalle ele geçirilir.",
     tips: [
-      "Gündüz sakin ol, suskun durma; suçlama yapan herkes radarına girer.",
-      "Çete arkadaşını koruma; aşırı savunma şüphe çeker.",
-      "Köylülerden birine 'kanıt' uydur, oylamayı yönlendir.",
+      "Sakin ol; çok konuşan değil, doğru anda konuşan kazanır.",
+      "Ekip arkadaşını fazla savunma — bu seni ele verir.",
+      "Masum birine şüphe yönlendir; oylamayı sen yönet.",
     ],
     nightAction: "cete_oylama",
     nightOrder: 3,
     voiceCallTr:
-      "Tefeci Çetesi uyanıyor... Bu gece kimi tasfiye edeceksiniz? Oyunuzu kullanın.",
+      "Davetsiz Misafir uyanıyor... Bu gece kimin kapısını çalacaksınız?",
     voteWeight: 1,
   },
   tahsildar: {
@@ -56,9 +56,9 @@ export const ROLES: Record<string, RoleDef> = {
     isMafia: true,
     description: "Çetenin sağ kolu. Çete oylamasında oyu vardır.",
     story:
-      "Defteri elinde, kalemi kulağında. Tefeci Başı'nın gözü kulağı sensin.",
+      "Defteri elinde, kalemi kulağında. Davetsiz Misafir'in gözü kulağı sensin.",
     ability:
-      "Çete oylamasında bir oyu vardır. Tefeci Başı düşerse çete oylamasını yönetirsin.",
+      "Çete oylamasında bir oyu vardır. Davetsiz Misafir düşerse çete oylamasını yönetirsin.",
     winCondition: "Çete kazanırsa sen de kazanırsın.",
     tips: [
       "Sessiz kal, dikkat çekme.",

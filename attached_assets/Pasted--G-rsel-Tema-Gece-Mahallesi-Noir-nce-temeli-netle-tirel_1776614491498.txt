@@ -1,0 +1,133 @@
+## Görsel Tema: "Gece Mahallesi Noir"
+
+Önce temeli netleştirelim, sonra prompt gelsin.
+
+---
+
+**Renk Paleti — 6 ana renk:**
+- `#0A0614` — Gece siyahı (ana arkaplan)
+- `#1A0A3E` — Derin mor (bina yüzleri, yüzey)
+- `#F5C842` — Amber altın (lambalar, aktif elementler, CTA butonlar)
+- `#3B1F8C` — Kobalt mor (ikincil yüzeyler, kartlar)
+- `#C8102E` — Kırmızı (tehlike, kötü fraksiyon, uyarılar)
+- `#E8DEFF` — Ay beyazı (başlıklar, ana metin)
+
+**Aksan renkler:**
+- `#1ECBE1` — Elektrik teal (gizem, tarafsız roller, vurgu)
+- `#4A2E7A` — Orta mor (border, divider, ikincil text)
+- `#2A1060` — Koyu mor (kart arkaplan)
+
+---Şimdi Replit promptu:
+
+---
+
+## REPLİT — GÖRSEL TEMA PROMPTU
+
+> Implement the complete visual theme for "Davetsiz Misafir" mobile game. Apply these exact specifications throughout the entire application:
+>
+> **COLOR SYSTEM — use these exact hex values:**
+> ```
+> --color-bg-base: #0A0614        /* ana arkaplan */
+> --color-bg-surface: #1A0A3E     /* kart yüzeyleri */
+> --color-bg-card: #2A1060        /* içerik kartları */
+> --color-bg-elevated: #3B1F8C    /* yükseltilmiş yüzeyler */
+> --color-accent-gold: #F5C842    /* CTA butonlar, aktif durum */
+> --color-accent-red: #C8102E     /* kötü fraksiyon, tehlike, eleme */
+> --color-accent-teal: #1ECBE1    /* kargaşacı, gizem, vurgu */
+> --color-accent-lavender: #9B7FD4 /* yalnız kurt, ikincil */
+> --color-text-primary: #E8DEFF   /* başlıklar, ana metin */
+> --color-text-secondary: #9B7FD4 /* ikincil metin */
+> --color-text-muted: #4A2E7A     /* muted metin, placeholder */
+> --color-border: #2A1060         /* border, divider */
+> --color-border-active: #3B1F8C  /* aktif border */
+> ```
+>
+> **FRAKSIYON RENKLERİ:**
+> - Mahalle (iyi): `#F5C842` amber altın
+> - Davetsiz Misafir çetesi (kötü): `#C8102E` kırmızı
+> - Kargaşacılar (kaos): `#1ECBE1` teal
+> - Yalnız Kurtlar (tarafsız): `#9B7FD4` lavanta
+>
+> **TİPOGRAFİ:**
+> - Başlıklar: font-weight 800, letter-spacing 2-4px, color `#E8DEFF`
+> - Oyun adı logotype: font-weight 900, letter-spacing 6px, büyük harf
+> - Body: font-weight 400, color `#9B7FD4`
+> - Monospace (timer, kodlar): font-family monospace, color `#F5C842`
+>
+> **KOMPONENT STİLLERİ:**
+>
+> Butonlar — Ana CTA:
+> background `#F5C842`, color `#0A0614`, border-radius 10px, font-weight 700, letter-spacing 1px, min-height 52px
+>
+> Butonlar — İkincil:
+> background transparent, border 1px solid `#3B1F8C`, color `#E8DEFF`, border-radius 10px
+>
+> Kartlar:
+> background `#2A1060`, border 1px solid `#3B1F8C`, border-radius 12px, padding 14px
+>
+> Rol kartı aktif seçili:
+> border 2px solid fraksiyon rengi, background `#1A0A3E`
+>
+> Input alanları:
+> background `#1A0A3E`, border 1px solid `#3B1F8C`, color `#E8DEFF`, border-radius 10px, padding 14px
+>
+> Oda kodu display:
+> background `#2A1060`, font-family monospace, font-size 28px, font-weight 800, letter-spacing 8px, color `#F5C842`
+>
+> **ANİMASYONLAR — CSS keyframes ile uygula:**
+>
+> 1. Faz geçişi (gündüz→gece):
+> Body background `#0A0614`'e geçer, 1.5s ease-in-out. Gece ekranında arkaplan SVG: titreşen sokak lambası, rastgele yanıp sönen pencereler (her pencere bağımsız @keyframes, 3-7s aralık, opacity 0.05–0.32 arası).
+>
+> 2. Eleme duyurusu:
+> Kırmızı overlay flash (0.3s), oyuncu kartı `opacity: 0.4` + `filter: grayscale(0.6)` + üstüne `#C8102E` çapraz çizgi (0.8s ease-out). Sonra rol rozeti slide-in (0.4s).
+>
+> 3. Rol seçim kartları:
+> 3 kart translateY(60px) → translateY(0), staggered 0.1s gecikmeyle, 0.5s ease-out. Hafif rotateZ(-3deg, 0deg, 3deg) fan efekti.
+>
+> 4. Oylama bar'ları:
+> width 0 → hedef yüzde, 0.3s ease-out, her yeni oy geldiğinde tetiklenir. Bar fill color `#C8102E`.
+>
+> 5. Gece aksiyonu onayı:
+> Gönder butonunda teal pulse ring: box-shadow 0 0 0 0 `#1ECBE1` → 0 0 0 12px transparent, 0.6s.
+>
+> 6. Oyun sonu:
+> Kazanan rengiyle full-screen radial burst (scale 0→3, opacity 1→0, 1.2s). Arkasında confetti: 20 adet küçük div, random color (fraksiyon renkleri), random trajectory, 2s fall.
+>
+> 7. Lobby bekleme:
+> Hazır olan oyuncular için checkmark pop: scale 0→1.2→1, 0.3s spring.
+>
+> 8. Timer kritik (son 10 saniye):
+> `#F5C842` → `#C8102E` renk geçişi, hafif shake animasyonu 0.5s'de bir.
+>
+> **EKRAN BAZLI ARKAPLANLAR:**
+>
+> Ana menü & Lobby:
+> background `#0A0614`. SVG overlay: gece mahallesi silueti (binalar, lambalar, ay). Lambalar `@keyframes flicker` ile titrer (opacity 0.7–1.0, 2-4s random).
+>
+> Gündüz fazı:
+> background `#0A0614`. Üstte ince amber şerit (`#F5C842` opacity 0.06) — sabah ışığı iması.
+>
+> Gece fazı:
+> background `#060310` (daha koyu). Köşelerde subtle teal vignette. Arkaplan animasyonu aktif.
+>
+> Oylama:
+> background `#12051A`. Kırmızı subtle vignette kenarlardan içe.
+>
+> Oyun sonu:
+> Kazanan fraksiyonun rengiyle full-screen arkaplan, opacity 0.15.
+>
+> **HOST EKRANI FARKI:**
+> Border: 2px solid `#F5C842` tüm ekran kenarında. Sağ üst köşede `#F5C842` "HOST" rozeti.
+>
+> **FONT:**
+> Google Fonts'tan import et: `Cinzel` (başlıklar, oyun adı — dramatic serif) + `Inter` (body, UI metinleri). Cinzel sadece "DAVETSİZ MİSAFİR" logosu ve büyük başlıklar için kullanılır.
+>
+> **İKON SİSTEMİ:**
+> Her fraksiyon için sabit emoji ikonlar — değiştirme:
+> Mahalle: 🏘️ | Davetsiz Misafir çetesi: 🚪 | Kargaşacılar: 🎭 | Yalnız Kurtlar: 🌙
+> Rol ikonları: rol tanım JSON'ındaki emoji alanından gelir, sabit kalır.
+
+---
+
+Tema kilitlendi. Replit promptuna bu bloğu oyun mantığı promptunun hemen arkasına ekle — Replit önce oyun motorunu, sonra bu tema promptuyla görsel katmanı uygulasın.

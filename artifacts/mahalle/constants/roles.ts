@@ -14,20 +14,20 @@ export interface RoleDef {
 export const ROLE_DEFS: Record<string, RoleDef> = {
   tefeci_basi: {
     id: "tefeci_basi",
-    name: "Tefeci Başı",
-    emoji: "💰",
+    name: "Davetsiz Misafir",
+    emoji: "🚪",
     team: "kotu",
-    description: "Çetenin reisi. Geceleri çete oylamasını yönetir.",
+    description: "Kimse onu davet etmedi. Ama o burada. Ve her gece biri kayboluyor.",
     story:
-      "Mahalle senin borcunla yaşıyor. Geceleri tahsildarınla otur, kimi sileceğine karar ver.",
+      "Geçen ay taşındı. Kapıda kibarca güldü, elini sıktı. Ama o gülümseme hiç gözlerine yansımadı. Elindeki anahtar — binada o numaralı daire yok.",
     ability:
-      "Her gece çeteyle birlikte bir hedef seçersin. Çoğunluk kararı geçer.",
+      "Her gece ekibiyle birlikte bir hedef seçersin. Çoğunluk kararı geçer ve o kişi sabah kaybolur.",
     winCondition:
-      "Çete sayısı, hayatta kalan iyi oyuncu sayısına eşitlenirse veya geçerse kazanırsın.",
+      "Davetsiz misafirler sayıca mahallelilere eşitlenirse veya geçerse, mahalle ele geçirilir.",
     tips: [
-      "Sakin ol, suskun durma; suçlama yapan herkes radarına girer.",
-      "Çete arkadaşını koruma; aşırı savunma şüphe çeker.",
-      "Birine kanıt uydur, oylamayı yönlendir.",
+      "Sakin ol; çok konuşan değil, doğru anda konuşan kazanır.",
+      "Ekip arkadaşını fazla savunma — bu seni ele verir.",
+      "Masum birine şüphe yönlendir; oylamayı sen yönet.",
     ],
     voteWeight: 1,
   },
@@ -37,9 +37,9 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     emoji: "🧾",
     team: "kotu",
     description: "Çetenin sağ kolu. Çete oylamasında oyu vardır.",
-    story: "Defteri elinde, kalemi kulağında. Tefeci Başı'nın gözü kulağı sensin.",
+    story: "Defteri elinde, kalemi kulağında. Davetsiz Misafir'in gözü kulağı sensin.",
     ability:
-      "Çete oylamasında bir oyun var. Tefeci Başı düşerse oylamayı sen yönetirsin.",
+      "Çete oylamasında bir oyun var. Davetsiz Misafir düşerse oylamayı sen yönetirsin.",
     winCondition: "Çete kazanırsa sen de kazanırsın.",
     tips: [
       "Sessiz kal, dikkat çekme.",

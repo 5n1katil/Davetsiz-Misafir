@@ -496,7 +496,7 @@ function resolveVote(room: Room, isRunoff: boolean) {
       );
 
       if (target.roleId === "sahte_dernek") {
-        endGame(room, "kotu", "Sahte Dernek Başkanı linç edildi! Çete kazandı.");
+        endGame(room, "kotu", "Sahte Dernek Başkanı linç edildi! Davetsiz Misafir kazandı.");
         return;
       }
     }
@@ -745,7 +745,7 @@ function checkWin(room: Room): boolean {
     return true;
   }
   if (aliveBad >= aliveGood) {
-    endGame(room, "kotu", "Tefeci Çetesi kazandı! Mahalle artık onların...");
+    endGame(room, "kotu", "Davetsiz Misafir kazandı — Mahalle ele geçirildi.");
     return true;
   }
   return false;

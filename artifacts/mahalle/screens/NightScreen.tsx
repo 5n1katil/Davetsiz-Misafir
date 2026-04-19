@@ -9,7 +9,7 @@ import { useColors } from "@/hooks/useColors";
 import { useCountdown } from "@/hooks/useCountdown";
 
 const ROLE_LABELS: Record<string, string> = {
-  _cete: "Tefeci Çetesi",
+  _cete: "Davetsiz Misafir",
   bekci: "Bekçi",
   otaci: "Otacı Teyze",
   falci: "Falcı",

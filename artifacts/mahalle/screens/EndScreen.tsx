@@ -28,7 +28,7 @@ export default function EndScreen() {
           OYUN BİTTİ
         </Text>
         <Text style={{ color: winnerColor, fontFamily: "Inter_700Bold", fontSize: 32, marginTop: 6 }}>
-          {winner === "iyi" ? "MAHALLE KAZANDI" : "ÇETE KAZANDI"}
+          {winner === "iyi" ? "MAHALLE KAZANDI" : "DAVETSİZ MİSAFİR KAZANDI"}
         </Text>
         <Text style={{ color: c.foreground, fontFamily: "Inter_400Regular", marginTop: 12, textAlign: "center", paddingHorizontal: 20 }}>
           {state.winnerLabel}

@@ -29,12 +29,12 @@ export default function Index() {
     );
   }
 
-  let phaseTitle = "MAHALLE";
+  let phaseTitle = "DAVETSİZ MİSAFİR";
   let phaseSub: string | undefined;
   let body: React.ReactNode = <LobbyScreen />;
 
   if (state) {
-    phaseTitle = `MAHALLE • ${state.code}`;
+    phaseTitle = `DAVETSİZ MİSAFİR • ${state.code}`;
     if (state.phase === "LOBBY") {
       phaseSub = "Bekleme odası";
       body = <LobbyScreen />;
