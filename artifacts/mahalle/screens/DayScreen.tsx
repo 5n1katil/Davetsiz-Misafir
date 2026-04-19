@@ -23,7 +23,7 @@ export default function DayScreen() {
 
   const mins = Math.floor(remaining / 60);
   const secs = (remaining % 60).toString().padStart(2, "0");
-  const isCritical = remaining <= 10 && remaining > 0;
+  const isCritical = remaining <= 10 && remaining > 0 && !state.paused;
 
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const critColorAnim = useRef(new Animated.Value(0)).current;
