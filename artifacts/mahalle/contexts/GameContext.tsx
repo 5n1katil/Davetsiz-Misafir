@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Haptics from "expo-haptics";
+import { activateKeepAwakeAsync, deactivateKeepAwake } from "expo-keep-awake";
 import React, {
   createContext,
   useCallback,
@@ -101,6 +102,8 @@ interface GameCtx {
   toggleVibrations: () => void;
   toastsEnabled: boolean;
   toggleToasts: () => void;
+  keepAwake: boolean;
+  toggleKeepAwake: () => void;
   systemToast: SystemToast | null;
   dismissToast: () => void;
 }
@@ -122,6 +125,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [voiceMuted, setVoiceMutedState] = useState(false);
   const [vibrationsEnabled, setVibrationsEnabledState] = useState(true);
   const [toastsEnabled, setToastsEnabledState] = useState(true);
+  const [keepAwake, setKeepAwakeState] = useState(false);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
   const [systemToast, setSystemToast] = useState<SystemToast | null>(null);
   const lastPhaseRef = useRef<string | null>(null);
@@ -170,8 +174,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       AsyncStorage.getItem("mahalle:vibrationsEnabled"),
       AsyncStorage.getItem("mahalle:voiceMuted"),
       AsyncStorage.getItem("mahalle:toastsEnabled"),
+      AsyncStorage.getItem("mahalle:keepAwake"),
     ])
-      .then(([n, vib, mute, toasts]) => {
+      .then(([n, vib, mute, toasts, ka]) => {
         setMyNickname(n ?? "");
         const enabled = vib !== "false";
         initVibrationsEnabled(enabled);
@@ -181,6 +186,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           setMuted(true);
         }
         setToastsEnabledState(toasts !== "false");
+        setKeepAwakeState(ka === "true");
         setPrefsLoaded(true);
       })
       .catch(() => {
@@ -197,6 +203,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         initMuted(false);
       });
   }, []);
+
+  useEffect(() => {
+    if (keepAwake && state !== null) {
+      activateKeepAwakeAsync();
+    } else {
+      deactivateKeepAwake();
+    }
+  }, [keepAwake, state]);
 
   useEffect(() => {
     if (myNickname === null) return;
@@ -316,6 +330,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const toggleKeepAwake = useCallback(() => {
+    setKeepAwakeState((prev) => {
+      const next = !prev;
+      AsyncStorage.setItem("mahalle:keepAwake", String(next));
+      return next;
+    });
+  }, []);
+
   const dismissToast = useCallback(() => {
     setSystemToast(null);
   }, []);
@@ -338,6 +360,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       toggleVibrations,
       toastsEnabled,
       toggleToasts,
+      keepAwake,
+      toggleKeepAwake,
       systemToast: toastsEnabled ? systemToast : null,
       dismissToast,
     }),
@@ -357,6 +381,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       toggleVibrations,
       toastsEnabled,
       toggleToasts,
+      keepAwake,
+      toggleKeepAwake,
       systemToast,
       dismissToast,
     ],

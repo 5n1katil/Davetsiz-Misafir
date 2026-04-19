@@ -46,6 +46,7 @@
     "react-native": "0.81.5",
     "react-native-gesture-handler": "~2.28.0",
     "react-native-keyboard-controller": "1.18.5",
+    "react-native-qrcode-svg": "^6.3.21",
     "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
@@ -55,10 +56,10 @@
     "socket.io-client": "^4.7.5",
     "typescript": "~5.9.2",
     "zod": "catalog:",
-    "react-native-qrcode-svg": "^6.3.21",
     "zod-validation-error": "^3.4.0"
   },
   "dependencies": {
-    "@expo-google-fonts/cinzel": "^0.4.2"
+    "@expo-google-fonts/cinzel": "^0.4.2",
+    "expo-keep-awake": "^55.0.6"
   }
 }
