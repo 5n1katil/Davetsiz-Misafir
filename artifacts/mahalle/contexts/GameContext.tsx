@@ -204,6 +204,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       });
   }, []);
 
+  const keepAwakeActiveRef = useRef(false);
   useEffect(() => {
     const isActivePhase =
       state?.phase !== undefined &&
@@ -211,8 +212,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       state.phase !== "ENDED";
     if (keepAwake && isActivePhase) {
       activateKeepAwakeAsync();
-    } else {
+      keepAwakeActiveRef.current = true;
+    } else if (keepAwakeActiveRef.current) {
       deactivateKeepAwake();
+      keepAwakeActiveRef.current = false;
     }
   }, [keepAwake, state?.phase]);
 
