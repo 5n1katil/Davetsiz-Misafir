@@ -12,7 +12,7 @@ import React, {
 import { io, Socket } from "socket.io-client";
 
 import { ROLE_DEFS } from "@/constants/roles";
-import { speak, setMuted } from "@/lib/speech";
+import { speak, setMuted, initMuted } from "@/lib/speech";
 import { haptic, hapticNotification, initVibrationsEnabled, setVibrationsEnabled } from "@/lib/haptics";
 
 const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN;
@@ -173,6 +173,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       .catch(() => {
         initVibrationsEnabled(true);
       });
+    AsyncStorage.getItem("mahalle:voiceMuted")
+      .then((v) => {
+        const muted = v === "true";
+        initMuted(muted);
+        setVoiceMutedState(muted);
+      })
+      .catch(() => {
+        initMuted(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -251,6 +260,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setVoiceMutedState((v) => {
       const next = !v;
       setMuted(next);
+      AsyncStorage.setItem("mahalle:voiceMuted", String(next));
       setSystemToast({
         message: next ? "Ses kapatıldı" : "Ses açıldı",
         id: Date.now(),
