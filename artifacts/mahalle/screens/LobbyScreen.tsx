@@ -51,7 +51,7 @@ export default function LobbyScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <LinearGradient
-            colors={["#1B2238", "#0B0F1F"]}
+            colors={["#1A0A3E", "#0A0614"]}
             style={styles.heroBg}
           />
           <View style={styles.hero}>
@@ -71,7 +71,7 @@ export default function LobbyScreen() {
               maxLength={20}
               style={[
                 styles.input,
-                { color: c.foreground, borderColor: c.border, backgroundColor: c.background },
+                { color: c.foreground, borderColor: c.border, backgroundColor: c.input },
               ]}
             />
 
@@ -121,7 +121,7 @@ export default function LobbyScreen() {
                 style={[
                   styles.input,
                   styles.codeInput,
-                  { color: c.foreground, borderColor: c.border, backgroundColor: c.background },
+                  { color: c.foreground, borderColor: c.border, backgroundColor: c.input },
                 ]}
               />
             ) : null}
@@ -168,7 +168,7 @@ export default function LobbyScreen() {
               c={c}
               icon="moon"
               title="Gece, gündüz, oylama"
-              text="Çete geceleri saldırır. Gündüz mahalle suçluyu bulmaya çalışır."
+              text="Davetsiz Misafir geceleri saldırır. Gündüz mahalle suçluyu bulmaya çalışır."
             />
           </View>
         </ScrollView>
@@ -189,7 +189,7 @@ export default function LobbyScreen() {
         <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 12 }}>
           ODA KODU
         </Text>
-        <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: 36, letterSpacing: 4, marginTop: 4 }}>
+        <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: 30, letterSpacing: 8, marginTop: 6, fontVariant: ["tabular-nums"] }}>
           {state.code}
         </Text>
         <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13, marginTop: 4 }}>
@@ -228,7 +228,7 @@ export default function LobbyScreen() {
                 </Text>
               </View>
             ) : null}
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: p.isConnected ? "#4FB794" : "#5A5872" }} />
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: p.isConnected ? "#1ECBE1" : "#4A2E7A" }} />
           </View>
         ))}
       </View>
@@ -362,20 +362,20 @@ const styles = StyleSheet.create({
   heroBg: { position: "absolute", left: 0, right: 0, top: 0, height: 240 },
   hero: { paddingTop: 28, paddingBottom: 24, alignItems: "center" },
   brand: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 30,
-    letterSpacing: 3,
-    color: "#E9B342",
+    fontFamily: "Cinzel_900Black",
+    fontSize: 26,
+    letterSpacing: 6,
+    color: "#F5C842",
     textAlign: "center",
   },
   tag: { fontFamily: "Inter_400Regular", fontSize: 13, marginTop: 8, textAlign: "center", paddingHorizontal: 18 },
   card: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 12 },
   label: { fontFamily: "Inter_500Medium", fontSize: 12, letterSpacing: 0.5, textTransform: "uppercase" },
   input: {
-    borderRadius: 12,
+    borderRadius: 10,
     borderWidth: 1,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 14,
     fontFamily: "Inter_500Medium",
     fontSize: 16,
   },

@@ -18,36 +18,41 @@ export default function RoleRevealScreen() {
 
   if (!revealed) {
     return (
-      <View style={styles.center}>
-        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", letterSpacing: 1, fontSize: 12 }}>
+      <View style={[styles.center, { backgroundColor: c.background }]}>
+        <Text style={{ fontSize: 48 }}>🔒</Text>
+        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", letterSpacing: 1.5, fontSize: 11, marginTop: 20 }}>
           {me?.nickname?.toUpperCase()}
         </Text>
-        <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 26, marginTop: 12, textAlign: "center" }}>
+        <Text style={{ color: c.foreground, fontFamily: "Cinzel_700Bold", fontSize: 22, marginTop: 10, textAlign: "center", letterSpacing: 2 }}>
           Telefonunu kimseye gösterme
         </Text>
-        <Text style={{ color: c.mutedForeground, marginTop: 8, fontFamily: "Inter_400Regular", textAlign: "center", paddingHorizontal: 30 }}>
-          Rolünü göstermek için aşağıya bas. Etrafındakilerin görmediğinden emin ol.
+        <Text style={{ color: c.mutedForeground, marginTop: 10, fontFamily: "Inter_400Regular", textAlign: "center", paddingHorizontal: 30, lineHeight: 20 }}>
+          Rolünü görmek için aşağıya bas. Etrafındakilerin görmediğinden emin ol.
         </Text>
         <Btn
           label="Rolümü göster"
           onPress={() => setRevealed(true)}
-          style={{ marginTop: 32, alignSelf: "stretch", marginHorizontal: 24 }}
+          style={{ marginTop: 36, alignSelf: "stretch", marginHorizontal: 24 }}
         />
       </View>
     );
   }
 
-  const teamColor = role.team === "iyi" ? "#4FB794" : "#E5654E";
+  const teamColor =
+    role.team === "iyi" ? c.factionGood : c.factionBad;
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 20, gap: 14 }}>
-      <View style={[styles.heroCard, { backgroundColor: c.card, borderColor: teamColor + "55" }]}>
-        <Text style={{ fontSize: 64 }}>{role.emoji}</Text>
-        <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 28, marginTop: 6 }}>
+    <ScrollView
+      style={{ backgroundColor: c.background }}
+      contentContainerStyle={{ padding: 20, gap: 14 }}
+    >
+      <View style={[styles.heroCard, { backgroundColor: c.card, borderColor: teamColor }]}>
+        <Text style={{ fontSize: 68 }}>{role.emoji}</Text>
+        <Text style={{ color: c.foreground, fontFamily: "Cinzel_700Bold", fontSize: 26, marginTop: 8, letterSpacing: 2 }}>
           {role.name}
         </Text>
-        <View style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: 999, backgroundColor: teamColor + "22", marginTop: 8 }}>
-          <Text style={{ color: teamColor, fontFamily: "Inter_700Bold", letterSpacing: 1, fontSize: 11 }}>
+        <View style={{ paddingHorizontal: 14, paddingVertical: 5, borderRadius: 999, backgroundColor: teamColor + "20", marginTop: 10, borderWidth: 1, borderColor: teamColor + "55" }}>
+          <Text style={{ color: teamColor, fontFamily: "Inter_700Bold", letterSpacing: 1.5, fontSize: 11 }}>
             {ROLE_TEAM_LABEL[role.team]}
           </Text>
         </View>
@@ -58,23 +63,23 @@ export default function RoleRevealScreen() {
       <Section c={c} title="Kazanma Koşulu" body={role.winCondition} />
 
       <View style={[styles.tipsCard, { backgroundColor: c.card, borderColor: c.border }]}>
-        <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 14, marginBottom: 6 }}>
+        <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 13, marginBottom: 8, letterSpacing: 0.5 }}>
           Taktik İpuçları
         </Text>
-        {role.tips.map((t, i) => (
-          <View key={i} style={{ flexDirection: "row", gap: 8, alignItems: "flex-start", paddingVertical: 4 }}>
-            <Feather name="zap" size={14} color={c.primary} style={{ marginTop: 3 }} />
-            <Text style={{ color: c.foreground, fontFamily: "Inter_400Regular", flex: 1 }}>{t}</Text>
+        {role.tips.map((t: string, i: number) => (
+          <View key={i} style={{ flexDirection: "row", gap: 8, alignItems: "flex-start", paddingVertical: 5 }}>
+            <Feather name="zap" size={13} color={c.primary} style={{ marginTop: 3 }} />
+            <Text style={{ color: c.foreground, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 20 }}>{t}</Text>
           </View>
         ))}
       </View>
 
       {state.ceteMembers.length > 0 ? (
-        <View style={[styles.tipsCard, { backgroundColor: "#3A1F1F", borderColor: "#E5654E55" }]}>
-          <Text style={{ color: "#E5654E", fontFamily: "Inter_700Bold", fontSize: 13, letterSpacing: 1 }}>
-            ÇETE ÜYELERİN
+        <View style={[styles.tipsCard, { backgroundColor: "#1E0510", borderColor: c.destructive + "44" }]}>
+          <Text style={{ color: c.destructive, fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 1.5, marginBottom: 4 }}>
+            EKİP ÜYELERİN
           </Text>
-          {state.ceteMembers.map((m) => (
+          {state.ceteMembers.map((m: any) => (
             <Text key={m.id} style={{ color: c.foreground, fontFamily: "Inter_500Medium", marginTop: 6 }}>
               • {m.nickname}{" "}
               <Text style={{ color: c.mutedForeground }}>({ROLE_DEFS[m.roleId ?? ""]?.name ?? "?"})</Text>
@@ -95,11 +100,11 @@ export default function RoleRevealScreen() {
 
 function Section({ c, title, body }: any) {
   return (
-    <View style={{ paddingHorizontal: 6 }}>
-      <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", fontSize: 11, letterSpacing: 1 }}>
+    <View style={{ paddingHorizontal: 4, gap: 4 }}>
+      <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", fontSize: 10, letterSpacing: 1.5 }}>
         {title.toUpperCase()}
       </Text>
-      <Text style={{ color: c.foreground, fontFamily: "Inter_400Regular", marginTop: 4, lineHeight: 21 }}>
+      <Text style={{ color: c.foreground, fontFamily: "Inter_400Regular", lineHeight: 22 }}>
         {body}
       </Text>
     </View>
@@ -110,9 +115,9 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
   heroCard: {
     alignItems: "center",
-    paddingVertical: 28,
-    borderRadius: 20,
-    borderWidth: 1,
+    paddingVertical: 32,
+    borderRadius: 16,
+    borderWidth: 2,
   },
-  tipsCard: { padding: 16, borderRadius: 16, borderWidth: 1 },
+  tipsCard: { padding: 16, borderRadius: 12, borderWidth: 1 },
 });

@@ -4,7 +4,12 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
-import { useFonts } from "@expo-google-fonts/inter";
+import { useFonts as useInterFonts } from "@expo-google-fonts/inter";
+import {
+  Cinzel_700Bold,
+  Cinzel_900Black,
+} from "@expo-google-fonts/cinzel";
+import { useFonts as useCinzelFonts } from "@expo-google-fonts/cinzel";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
@@ -23,7 +28,7 @@ function RootLayoutNav() {
     <Stack
       screenOptions={{
         headerShown: false,
-        contentStyle: { backgroundColor: "#0B0F1F" },
+        contentStyle: { backgroundColor: "#0A0614" },
         animation: "fade",
       }}
     >
@@ -33,12 +38,19 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded, fontError] = useFonts({
+  const [interLoaded, interError] = useInterFonts({
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
     Inter_700Bold,
   });
+  const [cinzelLoaded, cinzelError] = useCinzelFonts({
+    Cinzel_700Bold,
+    Cinzel_900Black,
+  });
+
+  const fontsLoaded = interLoaded && cinzelLoaded;
+  const fontError = interError || cinzelError;
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
@@ -52,7 +64,7 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <ErrorBoundary>
         <GameProvider>
-          <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#0B0F1F" }}>
+          <GestureHandlerRootView style={{ flex: 1, backgroundColor: "#0A0614" }}>
             <KeyboardProvider>
               <StatusBar style="light" />
               <RootLayoutNav />

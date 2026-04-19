@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
-import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Animated, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Btn } from "@/components/Btn";
 import { useGame } from "@/contexts/GameContext";
@@ -18,22 +18,67 @@ export default function DayScreen() {
 
   const mins = Math.floor(remaining / 60);
   const secs = (remaining % 60).toString().padStart(2, "0");
+  const isCritical = remaining <= 10 && remaining > 0;
+
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+  const critColorAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isCritical) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(shakeAnim, { toValue: 4, duration: 60, useNativeDriver: true }),
+          Animated.timing(shakeAnim, { toValue: -4, duration: 60, useNativeDriver: true }),
+          Animated.timing(shakeAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
+        ]),
+        { iterations: -1 },
+      ).start();
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(critColorAnim, { toValue: 1, duration: 400, useNativeDriver: false }),
+          Animated.timing(critColorAnim, { toValue: 0, duration: 400, useNativeDriver: false }),
+        ]),
+      ).start();
+    } else {
+      shakeAnim.stopAnimation();
+      shakeAnim.setValue(0);
+      critColorAnim.stopAnimation();
+      critColorAnim.setValue(0);
+    }
+  }, [isCritical]);
+
+  const timerColor = critColorAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [c.primary, c.destructive],
+  });
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 18, gap: 14 }}>
+    <ScrollView
+      style={{ backgroundColor: c.background }}
+      contentContainerStyle={{ padding: 18, gap: 14 }}
+    >
       <View style={[styles.timerCard, { backgroundColor: c.card, borderColor: c.border }]}>
-        <Feather name="sun" size={20} color={c.primary} />
-        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 12, letterSpacing: 1, marginTop: 4 }}>
+        <Feather name="sun" size={18} color={c.primary} />
+        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 11, letterSpacing: 1.5, marginTop: 4 }}>
           GÜN {state.round}
         </Text>
-        <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 48, letterSpacing: 2 }}>
+        <Animated.Text
+          style={{
+            fontFamily: "Inter_700Bold",
+            fontSize: 52,
+            letterSpacing: 2,
+            color: timerColor,
+            transform: [{ translateX: shakeAnim }],
+            fontVariant: ["tabular-nums"],
+          }}
+        >
           {mins}:{secs}
-        </Text>
+        </Animated.Text>
       </View>
 
       {state.morningEvents.length > 0 ? (
-        <View style={[styles.morning, { backgroundColor: c.card, borderColor: c.border }]}>
-          <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: 12, letterSpacing: 1 }}>
+        <View style={[styles.eventCard, { backgroundColor: c.card, borderColor: c.border }]}>
+          <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 1.5 }}>
             SABAH DUYURUSU
           </Text>
           {state.morningEvents.map((e, i) => (
@@ -45,8 +90,8 @@ export default function DayScreen() {
       ) : null}
 
       {state.privateMessages.length > 0 ? (
-        <View style={[styles.morning, { backgroundColor: "#1A2A22", borderColor: "#4FB79455" }]}>
-          <Text style={{ color: "#4FB794", fontFamily: "Inter_700Bold", fontSize: 12, letterSpacing: 1 }}>
+        <View style={[styles.eventCard, { backgroundColor: "#0D1F3A", borderColor: "#1ECBE155" }]}>
+          <Text style={{ color: "#1ECBE1", fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 1.5 }}>
             SANA ÖZEL BİLGİ
           </Text>
           {state.privateMessages.map((m, i) => (
@@ -57,24 +102,24 @@ export default function DayScreen() {
         </View>
       ) : null}
 
-      <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", fontSize: 11, letterSpacing: 1, marginTop: 4 }}>
+      <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", fontSize: 11, letterSpacing: 1.5, marginTop: 4 }}>
         HAYATTA OLAN ({alive.length})
       </Text>
-      <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
+      <View style={[styles.playerCard, { backgroundColor: c.card, borderColor: c.border }]}>
         {state.players.map((p) => (
-          <View key={p.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 6 }}>
+          <View key={p.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 7 }}>
             <View
               style={{
-                width: 28,
-                height: 28,
-                borderRadius: 14,
-                backgroundColor: p.isAlive ? c.secondary : c.muted,
+                width: 30,
+                height: 30,
+                borderRadius: 15,
+                backgroundColor: p.isAlive ? c.elevated : c.muted,
                 alignItems: "center",
                 justifyContent: "center",
                 opacity: p.isAlive ? 1 : 0.4,
               }}
             >
-              <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold" }}>
+              <Text style={{ color: p.isAlive ? c.foreground : c.mutedForeground, fontFamily: "Inter_700Bold", fontSize: 13 }}>
                 {p.nickname[0]?.toUpperCase()}
               </Text>
             </View>
@@ -90,7 +135,7 @@ export default function DayScreen() {
               {p.id === myPlayerId ? "  •  sen" : ""}
             </Text>
             {!p.isAlive ? (
-              <Feather name="x-circle" size={14} color={c.mutedForeground} />
+              <Feather name="x-circle" size={14} color={c.destructive} />
             ) : !p.isConnected ? (
               <Feather name="wifi-off" size={14} color={c.mutedForeground} />
             ) : null}
@@ -105,7 +150,7 @@ export default function DayScreen() {
           onPress={() => emit("proposeVote")}
         />
       ) : (
-        <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border, alignItems: "center" }]}>
+        <View style={[styles.playerCard, { backgroundColor: c.card, borderColor: c.border, alignItems: "center" }]}>
           <Feather name="eye" size={18} color={c.mutedForeground} />
           <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", marginTop: 8 }}>
             Sen mezarlıktasın. Oylamayı izliyorsun.
@@ -117,7 +162,7 @@ export default function DayScreen() {
 }
 
 const styles = StyleSheet.create({
-  timerCard: { padding: 22, borderRadius: 16, borderWidth: 1, alignItems: "center", gap: 4 },
-  morning: { padding: 14, borderRadius: 14, borderWidth: 1 },
-  card: { padding: 14, borderRadius: 14, borderWidth: 1 },
+  timerCard: { padding: 22, borderRadius: 14, borderWidth: 1, alignItems: "center", gap: 4 },
+  eventCard: { padding: 14, borderRadius: 12, borderWidth: 1 },
+  playerCard: { padding: 14, borderRadius: 12, borderWidth: 1 },
 });

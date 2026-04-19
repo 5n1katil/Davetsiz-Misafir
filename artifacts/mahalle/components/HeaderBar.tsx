@@ -11,7 +11,17 @@ export function HeaderBar({ title, subtitle }: { title: string; subtitle?: strin
   const isHost = state && myPlayerId === state.hostId;
 
   return (
-    <View style={[styles.wrap, { borderBottomColor: c.border }]}>
+    <View
+      style={[
+        styles.wrap,
+        {
+          borderBottomColor: c.border,
+          backgroundColor: c.background,
+          borderLeftWidth: isHost ? 3 : 0,
+          borderLeftColor: isHost ? c.primary : "transparent",
+        },
+      ]}
+    >
       <View style={{ flex: 1 }}>
         <Text style={[styles.title, { color: c.foreground }]}>{title}</Text>
         {subtitle ? (
@@ -20,21 +30,28 @@ export function HeaderBar({ title, subtitle }: { title: string; subtitle?: strin
       </View>
       <View style={styles.right}>
         {isHost ? (
-          <Pressable
-            onPress={toggleVoice}
-            style={[styles.iconBtn, { borderColor: c.border }]}
-          >
-            <Feather
-              name={voiceMuted ? "volume-x" : "volume-2"}
-              size={18}
-              color={voiceMuted ? c.mutedForeground : c.primary}
-            />
-          </Pressable>
+          <>
+            <View style={[styles.hostBadge, { borderColor: c.primary }]}>
+              <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1.5 }}>
+                HOST
+              </Text>
+            </View>
+            <Pressable
+              onPress={toggleVoice}
+              style={[styles.iconBtn, { borderColor: c.border }]}
+            >
+              <Feather
+                name={voiceMuted ? "volume-x" : "volume-2"}
+                size={18}
+                color={voiceMuted ? c.mutedForeground : c.primary}
+              />
+            </Pressable>
+          </>
         ) : null}
         <View
           style={[
             styles.dot,
-            { backgroundColor: connected ? "#4FB794" : "#E5654E" },
+            { backgroundColor: connected ? "#1ECBE1" : "#C8102E" },
           ]}
         />
       </View>
@@ -53,8 +70,8 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: "Inter_700Bold",
-    fontSize: 18,
-    letterSpacing: 0.4,
+    fontSize: 17,
+    letterSpacing: 0.5,
   },
   sub: {
     fontFamily: "Inter_400Regular",
@@ -66,6 +83,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
+  hostBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
   iconBtn: {
     width: 36,
     height: 36,
@@ -75,8 +98,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   dot: {
-    width: 9,
-    height: 9,
-    borderRadius: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 });
