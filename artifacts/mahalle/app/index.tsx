@@ -5,6 +5,7 @@ import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
 import { HeaderBar } from "@/components/HeaderBar";
 import HostPanel from "@/components/HostPanel";
+import SystemToast from "@/components/SystemToast";
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
 import DayScreen from "@/screens/DayScreen";
@@ -84,6 +85,7 @@ export default function Index() {
         )}
       </View>
       <HostPanel />
+      <SystemToast />
     </View>
   );
 }

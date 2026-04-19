@@ -222,8 +222,16 @@ export function attachSocketServer(http: HTTPServer) {
     socket.on("transferHost", ({ newHostId }, cb) => {
       const s = sessions.get(socket.id);
       if (!s) return cb?.({ ok: false, error: "session yok" });
-      const res = transferHost(s.roomCode, s.playerId, String(newHostId));
+      const normalizedNewHostId = String(newHostId);
+      const res = transferHost(s.roomCode, s.playerId, normalizedNewHostId);
       if ("error" in res) return cb?.({ ok: false, error: res.error });
+      const newHost = res.players.find((p) => p.id === normalizedNewHostId);
+      if (newHost) {
+        io.to(s.roomCode).emit("hostTransferred", {
+          nickname: newHost.nickname,
+          message: `${newHost.nickname} oyun yöneticisi oldu`,
+        });
+      }
       cb?.({ ok: true });
       broadcast(s.roomCode);
     });

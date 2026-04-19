@@ -72,6 +72,11 @@ export interface GameState {
   paused: boolean;
 }
 
+export interface SystemToast {
+  message: string;
+  id: number;
+}
+
 interface GameCtx {
   socket: Socket | null;
   connected: boolean;
@@ -88,6 +93,8 @@ interface GameCtx {
   leave: () => void;
   voiceMuted: boolean;
   toggleVoice: () => void;
+  systemToast: SystemToast | null;
+  dismissToast: () => void;
 }
 
 const Ctx = createContext<GameCtx | null>(null);
@@ -105,6 +112,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [myPlayerId, setMyPlayerId] = useState<string | null>(null);
   const [myNickname, setMyNickname] = useState("");
   const [voiceMuted, setVoiceMutedState] = useState(false);
+  const [systemToast, setSystemToast] = useState<SystemToast | null>(null);
   const lastPhaseRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -137,6 +145,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     s.on("kicked", () => {
       setState(null);
       setMyPlayerId(null);
+    });
+    s.on("hostTransferred", ({ message }: { nickname: string; message: string }) => {
+      setSystemToast({ message, id: Date.now() });
     });
     setSocket(s);
     return () => {
@@ -192,6 +203,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const dismissToast = useCallback(() => {
+    setSystemToast(null);
+  }, []);
+
   const value = useMemo<GameCtx>(
     () => ({
       socket,
@@ -206,6 +221,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       leave,
       voiceMuted,
       toggleVoice,
+      systemToast,
+      dismissToast,
     }),
     [
       socket,
@@ -219,6 +236,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       leave,
       voiceMuted,
       toggleVoice,
+      systemToast,
+      dismissToast,
     ],
   );
 
