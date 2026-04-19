@@ -878,16 +878,20 @@ function advanceNightStep(room: Room) {
 }
 
 function executeKiskancKopya(room: Room) {
+  // Kopyalanamayan eylem türleri (öldürme eylemleri ve kopyalama kendisi):
+  // cete_oylama: çete oylaması — kopyalanamaz (çete üyesi değil)
+  // swap: Kumarbaz takası — kopyalanamaz (karmaşıklık önlemi)
+  // bagimsiz_oldurme: Kahraman Dede öldürmesi — kopyalanamaz (kill eylem kuralı)
+  // kopya_hedef: Kıskanç'ın kendi seçimi — döngü önlemi
+  const NON_COPYABLE = new Set(["cete_oylama", "swap", "bagimsiz_oldurme", "kopya_hedef"]);
+
   for (const [kiskancId, targetPlayerId] of Object.entries(room.kiskanKopyaTargets)) {
     const targetPlayer = room.players.find((p) => p.id === targetPlayerId);
     if (!targetPlayer || !targetPlayer.isAlive) continue;
 
-    // Hedefin bu gece yaptığı eylem (çete öldürmesi kopyalanamaz)
+    // Hedefin bu gece yaptığı eylem (kopyalanamaz türler hariç)
     const copiedAction = room.nightActions.find(
-      (a) => a.actorId === targetPlayerId &&
-        a.type !== "cete_oylama" &&
-        a.type !== "swap" &&
-        a.type !== "bagimsiz_oldurme",
+      (a) => a.actorId === targetPlayerId && !NON_COPYABLE.has(a.type),
     );
     if (!copiedAction) continue;
 
@@ -1146,13 +1150,22 @@ function resolveMorning(room: Room) {
     }
   }
 
-  // ── ADIM 10: Anonim işaretleme ────────────────────────────────────────────
+  // ── ADIM 9: Anonim işaretleme (isaretle_kopya dahil) ─────────────────────
+  // isaretle_kopya: Kıskanç Komşu, Anonim'i taklit edince de mark oluşturur
   for (const a of room.nightActions) {
-    if (a.type === "isaretle") {
-      const anonimId = a.actorId;
-      if (!room.anonimMarks[anonimId]) room.anonimMarks[anonimId] = [];
-      if (!room.anonimMarks[anonimId].includes(a.targetId)) {
-        room.anonimMarks[anonimId].push(a.targetId);
+    if (a.type === "isaretle" || a.type === "isaretle_kopya") {
+      const markerId = a.actorId; // Anonim ya da kopyalayan Kıskanç
+      if (!room.anonimMarks[markerId]) room.anonimMarks[markerId] = [];
+      if (!room.anonimMarks[markerId].includes(a.targetId)) {
+        room.anonimMarks[markerId].push(a.targetId);
+      }
+      // Kıskanç'ın kopya işaretlemesini bildir
+      if (a.type === "isaretle_kopya") {
+        const kiskancPlayer = room.players.find((p) => p.id === markerId);
+        const markedPlayer = room.players.find((p) => p.id === a.targetId);
+        if (kiskancPlayer && markedPlayer) {
+          pushPrivate(room, markerId, `🧂 Kıskanç kopya (Anonim): ${markedPlayer.nickname} işaretlendi.`);
+        }
       }
     }
   }
@@ -1241,9 +1254,10 @@ function checkWin(room: Room): boolean {
   const aliveCount = alivePlayers.length;
 
   // ── Anonim kazanma: 3 işaretli linç edildi + hayatta ───────────────────
+  // Not: Kıskanç Komşu kopya marklarıyla Anonim kazanma tetiklenmez
   for (const [anonimId, lynchedCount] of Object.entries(room.anonimLynchedCounts)) {
     if (lynchedCount >= 3) {
-      const anonim = room.players.find((p) => p.id === anonimId);
+      const anonim = room.players.find((p) => p.id === anonimId && p.roleId === "anonim");
       if (anonim && anonim.isAlive) {
         endGame(room, "anonim", `Anonim kazandı! İşaretlediği 3 kişi mahalleden uzaklaştırıldı.`);
         return true;
