@@ -3,6 +3,7 @@ import React, { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Btn } from "@/components/Btn";
+import { GraveyardChat } from "@/components/GraveyardChat";
 import { ROLE_DEFS } from "@/constants/roles";
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
@@ -23,6 +24,7 @@ export default function NightScreen() {
   const remaining = useCountdown(state?.phaseDeadline ?? null);
   const me = state?.players.find((p) => p.id === myPlayerId);
   const isHost = state && me && me.id === state.hostId;
+  const isDead = !me?.isAlive;
 
   const moonAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(0)).current;
@@ -46,6 +48,22 @@ export default function NightScreen() {
   }, [pulseAnim]);
 
   if (!state) return null;
+
+  if (isDead) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#05070F" }}>
+        <View style={[styles.deadHeader]}>
+          <Feather name="moon" size={18} color="#7E7C92" />
+          <Text style={{ color: "#7E7C92", fontFamily: "Inter_500Medium", fontSize: 12, letterSpacing: 1, marginLeft: 6 }}>
+            GECE — SEN MEZARLIKTASIN
+          </Text>
+        </View>
+        <View style={[styles.chatWrapper, { borderColor: "#2C3350" }]}>
+          <GraveyardChat />
+        </View>
+      </View>
+    );
+  }
 
   if (state.phase === "NIGHT") {
     return (
@@ -175,5 +193,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#1A0A3E",
     alignItems: "center",
     justifyContent: "center",
+  },
+  deadHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 20,
+    paddingBottom: 12,
+  },
+  chatWrapper: {
+    flex: 1,
+    borderTopWidth: 1,
+    padding: 14,
   },
 });

@@ -2,6 +2,7 @@ import { Feather } from "@expo/vector-icons";
 import React, { useEffect, useRef } from "react";
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
+import { GraveyardChat } from "@/components/GraveyardChat";
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
 import { useCountdown } from "@/hooks/useCountdown";
@@ -15,6 +16,7 @@ export default function VoteScreen() {
   const candidates = state.players.filter((p) => state.runoffCandidates.includes(p.id));
   const isRunoff = state.phase === "VOTE_RUNOFF";
   const isCritical = remaining <= 10 && remaining > 0;
+  const isDead = !me?.isAlive;
 
   const timerColor = isCritical ? c.destructive : c.primary;
 
@@ -40,13 +42,8 @@ export default function VoteScreen() {
         </Text>
       </View>
 
-      {!me?.isAlive ? (
-        <View style={[styles.deadCard, { backgroundColor: c.card, borderColor: c.border }]}>
-          <Feather name="eye" size={20} color={c.mutedForeground} />
-          <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", marginTop: 6 }}>
-            Mezardasın. Oylamayı izliyorsun.
-          </Text>
-        </View>
+      {isDead ? (
+        <GraveyardChat />
       ) : (
         candidates.map((p) => {
           const voteShare = alivePlayers > 0 ? (state.voteCount / alivePlayers) : 0;
