@@ -43,8 +43,6 @@ export default function LobbyScreen() {
     state,
     myPlayerId,
     emit,
-    vibrationsEnabled,
-    toggleVibrations,
   } = useGame();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -377,6 +375,7 @@ export default function LobbyScreen() {
   const isHost = state && myPlayerId === state.hostId;
 
   return (
+    <>
     <ScrollView
       contentContainerStyle={[
         styles.scroll,
@@ -432,43 +431,16 @@ export default function LobbyScreen() {
       </View>
 
       <Text style={[styles.sectionTitle, { color: c.foreground }]}>Cihaz Ayarları</Text>
-      <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border, gap: 0 }]}>
-        <View style={styles.settingRow}>
-          <Text style={[styles.label, { color: c.mutedForeground, marginBottom: 0, flex: 1 }]}>Titreşim</Text>
-          <View style={{ flexDirection: "row", gap: 8 }}>
-            <Pressable
-              onPress={() => { if (!vibrationsEnabled) toggleVibrations(); }}
-              style={{
-                paddingVertical: 8,
-                paddingHorizontal: 14,
-                borderRadius: 999,
-                backgroundColor: vibrationsEnabled ? c.primary : c.background,
-                borderWidth: 1,
-                borderColor: vibrationsEnabled ? c.primary : c.border,
-              }}
-            >
-              <Text style={{ color: vibrationsEnabled ? c.primaryForeground : c.foreground, fontFamily: "Inter_500Medium" }}>
-                Açık
-              </Text>
-            </Pressable>
-            <Pressable
-              onPress={() => { if (vibrationsEnabled) toggleVibrations(); }}
-              style={{
-                paddingVertical: 8,
-                paddingHorizontal: 14,
-                borderRadius: 999,
-                backgroundColor: !vibrationsEnabled ? c.primary : c.background,
-                borderWidth: 1,
-                borderColor: !vibrationsEnabled ? c.primary : c.border,
-              }}
-            >
-              <Text style={{ color: !vibrationsEnabled ? c.primaryForeground : c.foreground, fontFamily: "Inter_500Medium" }}>
-                Kapalı
-              </Text>
-            </Pressable>
-          </View>
+      <Pressable
+        onPress={() => setSettingsVisible(true)}
+        style={[styles.card, { backgroundColor: c.card, borderColor: c.border, gap: 0 }]}
+      >
+        <View style={[styles.settingRow, { paddingVertical: 14 }]}>
+          <Feather name="settings" size={18} color={c.primary} style={{ marginRight: 10 }} />
+          <Text style={[styles.label, { color: c.foreground, marginBottom: 0, flex: 1 }]}>Ses ve Titreşim Ayarları</Text>
+          <Feather name="chevron-right" size={18} color={c.mutedForeground} />
         </View>
-      </View>
+      </Pressable>
 
       {isHost ? (
         <HostSettings c={c} state={state} emit={emit} />
@@ -481,6 +453,8 @@ export default function LobbyScreen() {
         </View>
       )}
     </ScrollView>
+    <SettingsScreen visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
+    </>
   );
 }
 

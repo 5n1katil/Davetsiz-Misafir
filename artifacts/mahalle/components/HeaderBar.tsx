@@ -1,9 +1,10 @@
 import { Feather } from "@expo/vector-icons";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useColors } from "@/hooks/useColors";
 import { useGame } from "@/contexts/GameContext";
+import SettingsScreen from "@/screens/SettingsScreen";
 
 function PausedBadge() {
   const c = useColors();
@@ -34,64 +35,75 @@ export function HeaderBar({ title, subtitle }: { title: string; subtitle?: strin
   const { connected, voiceMuted, toggleVoice, vibrationsEnabled, toggleVibrations, state, myPlayerId } = useGame();
   const isHost = state && myPlayerId === state.hostId;
   const isPaused = state?.paused === true;
+  const [settingsVisible, setSettingsVisible] = useState(false);
 
   return (
-    <View
-      style={[
-        styles.wrap,
-        {
-          borderBottomColor: c.border,
-          backgroundColor: c.background,
-          borderLeftWidth: isHost ? 3 : 0,
-          borderLeftColor: isHost ? c.primary : "transparent",
-        },
-      ]}
-    >
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.title, { color: c.foreground }]}>{title}</Text>
-        {subtitle ? (
-          <Text style={[styles.sub, { color: c.mutedForeground }]}>{subtitle}</Text>
-        ) : null}
-      </View>
-      <View style={styles.right}>
-        {isPaused ? <PausedBadge /> : null}
-        {isHost ? (
-          <>
-            <View style={[styles.hostBadge, { borderColor: c.primary }]}>
-              <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1.5 }}>
-                HOST
-              </Text>
-            </View>
-            <Pressable
-              onPress={toggleVoice}
-              style={[styles.iconBtn, { borderColor: c.border }]}
-            >
-              <Feather
-                name={voiceMuted ? "volume-x" : "volume-2"}
-                size={18}
-                color={voiceMuted ? c.mutedForeground : c.primary}
-              />
-            </Pressable>
-          </>
-        ) : null}
-        <Pressable
-          onPress={toggleVibrations}
-          style={[styles.iconBtn, { borderColor: c.border }]}
-        >
-          <Feather
-            name={vibrationsEnabled ? "smartphone" : "slash"}
-            size={18}
-            color={vibrationsEnabled ? c.primary : c.mutedForeground}
+    <>
+      <View
+        style={[
+          styles.wrap,
+          {
+            borderBottomColor: c.border,
+            backgroundColor: c.background,
+            borderLeftWidth: isHost ? 3 : 0,
+            borderLeftColor: isHost ? c.primary : "transparent",
+          },
+        ]}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={[styles.title, { color: c.foreground }]}>{title}</Text>
+          {subtitle ? (
+            <Text style={[styles.sub, { color: c.mutedForeground }]}>{subtitle}</Text>
+          ) : null}
+        </View>
+        <View style={styles.right}>
+          {isPaused ? <PausedBadge /> : null}
+          {isHost ? (
+            <>
+              <View style={[styles.hostBadge, { borderColor: c.primary }]}>
+                <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1.5 }}>
+                  HOST
+                </Text>
+              </View>
+              <Pressable
+                onPress={toggleVoice}
+                style={[styles.iconBtn, { borderColor: c.border }]}
+              >
+                <Feather
+                  name={voiceMuted ? "volume-x" : "volume-2"}
+                  size={18}
+                  color={voiceMuted ? c.mutedForeground : c.primary}
+                />
+              </Pressable>
+            </>
+          ) : null}
+          <Pressable
+            onPress={toggleVibrations}
+            style={[styles.iconBtn, { borderColor: c.border }]}
+          >
+            <Feather
+              name={vibrationsEnabled ? "smartphone" : "slash"}
+              size={18}
+              color={vibrationsEnabled ? c.primary : c.mutedForeground}
+            />
+          </Pressable>
+          <Pressable
+            onPress={() => setSettingsVisible(true)}
+            style={[styles.iconBtn, { borderColor: c.border }]}
+            accessibilityLabel="Ayarlar"
+          >
+            <Feather name="settings" size={18} color={c.mutedForeground} />
+          </Pressable>
+          <View
+            style={[
+              styles.dot,
+              { backgroundColor: connected ? "#1ECBE1" : "#C8102E" },
+            ]}
           />
-        </Pressable>
-        <View
-          style={[
-            styles.dot,
-            { backgroundColor: connected ? "#1ECBE1" : "#C8102E" },
-          ]}
-        />
+        </View>
       </View>
-    </View>
+      <SettingsScreen visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
+    </>
   );
 }
 
