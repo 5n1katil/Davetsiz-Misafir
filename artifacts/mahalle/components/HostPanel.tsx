@@ -141,13 +141,19 @@ export default function HostPanel() {
   }
 
   function handleTransferHost(newHostId: string, nickname: string) {
+    const currentPhaseLabel = PHASE_LABELS[gs.phase] ?? gs.phase;
+    const phaseWarning = `\n\n⚠️ Oyun şu an "${currentPhaseLabel}" aşamasında. Devrettiğinde bu aşamanın kontrolü de ${nickname} adlı oyuncuya geçecek.`;
+    const powersLost =
+      "Bunu yaparsanız şu yetkilerini kaybedersin:\n• Oyunu duraklatma / devam ettirme\n• Oyuncu atma\n• Gece aşaması kontrolü";
+
     Alert.alert(
       "Host Devret",
-      `${nickname} adlı oyuncuyu yeni host yapmak istediğine emin misin? Oyun yönetimi ona geçecek.`,
+      `${nickname} adlı oyuncuyu yeni host yapmak istediğine emin misin?\n\n${powersLost}${phaseWarning}`,
       [
         { text: "İptal", style: "cancel" },
         {
           text: "Host Yap",
+          style: "destructive",
           onPress: async () => {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
             const res = await emit("transferHost", { newHostId });
