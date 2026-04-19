@@ -1,7 +1,8 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import * as Linking from "expo-linking";
 import { LinearGradient } from "expo-linear-gradient";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -13,6 +14,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import QRCode from "react-native-qrcode-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Btn } from "@/components/Btn";
@@ -34,6 +36,23 @@ export default function LobbyScreen() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<"create" | "join">("create");
+
+  useEffect(() => {
+    Linking.getInitialURL().then((url) => {
+      if (url) handleDeepLink(url);
+    });
+    const sub = Linking.addEventListener("url", ({ url }) => handleDeepLink(url));
+    return () => sub.remove();
+  }, []);
+
+  function handleDeepLink(url: string) {
+    const parsed = Linking.parse(url);
+    if (parsed.path === "join" && parsed.queryParams?.code) {
+      const roomCode = String(parsed.queryParams.code).toUpperCase();
+      setCode(roomCode);
+      setTab("join");
+    }
+  }
 
   const inRoom = !!state;
 
@@ -176,8 +195,8 @@ export default function LobbyScreen() {
     );
   }
 
-  // In LOBBY (waiting room) — host edits settings, others wait
   const isHost = state && myPlayerId === state.hostId;
+
   return (
     <ScrollView
       contentContainerStyle={[
@@ -248,6 +267,8 @@ export default function LobbyScreen() {
 }
 
 function HostSettings({ c, state, emit }: any) {
+  const deepLink = `mahalle://join?code=${state.code}`;
+
   const opt = (label: string, active: boolean, onPress: () => void) => (
     <Pressable
       onPress={onPress}
@@ -274,6 +295,22 @@ function HostSettings({ c, state, emit }: any) {
 
   return (
     <>
+      <View style={[styles.qrCard, { backgroundColor: c.card, borderColor: c.border }]}>
+        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 12, marginBottom: 12 }}>
+          OYUNCULAR QR İLE KATILABİLİR
+        </Text>
+        <View style={styles.qrWrap}>
+          <QRCode
+            value={deepLink}
+            size={160}
+            color="#E9B342"
+            backgroundColor="transparent"
+          />
+        </View>
+        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 10 }}>
+          {deepLink}
+        </Text>
+      </View>
       <Text style={[styles.sectionTitle, { color: c.foreground }]}>Ayarlar</Text>
       <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border, gap: 16 }]}>
         <View>
@@ -386,6 +423,8 @@ const styles = StyleSheet.create({
   howTitle: { fontFamily: "Inter_700Bold", fontSize: 16, marginTop: 6 },
   howRow: { flexDirection: "row", gap: 12, alignItems: "flex-start", borderTopWidth: StyleSheet.hairlineWidth, paddingVertical: 10 },
   codeCard: { padding: 18, borderRadius: 16, borderWidth: 1, alignItems: "center" },
+  qrCard: { padding: 18, borderRadius: 16, borderWidth: 1, alignItems: "center" },
+  qrWrap: { padding: 12, borderRadius: 12, backgroundColor: "#0B0F1F" },
   sectionTitle: { fontFamily: "Inter_700Bold", fontSize: 15, marginTop: 6 },
   playerRow: {
     flexDirection: "row",
