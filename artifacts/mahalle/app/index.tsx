@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
@@ -66,6 +66,12 @@ export default function Index() {
   }
 
   const isPaused = state?.paused === true;
+
+  useEffect(() => {
+    if (!isPaused) {
+      setSettingsVisible(false);
+    }
+  }, [isPaused]);
 
   return (
     <View style={[styles.root, { backgroundColor: c.background, paddingTop: insets.top }]}>
