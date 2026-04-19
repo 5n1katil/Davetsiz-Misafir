@@ -89,6 +89,7 @@ export interface SystemToast {
   id: number;
   icon?: string;
   onPress?: () => void;
+  alwaysShow?: boolean;
 }
 
 interface GameCtx {
@@ -149,6 +150,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const [showSpectatorPrompt, setShowSpectatorPrompt] = useState(false);
   const lastPhaseRef = useRef<string | null>(null);
   const wasAliveRef = useRef<boolean | null>(null);
+  const stateRef = useRef<GameState | null>(null);
+  stateRef.current = state;
 
   useEffect(() => {
     if (!state || !myPlayerId) return;
@@ -365,54 +368,81 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [socket]);
 
+  const isMidGame = useCallback(() => {
+    const phase = stateRef.current?.phase;
+    return phase !== undefined && phase !== "LOBBY" && phase !== "ENDED";
+  }, []);
+
   const toggleVoice = useCallback(async () => {
     const speaking = await isSpeakingAsync();
     setVoiceMutedState((v) => {
       const next = !v;
       setMuted(next);
       AsyncStorage.setItem("mahalle:voiceMuted", String(next));
-      if (next && speaking) {
-        setSystemToast({ message: "Anlatım kesildi", id: Date.now(), icon: "volume-x" });
-      } else {
-        setSystemToast({
-          message: next ? "Ses kapatıldı" : "Ses açıldı",
-          id: Date.now(),
-          icon: next ? "volume-x" : "volume-2",
-        });
+      if (isMidGame()) {
+        if (next && speaking) {
+          setSystemToast({ message: "Anlatım kesildi", id: Date.now(), icon: "volume-x", alwaysShow: true });
+        } else {
+          setSystemToast({
+            message: next ? "Ses Anlatımı kapatıldı" : "Ses Anlatımı açıldı",
+            id: Date.now(),
+            icon: next ? "volume-x" : "volume-2",
+            alwaysShow: true,
+          });
+        }
       }
       return next;
     });
-  }, []);
+  }, [isMidGame]);
 
   const toggleVibrations = useCallback(() => {
     setVibrationsEnabledState((prev) => {
       const next = !prev;
       setVibrationsEnabled(next);
       AsyncStorage.setItem("mahalle:vibrationsEnabled", String(next));
-      setSystemToast({
-        message: next ? "Titreşim açıldı" : "Titreşim kapatıldı",
-        id: Date.now(),
-        icon: "smartphone",
-      });
+      if (isMidGame()) {
+        setSystemToast({
+          message: next ? "Titreşim açıldı" : "Titreşim kapatıldı",
+          id: Date.now(),
+          icon: "smartphone",
+          alwaysShow: true,
+        });
+      }
       return next;
     });
-  }, []);
+  }, [isMidGame]);
 
   const toggleToasts = useCallback(() => {
     setToastsEnabledState((prev) => {
       const next = !prev;
       AsyncStorage.setItem("mahalle:toastsEnabled", String(next));
+      if (isMidGame()) {
+        setSystemToast({
+          message: next ? "Oyun Bildirimleri açıldı" : "Oyun Bildirimleri kapatıldı",
+          id: Date.now(),
+          icon: next ? "bell" : "bell-off",
+          alwaysShow: true,
+        });
+      }
       return next;
     });
-  }, []);
+  }, [isMidGame]);
 
   const toggleKeepAwake = useCallback(() => {
     setKeepAwakeState((prev) => {
       const next = !prev;
       AsyncStorage.setItem("mahalle:keepAwake", String(next));
+      if (isMidGame()) {
+        setSystemToast({
+          message: next ? "Ekranı Açık Tut açıldı" : "Ekranı Açık Tut kapatıldı",
+          id: Date.now(),
+          icon: "sun",
+          alwaysShow: true,
+        });
+      }
       return next;
     });
-  }, []);
+  }, [isMidGame]);
 
   const dismissToast = useCallback(() => {
     setSystemToast(null);
@@ -442,7 +472,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       toggleToasts,
       keepAwake,
       toggleKeepAwake,
-      systemToast: toastsEnabled ? systemToast : null,
+      systemToast: systemToast?.alwaysShow ? systemToast : (toastsEnabled ? systemToast : null),
       dismissToast,
       hostJustReceived,
       clearHostJustReceived,
