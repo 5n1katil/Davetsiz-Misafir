@@ -53,6 +53,24 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       .catch(() => {});
   }, []);
 
+  const themePreferenceRef = useRef(themePreference);
+  useEffect(() => {
+    themePreferenceRef.current = themePreference;
+  }, [themePreference]);
+
+  useEffect(() => {
+    if (themePreferenceRef.current !== "system") return;
+
+    const oldBg = currentBgRef.current;
+    const newBg = resolveBackground("system", scheme);
+
+    if (oldBg !== newBg) {
+      setPrevBg(oldBg);
+      setTransitionCount((c) => c + 1);
+      currentBgRef.current = newBg;
+    }
+  }, [scheme]);
+
   const setThemePreference = useCallback(
     (v: ThemePreference) => {
       const oldBg = currentBgRef.current;
