@@ -11,7 +11,6 @@ import {
   Dimensions,
   Image,
   KeyboardAvoidingView,
-  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -26,6 +25,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Btn } from "@/components/Btn";
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
+import HowToPlayScreen from "@/screens/HowToPlayScreen";
 import SettingsScreen from "@/screens/SettingsScreen";
 import StatsScreen from "@/screens/StatsScreen";
 
@@ -314,52 +314,7 @@ export default function LobbyScreen() {
         </KeyboardAvoidingView>
 
         <StatsScreen visible={statsVisible} onClose={() => setStatsVisible(false)} />
-
-        <Modal
-          visible={helpVisible}
-          animationType="slide"
-          presentationStyle="pageSheet"
-          onRequestClose={() => setHelpVisible(false)}
-        >
-          <View style={[styles.helpModal, { backgroundColor: c.background }]}>
-            <View style={[styles.helpHeader, { borderBottomColor: c.border }]}>
-              <Text style={[styles.helpTitle, { color: c.foreground }]}>Nasıl Oynanır?</Text>
-              <Pressable
-                onPress={() => setHelpVisible(false)}
-                hitSlop={12}
-                style={{ padding: 4 }}
-              >
-                <Feather name="x" size={22} color={c.mutedForeground} />
-              </Pressable>
-            </View>
-            <ScrollView contentContainerStyle={{ padding: 20, gap: 12 }}>
-              <How
-                c={c}
-                icon="users"
-                title="4-30 kişi, tek mekanda"
-                text="Arkadaşlarınla yan yana oturun. Herkesin elinde telefon."
-              />
-              <How
-                c={c}
-                icon="volume-2"
-                title="Host telefonu masada"
-                text="Host telefonu hoparlör açık olarak masaya yatırır, oyunu sesli yönetir."
-              />
-              <How
-                c={c}
-                icon="moon"
-                title="Gece, gündüz, oylama"
-                text="Davetsiz Misafir geceleri saldırır. Gündüz mahalle suçluyu bulmaya çalışır."
-              />
-              <How
-                c={c}
-                icon="award"
-                title="Kazanma koşulu"
-                text="Tüm Davetsiz Misafirler idam edilirse mahalle kazanır. Çete sayıca eşitlenirse çete kazanır."
-              />
-            </ScrollView>
-          </View>
-        </Modal>
+        <HowToPlayScreen visible={helpVisible} onClose={() => setHelpVisible(false)} />
       </>
     );
   }
@@ -551,32 +506,6 @@ function HostSettings({ c, state, emit }: any) {
   );
 }
 
-function How({ c, icon, title, text }: any) {
-  return (
-    <View style={[styles.howRow, { borderColor: c.border }]}>
-      <View
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 18,
-          backgroundColor: c.card,
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Feather name={icon} size={18} color={c.primary} />
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 14 }}>
-          {title}
-        </Text>
-        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 2 }}>
-          {text}
-        </Text>
-      </View>
-    </View>
-  );
-}
 
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 18, gap: 14 },
@@ -672,15 +601,4 @@ const styles = StyleSheet.create({
   rowGap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
   settingRow: { flexDirection: "row", alignItems: "center", paddingVertical: 4 },
   waitCard: { padding: 22, borderRadius: 16, borderWidth: 1, alignItems: "center" },
-  helpModal: { flex: 1 },
-  helpHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  helpTitle: { fontFamily: "Inter_700Bold", fontSize: 18 },
-  howRow: { flexDirection: "row", gap: 12, alignItems: "flex-start", borderTopWidth: StyleSheet.hairlineWidth, paddingVertical: 12 },
 });
