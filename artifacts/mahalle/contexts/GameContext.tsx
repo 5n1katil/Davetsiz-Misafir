@@ -205,12 +205,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (keepAwake && state !== null) {
+    const isActivePhase =
+      state?.phase !== undefined &&
+      state.phase !== "LOBBY" &&
+      state.phase !== "ENDED";
+    if (keepAwake && isActivePhase) {
       activateKeepAwakeAsync();
     } else {
       deactivateKeepAwake();
     }
-  }, [keepAwake, state]);
+  }, [keepAwake, state?.phase]);
 
   useEffect(() => {
     if (myNickname === null) return;
