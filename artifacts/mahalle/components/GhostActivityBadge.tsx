@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { AccessibilityInfo, Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { haptic } from "@/lib/haptics";
 import * as Haptics from "expo-haptics";
 
@@ -14,8 +14,27 @@ export function GhostActivityBadge({ count = 0 }: GhostActivityBadgeProps) {
   const prevCountRef = useRef(count);
   const [tooltipVisible, setTooltipVisible] = useState(false);
   const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      setReduceMotion(enabled);
+    });
+
+    const subscription = AccessibilityInfo.addEventListener("reduceMotionChanged", (enabled) => {
+      setReduceMotion(enabled);
+    });
+
+    return () => subscription.remove();
+  }, []);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      opacityAnim.setValue(1);
+      return;
+    }
+
+    opacityAnim.setValue(0.35);
     const anim = Animated.loop(
       Animated.sequence([
         Animated.timing(opacityAnim, { toValue: 1, duration: 900, useNativeDriver: true }),
@@ -24,7 +43,7 @@ export function GhostActivityBadge({ count = 0 }: GhostActivityBadgeProps) {
     );
     anim.start();
     return () => anim.stop();
-  }, []);
+  }, [reduceMotion]);
 
   useEffect(() => {
     return () => {
@@ -35,33 +54,35 @@ export function GhostActivityBadge({ count = 0 }: GhostActivityBadgeProps) {
   useEffect(() => {
     if (count > prevCountRef.current) {
       haptic(Haptics.ImpactFeedbackStyle.Light);
-      Animated.parallel([
-        Animated.sequence([
-          Animated.spring(scaleAnim, {
-            toValue: 1.45,
-            useNativeDriver: true,
-            speed: 40,
-            bounciness: 6,
-          }),
-          Animated.spring(scaleAnim, {
-            toValue: 1,
-            useNativeDriver: true,
-            speed: 20,
-            bounciness: 10,
-          }),
-        ]),
-        Animated.sequence([
-          Animated.timing(shakeAnim, { toValue: -4, duration: 40, useNativeDriver: true }),
-          Animated.timing(shakeAnim, { toValue: 4, duration: 60, useNativeDriver: true }),
-          Animated.timing(shakeAnim, { toValue: -4, duration: 60, useNativeDriver: true }),
-          Animated.timing(shakeAnim, { toValue: 4, duration: 60, useNativeDriver: true }),
-          Animated.timing(shakeAnim, { toValue: -2, duration: 40, useNativeDriver: true }),
-          Animated.timing(shakeAnim, { toValue: 0, duration: 40, useNativeDriver: true }),
-        ]),
-      ]).start();
+      if (!reduceMotion) {
+        Animated.parallel([
+          Animated.sequence([
+            Animated.spring(scaleAnim, {
+              toValue: 1.45,
+              useNativeDriver: true,
+              speed: 40,
+              bounciness: 6,
+            }),
+            Animated.spring(scaleAnim, {
+              toValue: 1,
+              useNativeDriver: true,
+              speed: 20,
+              bounciness: 10,
+            }),
+          ]),
+          Animated.sequence([
+            Animated.timing(shakeAnim, { toValue: -4, duration: 40, useNativeDriver: true }),
+            Animated.timing(shakeAnim, { toValue: 4, duration: 60, useNativeDriver: true }),
+            Animated.timing(shakeAnim, { toValue: -4, duration: 60, useNativeDriver: true }),
+            Animated.timing(shakeAnim, { toValue: 4, duration: 60, useNativeDriver: true }),
+            Animated.timing(shakeAnim, { toValue: -2, duration: 40, useNativeDriver: true }),
+            Animated.timing(shakeAnim, { toValue: 0, duration: 40, useNativeDriver: true }),
+          ]),
+        ]).start();
+      }
     }
     prevCountRef.current = count;
-  }, [count]);
+  }, [count, reduceMotion]);
 
   function handlePress() {
     if (tooltipVisible) {
