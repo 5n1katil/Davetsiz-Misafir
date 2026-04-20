@@ -31,6 +31,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "Bekçi ve Falcı'nın ipuçlarını birleştir, güvenilir listeyi sen oluştur.",
     ],
     voteWeight: 1.5,
+    nightActionDescription: "Bu gece yapacak bir eylemin yok. Oyun açık: herkes senin 1.5 oy ağırlığını biliyor.",
   },
   bekci: {
     id: "bekci",
@@ -125,6 +126,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "Öldüğün ana kadar topladığın bilgi tüm mahalleye kalır — boşa harcama.",
     ],
     voteWeight: 1,
+    nightActionDescription: "Bu gece yapacak bir eylemin yok. Uyku modundasın — ama ölürsen tüm bildiklerin herkese açılır.",
   },
   tiyatrocu: {
     id: "tiyatrocu",
@@ -143,6 +145,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "Gerçek rolünü asla açıklama; tek gücün öldükten sonra ortaya çıkar.",
     ],
     voteWeight: 1,
+    nightActionDescription: "Bu gece yapacak bir eylemin yok. Ama unutma: öldüğünde gerçek rolün değil, sahte rolün açıklanır.",
   },
   hoca: {
     id: "hoca",
@@ -180,6 +183,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "Bekçi ve Falcı'yı destekle; bilgilerini doğrulamak için oy gücünü kullan.",
     ],
     voteWeight: 1,
+    nightActionDescription: "Bu gece yapacak bir eylemin yok. Gündüz tartışması ve oylaması senin en güçlü silahın.",
   },
 
   // ── DAVETSİZ MİSAFİR ÇETESİ ───────────────────────────────────────────────
@@ -201,6 +205,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "Bekçi ve Şifacı Teyze'yi erkenden tespit edip etkisiz hale getir.",
     ],
     voteWeight: 1,
+    nightActionDescription: "Çete odasında hedefini seç. Çoğunluk kararı bu geceyi belirler.",
   },
   tahsildar: {
     id: "tahsildar",
@@ -218,6 +223,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "Ekip arkadaşlarını dolaylı yoldan koru; doğrudan savunma şüphe çeker.",
     ],
     voteWeight: 1,
+    nightActionDescription: "Çete odasında oy kullan. Davetsiz Misafir düşerse sen liderliği devralırsın.",
   },
   sahte_dernek: {
     id: "sahte_dernek",
@@ -236,6 +242,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "Tehlikeli bir anda başka bir şüpheliyi öne sürerek odağı kaydır.",
     ],
     voteWeight: 1,
+    nightActionDescription: "Çete odasında oy kullan. Ama asıl görevin hayatta kalmak — linç edilirsen çete kaybeder.",
   },
   icten_pazarlikli: {
     id: "icten_pazarlikli",
@@ -253,6 +260,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "Çete seni tanır ama sen onları tanıyormuş gibi davranma.",
     ],
     voteWeight: 1,
+    nightActionDescription: "Bu gece yapacak bir eylemin yok. Sistem otomatik olarak bir kişinin bilgisini çeteye sızdırıyor.",
   },
 
   // ── KARGAŞACILAR ──────────────────────────────────────────────────────────
@@ -311,6 +319,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "Aşığın çete üyesi bile olsa onu koruman gerekir — moral değil, mecburiyet.",
     ],
     voteWeight: 1,
+    nightActionDescription: "Bu gece yapacak bir eylemin yok. Aşığının güvende olduğunu umuyorsun.",
   },
   dedikoducu: {
     id: "dedikoducu",
@@ -329,6 +338,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "Linç sırasında stratejik şekilde az oy topla — tersine dönünce sen değil, başkası gider.",
     ],
     voteWeight: 1,
+    nightActionDescription: "Bu gece yapacak bir eylemin yok. Ama bu gece ölürsen, yarınki linç oylaması tersine dönecek.",
   },
 
   // ── YALNIZ KURTLAR ────────────────────────────────────────────────────────

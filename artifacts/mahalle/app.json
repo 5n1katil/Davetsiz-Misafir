@@ -1,24 +1,39 @@
 {
   "expo": {
     "name": "Davetsiz Misafir",
-    "slug": "mahalle",
+    "slug": "davetsiz-misafir",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "mahalle",
     "userInterfaceStyle": "dark",
+    "backgroundColor": "#0A0614",
+    "primaryColor": "#F5C842",
+    "scheme": "davetsizmisafir",
+    "icon": "./assets/images/icon.png",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/icon.png",
-      "resizeMode": "cover",
-      "backgroundColor": "#0B0F1F"
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0A0614"
     },
     "ios": {
+      "bundleIdentifier": "com.davetsizmisafir.app",
+      "buildNumber": "1",
       "supportsTablet": false,
-      "bundleIdentifier": "com.mahalle.app"
+      "requireFullScreen": true,
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Sesli yönlendirme için mikrofon gerekli değildir.",
+        "NSSpeechRecognitionUsageDescription": "Oyun seslendirmesi için kullanılır.",
+        "UIBackgroundModes": ["audio"]
+      }
     },
     "android": {
-      "package": "com.mahalle.app"
+      "package": "com.davetsizmisafir.app",
+      "versionCode": 1,
+      "permissions": ["VIBRATE"],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "backgroundColor": "#0A0614"
+      }
     },
     "web": {
       "favicon": "./assets/images/icon.png"
@@ -31,11 +46,24 @@
         }
       ],
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0A0614",
+          "image": "./assets/images/splash.png",
+          "resizeMode": "contain"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "FILL_IN_AFTER_EAS_INIT"
+      }
     }
   }
 }

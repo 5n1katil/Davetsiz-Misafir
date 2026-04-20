@@ -1,70 +1,28 @@
 # Davetsiz Misafir
 
-## Overview
-
-**Davetsiz Misafir** is a Turkish social deduction party game (Mafia-style) built as an Expo mobile app targeting App Store publishing. 4-30 players play in-person on their own phones while the host device narrates in Turkish using text-to-speech.
-
-pnpm workspace monorepo using TypeScript. Two main artifacts:
-- `artifacts/mahalle` — Expo mobile app (the game client)
-- `artifacts/api-server` — Express + Socket.io game server
+Türkçe sosyal çıkarım parti oyunu (Mafya benzeri).
+Expo mobile app, App Store hedefli.
 
 ## Stack
+- pnpm monorepo, TypeScript 5.9, Node 24
+- api-server: Express 5 + Socket.io 4 (port 8080)
+- mahalle: Expo SDK 54, Expo Router, React Native 0.81
 
-- **Monorepo tool**: pnpm workspaces
-- **Node.js version**: 24
-- **Package manager**: pnpm
-- **TypeScript version**: 5.9
-- **API framework**: Express 5 + Socket.io 4
-- **Mobile**: Expo SDK 54, Expo Router, React Native 0.81
-- **Realtime**: Socket.io (server at `/api/socket.io`)
-- **TTS**: expo-speech (Turkish voice narration on host device)
-- **Build**: esbuild (ESM bundle for api-server)
+## Çalıştırma
+- API server: pnpm --filter @workspace/api-server run dev
+- Mobile: pnpm --filter @workspace/mahalle run web
+- Tests: pnpm --filter @workspace/api-server run test
 
-## Game Roles
+## Test Durumu
+36 vitest testi — tamamı geçiyor.
 
-| Role | Team | Night Action |
-|---|---|---|
-| Davetsiz Misafir | Kötü | Çete oylaması (hedef seç) |
-| Tahsildar | Kötü | Çete oylaması |
-| Sahte Dernek Başkanı | Kötü | Çete oylaması (linç edilirse çete anında kazanır) |
-| Köylü | İyi | — |
-| Muhtar | İyi | — (oyu 1.5) |
-| Bekçi | İyi | Ekip sorgusu |
-| Otacı Teyze | İyi | Koruma |
-| Falcı | İyi | Rol sorgusu (%20 yanlış) |
+## Roller (19 adet)
+Mahalle (9): muhtar, bekci, otaci, falci, kapici, muhabir, tiyatrocu, hoca, koylu
+Çete (4): tefeci_basi, tahsildar, sahte_dernek, icten_pazarlikli
+Kargaşacılar (4): kumarbaz, kiskanc_komsu, kirik_kalp, dedikoducu
+Yalnız Kurtlar (2): anonim, kahraman_dede
 
-## Game Phases
-
-`LOBBY → ROLE_SELECT → ROLE_REVEAL → DAY → VOTE → NIGHT → DAY (loop) → ENDED`
-
-## Key Commands
-
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm test` — run game-engine unit tests (vitest, 29 tests)
-- `pnpm --filter @workspace/api-server run test` — run api-server tests directly
-- `pnpm --filter @workspace/api-server run dev` — run API server locally
-- `pnpm --filter @workspace/mahalle run dev` — run Expo dev server
-
-## Testing
-
-Unit tests live at `artifacts/api-server/src/game/__tests__/gameEngine.test.ts` (vitest).  
-Config: `artifacts/api-server/vitest.config.ts`.
-
-Covered mechanics:
-- Win conditions (mahalle, çete, Kumarbaz, Kırık Kalp, Anonim, Kahraman Dede)
-- Vote resolution: normal, reversed (Dedikoducu), tie/runoff, Muhtar 1.5 weight
-- Politikacı instant-win on lynch (not on night kill)
-- Şifacı protection saves vs. Kapıcı blocking the protector
-- Kapıcı lock blocks çete attack
-- Hoca one-time-use (skips when hocaUsed=true)
-- Kumarbaz permanent role swap, interacting with Şifacı
-- Kırık Kalp chain death (night kill and day lynch)
-- Anonim 3-mark win condition
-
-## Architecture Notes
-
-- All game logic lives on the server (`gameEngine.ts`); client only renders state
-- Socket.io path: `/api/socket.io` (proxied through the same `/api` route as REST)
-- Host receives `voice` events with Turkish TTS strings; other players receive filtered `state`
-- In-memory room storage (Map) — rooms are ephemeral, no database needed
-- Socket reconnection: same nickname = reconnect to existing session
+## Bilinen Eksikler
+- E2E test yok (NightScreen, EndScreen, linç akışı)
+- TTS gerçek cihaz testi yapılmadı
+- App Store hazırlığı eksik (app.json, icon, splash, privacy manifest)

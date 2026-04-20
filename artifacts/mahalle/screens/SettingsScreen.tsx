@@ -13,6 +13,7 @@ import {
 import { useGame } from "@/contexts/GameContext";
 import { type ThemePreference, useThemePreference } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
+import { speakTest } from "@/lib/speech";
 
 interface SettingsScreenProps {
   visible: boolean;
@@ -124,6 +125,32 @@ export default function SettingsScreen({ visible, onClose }: SettingsScreenProps
 
             <View style={[styles.separator, { backgroundColor: c.border }]} />
 
+            <View style={[styles.row, { borderBottomWidth: 0 }]}>
+              <View style={styles.rowLeft}>
+                <View style={styles.rowIconWrap}>
+                  <Feather name="volume-2" size={18} color={c.primary} />
+                </View>
+                <View style={styles.rowText}>
+                  <Text style={[styles.rowTitle, { color: c.foreground }]}>Sesi Test Et</Text>
+                  <Text style={[styles.rowSub, { color: c.mutedForeground }]}>
+                    Türkçe seslendirmeyi deneyin
+                  </Text>
+                </View>
+              </View>
+              <Pressable
+                onPress={() => speakTest("Davetsiz Misafir. Mahalle uykuya daldı.")}
+                style={[styles.testBtn, { backgroundColor: c.primary + "22", borderColor: c.primary }]}
+              >
+                <Text style={[styles.testBtnLabel, { color: c.primary }]}>🔊 Test</Text>
+              </Pressable>
+            </View>
+          </View>
+
+          <Text style={[styles.sectionLabel, { color: c.mutedForeground }]}>
+            HAPTİK
+          </Text>
+
+          <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
             <View style={styles.row}>
               <View style={styles.rowLeft}>
                 <View style={styles.rowIconWrap}>
@@ -311,5 +338,17 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 8,
     paddingHorizontal: 4,
+  },
+  testBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  testBtnLabel: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
   },
 });
