@@ -4,17 +4,16 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from "@expo-google-fonts/inter";
-import { useFonts as useInterFonts } from "@expo-google-fonts/inter";
 import {
   Cinzel_700Bold,
   Cinzel_900Black,
 } from "@expo-google-fonts/cinzel";
-import { useFonts as useCinzelFonts } from "@expo-google-fonts/cinzel";
 import { Stack } from "expo-router";
+import * as Font from "expo-font";
 import * as NavigationBar from "expo-navigation-bar";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
@@ -57,27 +56,38 @@ function ThemedApp() {
 }
 
 export default function RootLayout() {
-  const [interLoaded, interError] = useInterFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
-  });
-  const [cinzelLoaded, cinzelError] = useCinzelFonts({
-    Cinzel_700Bold,
-    Cinzel_900Black,
-  });
-
-  const fontsLoaded = interLoaded && cinzelLoaded;
-  const fontError = interError || cinzelError;
+  const [fontsReady, setFontsReady] = useState(false);
 
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    let cancelled = false;
+
+    Font.loadAsync({
+      Inter_400Regular,
+      Inter_500Medium,
+      Inter_600SemiBold,
+      Inter_700Bold,
+      Cinzel_700Bold,
+      Cinzel_900Black,
+    })
+      .catch(() => {
+        // Font yüklemesi başarısız oldu (timeout vb.) — sistem fontlarıyla devam et
+      })
+      .finally(() => {
+        if (!cancelled) setFontsReady(true);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (fontsReady) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError]);
+  }, [fontsReady]);
 
-  if (!fontsLoaded && !fontError) return null;
+  if (!fontsReady) return null;
 
   return (
     <SafeAreaProvider>
