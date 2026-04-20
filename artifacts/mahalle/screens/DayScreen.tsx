@@ -207,6 +207,7 @@ export default function DayScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const critColorAnim = useRef(new Animated.Value(0)).current;
+  const progressAnim = useRef(new Animated.Value(1)).current;
 
   const isCritical = (remaining <= 10 && remaining > 0 && !(state?.paused ?? false));
 
@@ -215,7 +216,9 @@ export default function DayScreen() {
     setDisplayedMsgs(nightResultMessages);
     setNightResultVisible(true);
     fadeAnim.setValue(0);
+    progressAnim.setValue(1);
     Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+    Animated.timing(progressAnim, { toValue: 0, duration: 6000, useNativeDriver: false }).start();
     if (autoDismissRef.current) clearTimeout(autoDismissRef.current);
     autoDismissRef.current = setTimeout(() => {
       dismissNightResult();
@@ -485,6 +488,19 @@ export default function DayScreen() {
                 <Pressable onPress={dismissNightResult} style={styles.dismissBtn}>
                   <Text style={styles.dismissText}>Tamam</Text>
                 </Pressable>
+                <View style={styles.progressTrack}>
+                  <Animated.View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: progressAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ["0%", "100%"],
+                        }),
+                      },
+                    ]}
+                  />
+                </View>
               </View>
             </Pressable>
           </Animated.View>
@@ -616,5 +632,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#E2E8F0",
     letterSpacing: 0.4,
+  },
+  progressTrack: {
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "#1E293B",
+    overflow: "hidden",
+    marginTop: 4,
+  },
+  progressFill: {
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "#1ECBE1",
   },
 });
