@@ -32,6 +32,9 @@ import StatsScreen from "@/screens/StatsScreen";
 const SCREEN_W = Dimensions.get("window").width;
 const LOGO_SIZE = Math.min(SCREEN_W * 0.78, 300);
 
+// Home screen always uses dark noir palette regardless of system theme
+const HOME_BG = "#070410";
+
 export default function LobbyScreen() {
   const c = useColors();
   const insets = useSafeAreaInsets();
@@ -142,39 +145,43 @@ export default function LobbyScreen() {
     return (
       <>
         <KeyboardAvoidingView
-          style={{ flex: 1 }}
+          style={{ flex: 1, backgroundColor: HOME_BG }}
           behavior={Platform.OS === "ios" ? "padding" : undefined}
         >
           <ScrollView
             contentContainerStyle={[
               styles.scroll,
-              { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 40 },
+              { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 48 },
             ]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
+            style={{ backgroundColor: HOME_BG }}
           >
+            {/* Full-screen atmospheric gradient */}
             <LinearGradient
-              colors={["#1A0A3E", "#140830", "#0A0614"]}
+              colors={["#1A0A3E", "#0D0525", HOME_BG]}
               style={styles.heroBg}
             />
 
+            {/* Top action icons */}
             <View style={styles.heroIcons}>
               <Pressable
                 onPress={() => setStatsVisible(true)}
                 hitSlop={12}
-                style={[styles.iconBtn, { backgroundColor: c.card, borderColor: c.border }]}
+                style={styles.iconBtn}
               >
-                <Feather name="bar-chart-2" size={17} color={c.foreground} />
+                <Feather name="bar-chart-2" size={17} color="#9B7FD4" />
               </Pressable>
               <Pressable
                 onPress={() => setHelpVisible(true)}
                 hitSlop={12}
-                style={[styles.iconBtn, { backgroundColor: c.card, borderColor: c.border }]}
+                style={styles.iconBtn}
               >
-                <Feather name="help-circle" size={17} color={c.foreground} />
+                <Feather name="help-circle" size={17} color="#9B7FD4" />
               </Pressable>
             </View>
 
+            {/* Hero section */}
             <Animated.View
               style={[
                 styles.hero,
@@ -188,7 +195,7 @@ export default function LobbyScreen() {
                   resizeMode="cover"
                 />
                 <LinearGradient
-                  colors={["transparent", "transparent", "#0A0614"]}
+                  colors={["transparent", "transparent", HOME_BG]}
                   style={[styles.logoFade, { pointerEvents: "none" }]}
                 />
                 <View style={[styles.logoGlow, { pointerEvents: "none" }]} />
@@ -196,21 +203,24 @@ export default function LobbyScreen() {
 
               <Text style={styles.brand}>DAVETSİZ MİSAFİR</Text>
               <View style={styles.divider} />
-              <Text style={[styles.tag, { color: c.mutedForeground }]}>
+              <Text style={styles.tag}>
                 Davetsiz Misafir'i bul. Yoksa mahalle onların olur.
               </Text>
             </Animated.View>
 
+            {/* Entry card */}
             <Animated.View
-              style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}
+              style={[styles.entryCard, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
             >
-            <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
-              <Text style={[styles.label, { color: c.mutedForeground }]}>Adın</Text>
+              {/* Name label */}
+              <Text style={styles.entryLabel}>ADIN</Text>
+
+              {/* Name input */}
               {myNickname === null ? (
                 <Animated.View
                   style={[
-                    styles.input,
-                    { borderColor: c.border, backgroundColor: c.input, opacity: reduceMotion === false ? skeletonOpacity : 0.4 },
+                    styles.entryInput,
+                    { opacity: reduceMotion === false ? skeletonOpacity : 0.4 },
                   ]}
                 />
               ) : (
@@ -219,42 +229,31 @@ export default function LobbyScreen() {
                     value={myNickname}
                     onChangeText={setNickname}
                     placeholder="Ör: Selim Abi"
-                    placeholderTextColor={c.mutedForeground}
+                    placeholderTextColor="#4A3570"
                     maxLength={20}
-                    style={[
-                      styles.input,
-                      { color: c.foreground, borderColor: c.border, backgroundColor: c.input },
-                    ]}
+                    style={styles.entryInput}
                   />
                 </Animated.View>
               )}
 
+              {/* Mode toggle + primary action */}
               <View style={styles.actionRow}>
                 <Pressable
                   onPress={mode === "create" ? handleCreate : () => setMode("create")}
                   disabled={busy}
-                  style={[
+                  style={({ pressed }) => [
                     styles.actionBtn,
-                    {
-                      backgroundColor: mode === "create" ? c.primary : c.card,
-                      borderColor: mode === "create" ? c.primary : c.border,
-                      opacity: busy ? 0.6 : 1,
-                    },
+                    mode === "create" ? styles.actionBtnPrimary : styles.actionBtnSecondary,
+                    { opacity: busy || pressed ? 0.75 : 1 },
                   ]}
                 >
                   <Feather
                     name="home"
-                    size={16}
-                    color={mode === "create" ? c.primaryForeground : c.foreground}
-                    style={{ marginBottom: 4 }}
+                    size={17}
+                    color={mode === "create" ? "#0A0614" : "#C3AEFF"}
+                    style={{ marginBottom: 5 }}
                   />
-                  <Text
-                    style={{
-                      color: mode === "create" ? c.primaryForeground : c.foreground,
-                      fontFamily: "Inter_600SemiBold",
-                      fontSize: 14,
-                    }}
-                  >
+                  <Text style={mode === "create" ? styles.actionBtnLabelPrimary : styles.actionBtnLabelSecondary}>
                     Oda Kur
                   </Text>
                 </Pressable>
@@ -262,53 +261,45 @@ export default function LobbyScreen() {
                 <Pressable
                   onPress={() => setMode("join")}
                   disabled={busy}
-                  style={[
+                  style={({ pressed }) => [
                     styles.actionBtn,
-                    {
-                      backgroundColor: mode === "join" ? c.primary : c.card,
-                      borderColor: mode === "join" ? c.primary : c.border,
-                      opacity: busy ? 0.6 : 1,
-                    },
+                    mode === "join" ? styles.actionBtnPrimary : styles.actionBtnSecondary,
+                    { opacity: busy || pressed ? 0.75 : 1 },
                   ]}
                 >
                   <Feather
                     name="users"
-                    size={16}
-                    color={mode === "join" ? c.primaryForeground : c.foreground}
-                    style={{ marginBottom: 4 }}
+                    size={17}
+                    color={mode === "join" ? "#0A0614" : "#C3AEFF"}
+                    style={{ marginBottom: 5 }}
                   />
-                  <Text
-                    style={{
-                      color: mode === "join" ? c.primaryForeground : c.foreground,
-                      fontFamily: "Inter_600SemiBold",
-                      fontSize: 14,
-                    }}
-                  >
+                  <Text style={mode === "join" ? styles.actionBtnLabelPrimary : styles.actionBtnLabelSecondary}>
                     Odaya Katıl
                   </Text>
                 </Pressable>
               </View>
 
+              {/* Join mode: code input + button */}
               {mode === "join" ? (
                 <>
                   <TextInput
                     value={code}
                     onChangeText={(t) => setCode(t.toUpperCase())}
                     placeholder="ODA KODU (ör. KAHVE47)"
-                    placeholderTextColor={c.mutedForeground}
+                    placeholderTextColor="#4A3570"
                     maxLength={10}
                     autoCapitalize="characters"
                     autoFocus
-                    style={[
-                      styles.input,
-                      styles.codeInput,
-                      { color: c.foreground, borderColor: c.border, backgroundColor: c.input },
-                    ]}
+                    style={[styles.entryInput, styles.codeInput]}
                   />
                   <Btn label="Katıl" loading={busy} onPress={handleJoin} />
                 </>
               ) : null}
-            </View>
+            </Animated.View>
+
+            {/* Bottom tagline */}
+            <Animated.View style={{ opacity: fadeAnim, alignItems: "center", marginTop: 8 }}>
+              <Text style={styles.footer}>4–30 oyuncu • Yüz yüze • Türkçe anlatım</Text>
             </Animated.View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -509,8 +500,8 @@ function HostSettings({ c, state, emit }: any) {
 
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 18, gap: 14 },
-  heroBg: { position: "absolute", left: 0, right: 0, top: 0, height: 480 },
-  hero: { alignItems: "center", marginBottom: 4 },
+  heroBg: { position: "absolute", left: 0, right: 0, top: 0, height: 520 },
+  hero: { alignItems: "center", marginBottom: 8 },
   heroIcons: {
     flexDirection: "row",
     gap: 8,
@@ -518,23 +509,22 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   iconBtn: {
-    padding: 8,
+    padding: 9,
     borderRadius: 10,
     borderWidth: 1,
+    backgroundColor: "rgba(26,10,62,0.6)",
+    borderColor: "#2A1060",
   },
   logoWrap: {
     width: LOGO_SIZE,
     height: LOGO_SIZE,
     borderRadius: LOGO_SIZE / 2,
     overflow: "hidden",
-    marginBottom: 20,
+    marginBottom: 22,
     borderWidth: 3,
     borderColor: "#F5C84255",
   },
-  logoImg: {
-    width: "100%",
-    height: "100%",
-  },
+  logoImg: { width: "100%", height: "100%" },
   logoFade: {
     position: "absolute",
     left: 0,
@@ -565,9 +555,91 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5C84244",
     borderRadius: 1,
     marginTop: 10,
-    marginBottom: 6,
+    marginBottom: 8,
   },
-  tag: { fontFamily: "Inter_400Regular", fontSize: 13, marginTop: 4, textAlign: "center", paddingHorizontal: 18 },
+  tag: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    marginTop: 2,
+    textAlign: "center",
+    paddingHorizontal: 18,
+    color: "#7A63B0",
+  },
+
+  // ── Home entry card (always dark, not using c.card) ────────────────────────
+  entryCard: {
+    backgroundColor: "#0F0628",
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: "#2A1060",
+    padding: 20,
+    gap: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  entryLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 11,
+    letterSpacing: 1.5,
+    color: "#6B4FA8",
+    textTransform: "uppercase",
+  },
+  entryInput: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#2A1060",
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    fontFamily: "Inter_500Medium",
+    fontSize: 16,
+    color: "#E8DEFF",
+    backgroundColor: "#160535",
+  },
+  codeInput: {
+    textAlign: "center",
+    letterSpacing: 5,
+    fontFamily: "Inter_700Bold",
+    fontSize: 18,
+    color: "#F5C842",
+  },
+  actionRow: { flexDirection: "row", gap: 10 },
+  actionBtn: {
+    flex: 1,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    alignItems: "center",
+    borderRadius: 14,
+    borderWidth: 1.5,
+  },
+  actionBtnPrimary: {
+    backgroundColor: "#F5C842",
+    borderColor: "#F5C842",
+  },
+  actionBtnSecondary: {
+    backgroundColor: "#160535",
+    borderColor: "#2A1060",
+  },
+  actionBtnLabelPrimary: {
+    color: "#0A0614",
+    fontFamily: "Inter_700Bold",
+    fontSize: 14,
+  },
+  actionBtnLabelSecondary: {
+    color: "#C3AEFF",
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+  },
+  footer: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: "#3A2560",
+    letterSpacing: 0.5,
+  },
+
+  // ── In-room / lobby (uses c.* theme tokens) ────────────────────────────────
   card: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 12 },
   label: { fontFamily: "Inter_500Medium", fontSize: 12, letterSpacing: 0.5, textTransform: "uppercase" },
   input: {
@@ -577,16 +649,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     fontFamily: "Inter_500Medium",
     fontSize: 16,
-  },
-  codeInput: { textAlign: "center", letterSpacing: 4, fontFamily: "Inter_700Bold" },
-  actionRow: { flexDirection: "row", gap: 10 },
-  actionBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 8,
-    alignItems: "center",
-    borderRadius: 12,
-    borderWidth: 1,
   },
   codeCard: { padding: 18, borderRadius: 16, borderWidth: 1, alignItems: "center" },
   qrCard: { padding: 18, borderRadius: 16, borderWidth: 1, alignItems: "center" },

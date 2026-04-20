@@ -37,18 +37,19 @@ function resolveBackground(pref: ThemePreference, scheme: "light" | "dark"): str
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const scheme = (useColorScheme() ?? "dark") as "light" | "dark";
-  const [themePreference, setThemePrefState] = useState<ThemePreference>("system");
+  const [themePreference, setThemePrefState] = useState<ThemePreference>("dark");
   const [transitionCount, setTransitionCount] = useState(0);
-  const [prevBg, setPrevBg] = useState(() => resolveBackground("system", scheme));
-  const currentBgRef = useRef(resolveBackground("system", scheme));
+  const [prevBg, setPrevBg] = useState(() => resolveBackground("dark", scheme));
+  const currentBgRef = useRef(resolveBackground("dark", scheme));
 
   useEffect(() => {
     AsyncStorage.getItem(STORAGE_KEY)
       .then((v) => {
-        if (v === "light" || v === "dark" || v === "system") {
+        if (v === "light" || v === "dark") {
           setThemePrefState(v);
           currentBgRef.current = resolveBackground(v, scheme);
         }
+        // "system" stored preference migrates to "dark" (game is always dark)
       })
       .catch(() => {});
   }, []);
