@@ -1161,9 +1161,21 @@ function resolveMorning(room: Room) {
     }
   }
   // Hoca (Kapıcı kilidini aşar); _kopya türü dahil
+  const lockBypassNotified = new Set<string>(); // tracks Hoca actors already told about lock bypass
   for (const a of room.nightActions) {
     if (a.type === "koruma_guclu" || a.type === "koruma_guclu_kopya") {
       protectedIds.add(a.targetId); // Hoca kilidi aşar
+      // Hoca'ya bildir: eğer hedefin kapısı kilitliyse kilidi aştığını söyle
+      if (room.lockedHouses.includes(a.targetId)) {
+        const savedPlayer = room.players.find((p) => p.id === a.targetId);
+        const savedName = savedPlayer ? savedPlayer.nickname : "Hedefin";
+        pushPrivate(
+          room,
+          a.actorId,
+          `🔑 Bu gece ${savedName}'in kapısı kilitliydi — ama sen kilidi aştın ve korumayı uyguladın.`,
+        );
+        lockBypassNotified.add(a.actorId);
+      }
     }
   }
   // Şimdi ertelenen mesajları gönder — Hoca aynı kişiyi kurtardıysa farklı mesaj ver
@@ -1315,7 +1327,7 @@ function resolveMorning(room: Room) {
   }
   const uneventfulNotified = new Set<string>();
   for (const a of room.nightActions) {
-    if (protectorTypes.has(a.type) && !alreadyNotified.has(a.actorId) && !lockBlockedProtectors.has(a.actorId) && !uneventfulNotified.has(a.actorId)) {
+    if (protectorTypes.has(a.type) && !alreadyNotified.has(a.actorId) && !lockBlockedProtectors.has(a.actorId) && !lockBypassNotified.has(a.actorId) && !uneventfulNotified.has(a.actorId)) {
       const selfProtect = a.actorId === a.targetId;
       const quietMsg = selfProtect
         ? "🌙 Bu gece sana kimse dokunmadı."
