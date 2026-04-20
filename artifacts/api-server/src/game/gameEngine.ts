@@ -1036,12 +1036,18 @@ function resolveMorning(room: Room) {
   // ── ADIM 3: Korumalar ────────────────────────────────────────────────────
   // Şifacı Teyze (engellenir kapı kilitliyse); _kopya türü dahil
   const protectedIds = new Set<string>();
+  const lockBlockedProtectors = new Set<string>(); // protectors already told their action was nullified by a lock
   for (const a of room.nightActions) {
     if (a.type === "koruma" || a.type === "koruma_kopya") {
       if (room.lockedHouses.includes(a.actorId)) {
         // Koruyucunun kendi kapısı kilitli — evden çıkamadı
         pushPrivate(room, a.actorId, `🔒 Bu gece evinden çıkamadın — kapın kilitliydi. Koruma görevin engellendi!`);
-      } else if (!room.lockedHouses.includes(a.targetId)) {
+        lockBlockedProtectors.add(a.actorId);
+      } else if (room.lockedHouses.includes(a.targetId)) {
+        // Hedefin kapısı kilitli — korumacı evden çıktı ama hedefe ulaşamadı
+        pushPrivate(room, a.actorId, `🔒 Bu gece koruduğun kişinin kapısı kilitliydi — oraya ulaşamadın. Koruma görevin engellendi!`);
+        lockBlockedProtectors.add(a.actorId);
+      } else {
         protectedIds.add(a.targetId);
       }
     }
@@ -1159,20 +1165,6 @@ function resolveMorning(room: Room) {
           }
         } else {
           killPlayer(room, kdTarget, "Kahraman Dede tarafından öldürüldü", victims);
-          // Notify any protector whose action was blocked by Kapıcı and whose target was killed by Kahraman Dede
-          for (const pa of room.nightActions) {
-            if (
-              (pa.type === "koruma" || pa.type === "koruma_kopya") &&
-              pa.targetId === kdTarget.id &&
-              room.lockedHouses.includes(kdTarget.id)
-            ) {
-              const selfProtect = pa.actorId === pa.targetId;
-              const blockedMsg = selfProtect
-                ? `🔒 Bu gece kendini korumaya çalıştın, ama kapın kilitliydi — engellendi!`
-                : `🔒 ${kdTarget.nickname} adlı kişiyi korumaya çalıştın, ama kapısı kilitliydi — engellendi!`;
-              pushPrivate(room, pa.actorId, blockedMsg);
-            }
-          }
         }
       }
     }
@@ -1199,7 +1191,7 @@ function resolveMorning(room: Room) {
   }
   const uneventfulNotified = new Set<string>();
   for (const a of room.nightActions) {
-    if (protectorTypes.has(a.type) && !alreadyNotified.has(a.actorId) && !uneventfulNotified.has(a.actorId)) {
+    if (protectorTypes.has(a.type) && !alreadyNotified.has(a.actorId) && !lockBlockedProtectors.has(a.actorId) && !uneventfulNotified.has(a.actorId)) {
       const selfProtect = a.actorId === a.targetId;
       const quietMsg = selfProtect
         ? "🌙 Bu gece sana kimse dokunmadı."
