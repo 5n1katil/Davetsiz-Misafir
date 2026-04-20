@@ -57,6 +57,8 @@ export interface GameState {
     ceteCount: number;
     activeSpecialRoles: string[];
     nightActionDurationSec: number;
+    voteDurationSec: number;
+    rolePackage: "standard" | "advanced" | "all";
   };
   phaseDeadline: number | null;
   roleSelectDeadline: number | null;
@@ -74,7 +76,8 @@ export interface GameState {
     roleId: string;
     cause: string;
   }[];
-  graveyardChat: { from: string; nick: string; text: string; ts: number }[];
+  graveyardChat: { from: string; nick: string; text: string; ts: number; roleId: string | null }[];
+  ceteVoteCounts: Record<string, number>;
   winner: string | null;
   winnerLabel: string | null;
   voteCount: number;

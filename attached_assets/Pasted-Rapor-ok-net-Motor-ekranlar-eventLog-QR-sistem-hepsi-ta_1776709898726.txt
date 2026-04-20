@@ -1,0 +1,434 @@
+Rapor çok net. Motor, ekranlar, eventLog, QR sistem — hepsi tamamlanmış. Kalan 3 kritik iş var: EAS kurulumu, gerçek E2E testler ve TypeScript uyarıları. Replit'e ver:
+
+---
+
+> Final tasks before App Store submission. Apply in order:
+>
+> ---
+>
+> **TASK #178 — TypeScript uyarılarını temizle**
+>
+> gameEngine.ts satır 1911/1935/1952'deki "VOTE" vs "ENDED" tip karşılaştırması uyarılarını düzelt. Testleri etkilemiyor ama production build'de sorun çıkarabilir.
+>
+> Uyarıların büyük ihtimalle kaynağı şu pattern:
+> ```typescript
+> if (room.phase === "VOTE") { ... }
+> ```
+> Phase tipi union değilse veya narrowing eksikse TypeScript şikayet eder.
+>
+> Düzeltme:
+> ```typescript
+> // gameEngine.ts başına veya types dosyasına ekle:
+> export type GamePhase =
+>   | 'LOBBY'
+>   | 'ROLE_SELECT'
+>   | 'ROLE_REVEAL'
+>   | 'DAY'
+>   | 'VOTE'
+>   | 'VOTE_RUNOFF'
+>   | 'NIGHT'
+>   | 'NIGHT_ROLE'
+>   | 'ENDED';
+>
+> // Room interface'de:
+> phase: GamePhase; // string yerine
+>
+> // simulateGame() ve test kodundaki karşılaştırmalar otomatik düzelir
+> ```
+>
+> Sonra `pnpm --filter @workspace/api-server run build` çalıştır — sıfır TypeScript hatası olmalı.
+>
+> ---
+>
+> **TASK #179 — Gerçek socket E2E testleri**
+>
+> Mevcut `e2e/multiplayer.spec.ts` iskeletini gerçek socket.io-client testleriyle doldur. Bu testler Playwright değil, vitest + socket.io-client kullanacak — böylece CI'da çalışır.
+>
+> Yeni dosya: `artifacts/api-server/src/game/__tests__/multiplayer.test.ts`
+>
+> ```typescript
+> import { createServer } from 'http';
+> import { Server } from 'socket.io';
+> import { io as Client, Socket } from 'socket.io-client';
+> import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+> import { setupSocket } from '../socket';
+>
+> function waitFor(socket: Socket, event: string): Promise<any> {
+>   return new Promise(resolve => socket.once(event, resolve));
+> }
+>
+> describe('Multiplayer socket akışı', () => {
+>   let httpServer: ReturnType<typeof createServer>;
+>   let ioServer: Server;
+>   let port: number;
+>   let host: Socket;
+>   let guest: Socket;
+>
+>   beforeEach(async () => {
+>     httpServer = createServer();
+>     ioServer = new Server(httpServer, { cors: { origin: '*' } });
+>     setupSocket(ioServer);
+>     await new Promise<void>(resolve => httpServer.listen(0, resolve));
+>     port = (httpServer.address() as any).port;
+>   });
+>
+>   afterEach(async () => {
+>     host?.disconnect();
+>     guest?.disconnect();
+>     await new Promise<void>(resolve => ioServer.close(() => resolve()));
+>   });
+>
+>   function connect(nickname: string): Socket {
+>     return Client(`http://localhost:${port}`, {
+>       autoConnect: true,
+>       transports: ['websocket'],
+>       auth: { nickname }
+>     });
+>   }
+>
+>   it('Host oda kurar, guest katılır, ikisi lobide görünür', async () => {
+>     host = connect('Host');
+>     await waitFor(host, 'connect');
+>
+>     host.emit('create_room', { nickname: 'Host', settings: {} });
+>     const { code } = await waitFor(host, 'state').then((s: any) => s);
+>
+>     guest = connect('Misafir');
+>     await waitFor(guest, 'connect');
+>     guest.emit('join_room', { code, nickname: 'Misafir' });
+>
+>     const state = await waitFor(guest, 'state');
+>     const nicknames = state.players.map((p: any) => p.nickname);
+>     expect(nicknames).toContain('Host');
+>     expect(nicknames).toContain('Misafir');
+>   });
+>
+>   it('Host disconnect → guest geçici host olur', async () => {
+>     host = connect('Host');
+>     await waitFor(host, 'connect');
+>     host.emit('create_room', { nickname: 'Host', settings: {} });
+>     const hostState = await waitFor(host, 'state');
+>     const { code } = hostState;
+>
+>     guest = connect('Misafir');
+>     await waitFor(guest, 'connect');
+>     guest.emit('join_room', { code, nickname: 'Misafir' });
+>     await waitFor(guest, 'state');
+>
+>     // Host bağlantıyı keser
+>     host.disconnect();
+>
+>     // Guest yeni state alır — artık host
+>     const newState = await waitFor(guest, 'state');
+>     const guestPlayer = newState.players.find((p: any) => p.nickname === 'Misafir');
+>     expect(guestPlayer?.isHost).toBe(true);
+>   });
+>
+>   it('Host geri bağlanır — host statüsü iade edilir', async () => {
+>     host = connect('Host');
+>     await waitFor(host, 'connect');
+>     host.emit('create_room', { nickname: 'Host', settings: {} });
+>     const { code } = await waitFor(host, 'state');
+>
+>     guest = connect('Misafir');
+>     await waitFor(guest, 'connect');
+>     guest.emit('join_room', { code, nickname: 'Misafir' });
+>     await waitFor(guest, 'state');
+>
+>     // Host bağlantıyı keser
+>     host.disconnect();
+>     await waitFor(guest, 'state'); // temp host atama bekleniyor
+>
+>     // Host yeniden bağlanır — aynı nickname
+>     const reconnectedHost = connect('Host');
+>     await waitFor(reconnectedHost, 'connect');
+>     reconnectedHost.emit('join_room', { code, nickname: 'Host' });
+>
+>     const restoredEvent = await waitFor(reconnectedHost, 'host_restored');
+>     expect(restoredEvent).toBeDefined();
+>
+>     const finalState = await waitFor(reconnectedHost, 'state');
+>     const hostPlayer = finalState.players.find((p: any) => p.nickname === 'Host');
+>     expect(hostPlayer?.isHost).toBe(true);
+>
+>     reconnectedHost.disconnect();
+>   });
+>
+>   it('4 oyuncuyla oyun başlatılır ve ROLE_SELECT fazına geçilir', async () => {
+>     const players: Socket[] = [];
+>     let roomCode = '';
+>
+>     // Host kurar
+>     const h = connect('Oyuncu1');
+>     await waitFor(h, 'connect');
+>     h.emit('create_room', { nickname: 'Oyuncu1', settings: { dayDuration: 60 } });
+>     const s = await waitFor(h, 'state');
+>     roomCode = s.code;
+>     players.push(h);
+>
+>     // 3 guest katılır
+>     for (let i = 2; i <= 4; i++) {
+>       const g = connect(`Oyuncu${i}`);
+>       await waitFor(g, 'connect');
+>       g.emit('join_room', { code: roomCode, nickname: `Oyuncu${i}` });
+>       await waitFor(g, 'state');
+>       players.push(g);
+>     }
+>
+>     // Host oyunu başlatır
+>     h.emit('start_game', { code: roomCode });
+>     const gameState = await waitFor(h, 'state');
+>     expect(gameState.phase).toBe('ROLE_SELECT');
+>     expect(gameState.players).toHaveLength(4);
+>
+>     players.forEach(p => p.disconnect());
+>   });
+>
+>   it('Oda dolu hatası — 30 oyuncu limitini aşınca error event gelir', async () => {
+>     // Bu testi simüle etmek için gameEngine'de max limit 3'e düşür via settings
+>     // Gerçek test: 31. oyuncu bağlanmaya çalışır
+>     host = connect('Host');
+>     await waitFor(host, 'connect');
+>     host.emit('create_room', { nickname: 'Host', settings: { maxPlayers: 3 } });
+>     const { code } = await waitFor(host, 'state');
+>
+>     const g1 = connect('G1');
+>     g1.emit('join_room', { code, nickname: 'G1' });
+>     await waitFor(g1, 'state');
+>
+>     const g2 = connect('G2');
+>     g2.emit('join_room', { code, nickname: 'G2' });
+>     await waitFor(g2, 'state');
+>
+>     // 4. oyuncu (limit 3) hata almalı
+>     const g3 = connect('G3');
+>     g3.emit('join_room', { code, nickname: 'G3' });
+>     const err = await waitFor(g3, 'error');
+>     expect(err.code).toBe('ROOM_FULL');
+>
+>     g1.disconnect(); g2.disconnect(); g3.disconnect();
+>   });
+> });
+> ```
+>
+> `package.json` test scriptine ekle (`api-server`):
+> ```json
+> "test": "vitest run src/game/__tests__/gameEngine.test.ts src/game/__tests__/multiplayer.test.ts"
+> ```
+>
+> ---
+>
+> **TASK #180 — Oyun ayarları: host kontrollerini tamamla**
+>
+> LobbyScreen'de host şu an dayDuration ayarlayabiliyor. Eksik olan ayarları da ekle:
+>
+> In `LobbyScreen.tsx` host settings paneline:
+>
+> ```tsx
+> // Gündüz süresi (mevcut)
+> // Gece aksiyon süresi (yeni)
+> <SettingRow
+>   label="Gece Aksiyon Süresi"
+>   value={settings.nightActionDuration ?? 12}
+>   options={[8, 12, 15, 20]}
+>   unit="sn"
+>   onChange={v => updateSetting('nightActionDuration', v)}
+> />
+>
+> // Rol paketi (yeni)
+> <SettingRow
+>   label="Rol Paketi"
+>   value={settings.rolePackage ?? 'standard'}
+>   options={['standard', 'advanced', 'chaos']}
+>   labels={['Standart (8 rol)', 'Gelişmiş (14 rol)', 'Tam Kaos (19 rol)']}
+>   onChange={v => updateSetting('rolePackage', v)}
+> />
+>
+> // Oylama süresi (yeni)
+> <SettingRow
+>   label="Oylama Süresi"
+>   value={settings.voteDuration ?? 30}
+>   options={[20, 30, 45, 60]}
+>   unit="sn"
+>   onChange={v => updateSetting('voteDuration', v)}
+> />
+> ```
+>
+> In `gameEngine.ts`, use these settings where applicable:
+> ```typescript
+> // nightActionDuration: each NIGHT_ROLE step deadline
+> const stepDuration = room.settings.nightActionDuration ?? 12;
+>
+> // voteDuration: VOTE phase deadline
+> const voteDuration = room.settings.voteDuration ?? 30;
+>
+> // rolePackage: filter available roles in buildRolePool()
+> function buildRolePool(playerCount: number, settings: RoomSettings): string[] {
+>   const pkg = settings.rolePackage ?? 'standard';
+>   if (pkg === 'standard') {
+>     // Only: bekci, otaci, kapici + base evil + koylu
+>   } else if (pkg === 'advanced') {
+>     // Exclude: kumarbaz, kiskanc, anonim, kahraman_dede
+>   } else {
+>     // All 19 roles
+>   }
+> }
+> ```
+>
+> ---
+>
+> **TASK #181 — Gece ekranı: çete oylama UI**
+>
+> Şu an çete üyeleri gece aksiyonlarını görüyor ama çete oylama arayüzü eksik veya belirsiz. Net bir UI ekle:
+>
+> In `NightScreen.tsx`, for players with roleId `tefeci_basi`, `tahsildar`, `sahte_dernek`:
+>
+> ```tsx
+> {isMafiaRole && phase === 'NIGHT_ROLE' && currentStepRole === 'cete' && (
+>   <View style={styles.mafiaVotePanel}>
+>     <Text style={styles.mafiaVoteTitle}>🗡️ Bu gece kimi tasfiye ediyorsunuz?</Text>
+>     <Text style={styles.mafiaVoteSubtitle}>
+>       Çete oylaması — çoğunluk kararı geçer
+>     </Text>
+>
+>     {/* Çete üyeleri listesi (sadece bu oyuncular görür) */}
+>     <View style={styles.mafiaTeamRow}>
+>       <Text style={styles.mafiaTeamLabel}>Çete üyeleri:</Text>
+>       {mafiaTeammates.map(m => (
+>         <Text key={m.id} style={styles.mafiaTeamMember}>
+>           {ROLES[m.roleId].emoji} {m.nickname}
+>         </Text>
+>       ))}
+>     </View>
+>
+>     {/* Hedef seçimi */}
+>     <ScrollView>
+>       {aliveGoodPlayers.map(p => (
+>         <TouchableOpacity
+>           key={p.id}
+>           style={[
+>             styles.targetBtn,
+>             myVote === p.id && styles.targetBtnSelected
+>           ]}
+>           onPress={() => submitMafiaVote(p.id)}
+>         >
+>           <Text style={styles.targetName}>{p.nickname}</Text>
+>           {/* Kaç oy aldığını göster (gerçek zamanlı) */}
+>           {ceteVoteCount[p.id] > 0 && (
+>             <Text style={styles.voteCount}>{ceteVoteCount[p.id]} oy</Text>
+>           )}
+>         </TouchableOpacity>
+>       ))}
+>     </ScrollView>
+>   </View>
+> )}
+> ```
+>
+> Style: panel background `#2A0010`, border `#C8102E`, selected target border `#F5C842`.
+>
+> In `socket.ts`, broadcast partial cete vote counts to mafia members only (not full targets):
+> ```typescript
+> // When a mafia member votes, send updated vote counts to all mafia members
+> const mafiaPlayers = room.players.filter(p => p.isMafia && p.isAlive);
+> const voteCounts = calculateCeteVoteCounts(room);
+> mafiaPlayers.forEach(p => {
+>   io.to(p.socketId).emit('cete_vote_update', { voteCounts });
+> });
+> ```
+>
+> ---
+>
+> **TASK #182 — Mezarlık chat iyileştirmesi**
+>
+> Ölü oyuncular GraveyardChat'e mesaj atıyor ama şu anki UX belirsiz. İyileştir:
+>
+> In `GraveyardChat.tsx`:
+>
+> ```tsx
+> // Header: kaç ölü var
+> <View style={styles.graveyardHeader}>
+>   <Text style={styles.graveyardTitle}>👻 Mezarlık</Text>
+>   <Text style={styles.graveyardCount}>{deadPlayers.length} kişi</Text>
+> </View>
+>
+> // Mesajlar: rol rozeti + zaman damgası
+> {messages.map(msg => (
+>   <View key={msg.id} style={styles.msgRow}>
+>     <Text style={styles.msgEmoji}>{ROLES[msg.roleId]?.emoji ?? '👻'}</Text>
+>     <View>
+>       <Text style={styles.msgSender}>{msg.nickname}</Text>
+>       <Text style={styles.msgText}>{msg.text}</Text>
+>     </View>
+>     <Text style={styles.msgTime}>{formatTime(msg.ts)}</Text>
+>   </View>
+> ))}
+>
+> // Input: sadece ölü oyuncular yazabilir
+> {isDead && (
+>   <View style={styles.inputRow}>
+>     <TextInput
+>       style={styles.input}
+>       placeholder="Mezarlıktan fısılda..."
+>       placeholderTextColor="#4A2E7A"
+>       value={draft}
+>       onChangeText={setDraft}
+>       maxLength={120}
+>     />
+>     <TouchableOpacity onPress={sendMessage}>
+>       <Text style={styles.sendBtn}>↑</Text>
+>     </TouchableOpacity>
+>   </View>
+> )}
+>
+> // Canlı oyuncular sadece okuyamaz — mezarlık onlara gizlidir
+> {!isDead && (
+>   <Text style={styles.lockedMsg}>
+>     🔒 Mezarlık mesajları sadece ölülere görünür
+>   </Text>
+> )}
+> ```
+>
+> Sunucu tarafında: `graveyard_chat` event'i sadece `isAlive === false` oyunculara broadcast edilmeli:
+> ```typescript
+> socket.on('graveyard_chat', ({ code, message }) => {
+>   const room = getRoom(code);
+>   const sender = room?.players.find(p => p.socketId === socket.id);
+>   if (!sender || sender.isAlive) return; // canlılar yazamaz
+>
+>   const deadPlayers = room.players.filter(p => !p.isAlive);
+>   deadPlayers.forEach(p => {
+>     io.to(p.socketId).emit('graveyard_chat', {
+>       nickname: sender.nickname,
+>       roleId: sender.roleId,
+>       text: message,
+>       ts: Date.now()
+>     });
+>   });
+> });
+> ```
+>
+> ---
+>
+> **TASK #183 — Son test çalıştırması ve rapor**
+>
+> ```bash
+> pnpm --filter @workspace/api-server run test
+> ```
+>
+> Yeni multiplayer testleriyle birlikte kaç test geçiyor? Hedef: 36 mevcut + 5 yeni = 41+
+>
+> Ardından TypeScript build kontrolü:
+> ```bash
+> pnpm --filter @workspace/api-server run build
+> ```
+>
+> Sıfır hata bekleniyor (satır 1911/1935/1952 uyarıları #178 ile kapandıysa).
+>
+> Son olarak şu dosyaların güncel satır sayılarını raporla:
+> - `gameEngine.ts`
+> - `socket.ts`
+> - `NightScreen.tsx`
+> - `LobbyScreen.tsx`
+> - `GraveyardChat.tsx`
+>
+> Ve proje durumunu özetle: App Store'a göndermek için hâlâ ne eksik?

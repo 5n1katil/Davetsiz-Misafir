@@ -441,6 +441,15 @@ export default function NightScreen() {
                 <View style={[styles.firstBadge, { backgroundColor: accent }]}>
                   <Text style={{ color: "#000", fontFamily: "Inter_700Bold", fontSize: 10 }}>2.</Text>
                 </View>
+              ) : roleId === "_cete" ? (
+                <View style={[styles.voteCountBadge, { backgroundColor: (state.ceteVoteCounts?.[p.id] ?? 0) > 0 ? accent + "33" : "#1A0A3E" }]}>
+                  <Text style={{ color: accent, fontFamily: "Inter_700Bold", fontSize: 12 }}>
+                    {state.ceteVoteCounts?.[p.id] ?? 0}
+                  </Text>
+                  <Text style={{ color: accent + "AA", fontFamily: "Inter_400Regular", fontSize: 9, marginLeft: 2 }}>
+                    OY
+                  </Text>
+                </View>
               ) : (
                 <Feather
                   name={roleId === "anonim" ? "eye" : roleId === "kapici" ? "lock" : roleId === "kumarbaz" ? "refresh-cw" : "target"}
@@ -552,6 +561,15 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     alignItems: "center",
+    justifyContent: "center",
+  },
+  voteCountBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    minWidth: 36,
     justifyContent: "center",
   },
   cancelBtn: {

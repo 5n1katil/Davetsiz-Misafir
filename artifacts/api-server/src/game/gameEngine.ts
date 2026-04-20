@@ -29,6 +29,8 @@ export interface RoomSettings {
   ceteCount: number;
   activeSpecialRoles: string[];
   nightActionDurationSec: number;
+  voteDurationSec: number;
+  rolePackage: "standard" | "advanced" | "all";
 }
 
 export interface RoleChoice {
@@ -84,7 +86,7 @@ export interface Room {
   ceteVotes: Record<string, string>; // actorId -> targetId
   morningEvents: MorningEvent[];
   graveyard: { playerId: string; nickname: string; roleId: string; cause: string }[];
-  graveyardChat: { from: string; nick: string; text: string; ts: number }[];
+  graveyardChat: { from: string; nick: string; text: string; ts: number; roleId: string | null }[];
   voiceQueue: string[];
   winner: string | null;
   winnerLabel: string | null;
@@ -171,6 +173,8 @@ export function createRoom(socketId: string, nickname: string): Room {
       ceteCount: 1,
       activeSpecialRoles: ["muhtar", "bekci", "otaci", "falci"],
       nightActionDurationSec: 15,
+      voteDurationSec: 30,
+      rolePackage: "all",
     },
     rolePool: [],
     roleSelectQueue: [],
@@ -560,9 +564,10 @@ function openVote(room: Room, candidateIds: string[]) {
   room.phase = "VOTE";
   room.votes = [];
   room.runoffCandidates = candidateIds;
-  room.phaseDeadline = Date.now() + 30_000;
+  const voteSec = room.settings.voteDurationSec ?? 30;
+  room.phaseDeadline = Date.now() + voteSec * 1000;
   room.voiceQueue.push(
-    "Oylama başlıyor. Telefonlarınızdan oyunuzu kullanın. Otuz saniye.",
+    `Oylama başlıyor. Telefonlarınızdan oyunuzu kullanın. ${voteSec} saniye.`,
   );
 }
 
@@ -1908,7 +1913,7 @@ export function simulateGame(): { log: string[]; result: string | null } {
   resolveVote(room, false);
   say(`Oylama sonrası phase: ${room.phase}, winner: ${room.winner}`);
   say(`Mezarlık: ${room.graveyard.map(g => `${g.nickname}(${g.roleId})`).join(", ")}`);
-  if (room.phase === "ENDED") {
+  if ((room.phase as Phase) === "ENDED") {
     say(`OYUN BİTTİ: ${room.winner} — ${room.winnerLabel}`);
     return { log, result: room.winner };
   }
@@ -1932,7 +1937,7 @@ export function simulateGame(): { log: string[]; result: string | null } {
   say(`Sabah sonrası phase: ${room.phase}, winner: ${room.winner}`);
   say(`Sabah olayları: ${room.morningEvents.map(e => e.message).join(" | ")}`);
   say(`Mezarlık: ${room.graveyard.map(g => `${g.nickname}(${g.roleId})`).join(", ")}`);
-  if (room.phase === "ENDED") {
+  if ((room.phase as Phase) === "ENDED") {
     say(`OYUN BİTTİ: ${room.winner} — ${room.winnerLabel}`);
     return { log, result: room.winner };
   }
@@ -1949,7 +1954,7 @@ export function simulateGame(): { log: string[]; result: string | null } {
   say(`Oylama: tüm oylar Ayşe'ye (Politikacı) gidiyor`);
   resolveVote(room, false);
   say(`Oylama sonrası phase: ${room.phase}, winner: ${room.winner}`);
-  if (room.phase === "ENDED") {
+  if ((room.phase as Phase) === "ENDED") {
     const ok = room.winner === "kotu";
     say(`${ok ? "✅ TEST BAŞARILI" : "❌ TEST BAŞARISIZ"}: Politikacı linç → çete kazandı=${ok} (winner=${room.winner})`);
     say(`Kişisel başarılar: ${JSON.stringify(room.personalAchievements)}`);
@@ -1992,6 +1997,7 @@ export function sendGraveyardChat(
     nick: p.nickname,
     text,
     ts: now,
+    roleId: p.roleId,
   });
   return room;
 }
@@ -2086,7 +2092,16 @@ export function publicView(room: Room, viewerPlayerId: string | null) {
     nightOrderQueue: room.nightOrderQueue,
     morningEvents: room.morningEvents,
     graveyard: room.graveyard,
-    graveyardChat: room.graveyardChat,
+    graveyardChat: (
+      room.phase === "ENDED" ||
+      (viewer && !viewer.isAlive)
+    ) ? room.graveyardChat : [],
+    ceteVoteCounts: isViewerMafia || isViewerIcten
+      ? Object.values(room.ceteVotes).reduce((acc, targetId) => {
+          acc[targetId] = (acc[targetId] ?? 0) + 1;
+          return acc;
+        }, {} as Record<string, number>)
+      : {},
     winner: room.winner,
     winnerLabel: room.winnerLabel,
     voteCount: room.votes.length,

@@ -489,6 +489,34 @@ function HostSettings({ c, state, emit }: any) {
             )}
           </View>
         </View>
+        <View>
+          <Text style={[styles.label, { color: c.mutedForeground }]}>Oylama süresi</Text>
+          <View style={styles.rowGap}>
+            {opt("30 sn", (state.settings.voteDurationSec ?? 30) === 30, () =>
+              emit("updateSettings", { patch: { voteDurationSec: 30 } }),
+            )}
+            {opt("45 sn", (state.settings.voteDurationSec ?? 30) === 45, () =>
+              emit("updateSettings", { patch: { voteDurationSec: 45 } }),
+            )}
+            {opt("60 sn", (state.settings.voteDurationSec ?? 30) === 60, () =>
+              emit("updateSettings", { patch: { voteDurationSec: 60 } }),
+            )}
+          </View>
+        </View>
+        <View>
+          <Text style={[styles.label, { color: c.mutedForeground }]}>Rol paketi</Text>
+          <View style={styles.rowGap}>
+            {opt("Standart", (state.settings.rolePackage ?? "all") === "standard", () =>
+              emit("updateSettings", { patch: { rolePackage: "standard" } }),
+            )}
+            {opt("Gelişmiş", (state.settings.rolePackage ?? "all") === "advanced", () =>
+              emit("updateSettings", { patch: { rolePackage: "advanced" } }),
+            )}
+            {opt("Tümü", (state.settings.rolePackage ?? "all") === "all", () =>
+              emit("updateSettings", { patch: { rolePackage: "all" } }),
+            )}
+          </View>
+        </View>
       </View>
       <Btn
         label={state.players.length < 4 ? `En az 4 oyuncu (${state.players.length}/4)` : "Oyunu Başlat"}
