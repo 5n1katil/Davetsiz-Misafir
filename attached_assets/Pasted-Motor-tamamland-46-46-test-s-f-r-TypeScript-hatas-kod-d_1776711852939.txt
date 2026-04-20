@@ -1,0 +1,263 @@
+Motor tamamlandı. 46/46 test, sıfır TypeScript hatası, kod dağıtıma hazır. Kalan her şey hesap ve dağıtım adımları — kod değişikliği gerektirmiyor.
+
+Replit'e son bir prompt:
+
+---
+
+> Final deployment preparation for Davetsiz Misafir. No game logic changes — only infrastructure and polish.
+>
+> ---
+>
+> **TASK #190 — Production environment konfigürasyonu**
+>
+> Create `artifacts/api-server/.env.example`:
+> ```
+> PORT=8080
+> NODE_ENV=production
+> CORS_ORIGIN=https://davetsizmisafir.app
+> MAX_ROOMS=500
+> ROOM_TTL_HOURS=4
+> ```
+>
+> Create `artifacts/api-server/.env.development`:
+> ```
+> PORT=8080
+> NODE_ENV=development
+> CORS_ORIGIN=*
+> MAX_ROOMS=50
+> ROOM_TTL_HOURS=24
+> ```
+>
+> In `socket.ts` or `index.ts`, add room cleanup to prevent memory leak in production:
+> ```typescript
+> // Her saat boş/bitmiş odaları temizle
+> const ROOM_TTL_MS = (Number(process.env.ROOM_TTL_HOURS) || 4) * 60 * 60 * 1000;
+>
+> setInterval(() => {
+>   const now = Date.now();
+>   for (const [code, room] of rooms.entries()) {
+>     const isStale =
+>       room.phase === 'ENDED' ||
+>       (room.phase === 'LOBBY' && room.players.every(p => !p.isConnected));
+>     const age = now - (room.createdAt ?? now);
+>     if (isStale || age > ROOM_TTL_MS) {
+>       rooms.delete(code);
+>     }
+>   }
+> }, 60 * 60 * 1000); // saatte bir
+> ```
+>
+> Add `createdAt: number` to Room interface, set in `createRoom()`:
+> ```typescript
+> createdAt: Date.now()
+> ```
+>
+> ---
+>
+> **TASK #191 — Expo config: son kontrol**
+>
+> In `artifacts/mahalle/app.json`, verify these fields are correct and complete:
+>
+> ```json
+> {
+>   "expo": {
+>     "name": "Davetsiz Misafir",
+>     "slug": "davetsiz-misafir",
+>     "version": "1.0.0",
+>     "orientation": "portrait",
+>     "userInterfaceStyle": "dark",
+>     "scheme": "davetsizmisafir",
+>     "ios": {
+>       "bundleIdentifier": "com.davetsizmisafir.app",
+>       "supportsTablet": false,
+>       "requireFullScreen": true,
+>       "infoPlist": {
+>         "UIBackgroundModes": ["audio"],
+>         "NSMicrophoneUsageDescription": "Sesli yönlendirme için kullanılır.",
+>         "ITSAppUsesNonExemptEncryption": false
+>       }
+>     },
+>     "android": {
+>       "package": "com.davetsizmisafir.app",
+>       "versionCode": 1,
+>       "permissions": ["VIBRATE", "RECEIVE_BOOT_COMPLETED"]
+>     },
+>     "extra": {
+>       "apiUrl": "https://api.davetsizmisafir.app",
+>       "eas": {
+>         "projectId": "FILL_IN_AFTER_EAS_INIT"
+>       }
+>     }
+>   }
+> }
+> ```
+>
+> In `GameContext.tsx`, read API URL from config instead of hardcoding:
+> ```typescript
+> import Constants from 'expo-constants';
+>
+> const API_URL = Constants.expoConfig?.extra?.apiUrl
+>   ?? 'http://localhost:8080';
+>
+> // Replace any hardcoded 'http://localhost:8080' with API_URL
+> ```
+>
+> ---
+>
+> **TASK #192 — Hata izleme: basit sunucu health endpoint**
+>
+> In `artifacts/api-server/src/index.ts`, add health check endpoint:
+>
+> ```typescript
+> app.get('/health', (req, res) => {
+>   const activeRooms = rooms.size;
+>   const activePlayers = [...rooms.values()]
+>     .flatMap(r => r.players)
+>     .filter(p => p.isConnected).length;
+>
+>   res.json({
+>     status: 'ok',
+>     uptime: Math.floor(process.uptime()),
+>     rooms: activeRooms,
+>     players: activePlayers,
+>     version: '1.0.0',
+>     ts: Date.now()
+>   });
+> });
+>
+> app.get('/health/rooms', (req, res) => {
+>   if (process.env.NODE_ENV === 'production') {
+>     return res.status(404).end();
+>   }
+>   const summary = [...rooms.entries()].map(([code, room]) => ({
+>     code,
+>     phase: room.phase,
+>     players: room.players.length,
+>     connected: room.players.filter(p => p.isConnected).length,
+>     round: room.round,
+>     createdAt: room.createdAt
+>   }));
+>   res.json(summary);
+> });
+> ```
+>
+> ---
+>
+> **TASK #193 — Nasıl Oynanır ekranı içeriğini doldur**
+>
+> `HowToPlayScreen.tsx` büyük ihtimalle placeholder içerik taşıyor. Gerçek oyun kurallarıyla doldur:
+>
+> ```tsx
+> const sections = [
+>   {
+>     title: '🎯 Amaç',
+>     content: 'Davetsiz Misafir\'i ve çetesini mahalleden uzaklaştır. Yoksa mahalle onların olur.'
+>   },
+>   {
+>     title: '🎴 Rol Seçimi',
+>     content: 'Sırayla 3 rol kartından birini seçersin. 25 saniye. Seçmezsen rastgele atanır. Sıranı kimse bilmez.'
+>   },
+>   {
+>     title: '☀️ Gündüz',
+>     content: 'Tartışırsın, suçlarsın, savunursun. Süre dolunca oylama başlar. En çok oyu alan uzaklaştırılır. Eşitlikte ikinci tur.'
+>   },
+>   {
+>     title: '🌙 Gece',
+>     content: 'Gözlerini kapat. Host telefonu masada, hoparlör açık. Her rol sırayla kendi aksiyonunu yapar. Sabah kayıplar açıklanır.'
+>   },
+>   {
+>     title: '🏆 Kazanma',
+>     content: 'Mahalle: tüm çete yok edilmeli.\nDavetsiz Misafir Çetesi: sayıca eşit veya fazla ol.\nYalnız Kurtlar: kendi özel koşulları var.'
+>   },
+>   {
+>     title: '🎙️ Host Nedir?',
+>     content: 'Odayı kuran kişi host olur. Hem oyuncu hem yönetici. Telefonu masaya yatır, hoparlörü aç — oyun kendini yönetir.'
+>   },
+>   {
+>     title: '⚠️ Özel Roller',
+>     content: 'Politikacı linç edilirse çete ANINDA kazanır.\nDedikoducu ölünce linç oylaması tersine döner.\nKırık Kalp aşığı ölünce o da ölür.'
+>   }
+> ];
+>
+> // Render: ScrollView içinde her section için başlık + içerik kartı
+> // Stil: dark tema, #2A1060 kart, #F5C842 başlık, #9B7FD4 içerik
+> ```
+>
+> ---
+>
+> **TASK #194 — Oyun sonu: tekrar oyna akışı**
+>
+> EndScreen'de "Tekrar Oyna" butonu var ama `restartGame()` sonrası akış belirsiz olabilir. Doğrula ve düzelt:
+>
+> Expected flow:
+> 1. Host "Tekrar Oyna" basar
+> 2. `restart_game` socket event emit edilir
+> 3. Sunucu `restartGame()` çağırır — tüm state sıfırlanır, oyuncular korunur
+> 4. Phase LOBBY'ye döner
+> 5. Tüm oyuncuların ekranı LobbyScreen'e geçer
+> 6. Host yeni ayarlar yapıp tekrar başlatabilir
+>
+> In `socket.ts`, verify `restart_game` handler exists:
+> ```typescript
+> socket.on('restart_game', ({ code }) => {
+>   const room = getRoom(code);
+>   if (!room) return;
+>   const player = room.players.find(p => p.socketId === socket.id);
+>   if (!player?.isHost) return; // sadece host
+>
+>   restartGame(room);
+>   broadcast(room, io);
+> });
+> ```
+>
+> In `GameContext.tsx`, when phase changes to 'LOBBY' from 'ENDED', navigate to lobby:
+> ```typescript
+> useEffect(() => {
+>   if (gameState?.phase === 'LOBBY' && prevPhase === 'ENDED') {
+>     router.replace('/lobby');
+>   }
+> }, [gameState?.phase]);
+> ```
+>
+> In `EndScreen.tsx`, only host sees "Tekrar Oyna" button:
+> ```tsx
+> {isHost && (
+>   <Btn
+>     label="🔄 Tekrar Oyna"
+>     onPress={() => socket.emit('restart_game', { code: gameState.code })}
+>   />
+> )}
+> // All players see:
+> <Btn
+>   label="🚪 Lobiye Dön"
+>   onPress={() => router.replace('/')}
+> />
+> ```
+>
+> ---
+>
+> **TASK #195 — Final test + dağıtım hazırlık raporu**
+>
+> ```bash
+> pnpm --filter @workspace/api-server run test
+> pnpm --filter @workspace/api-server run build
+> pnpm --filter @workspace/mahalle exec tsc --noEmit
+> ```
+>
+> Ardından şu bilgileri raporla:
+>
+> 1. Test sayısı (kaçıncı testten geçiyoruz)
+> 2. Build çıktısı temiz mi
+> 3. Şu anki tüm açık eksikler — sadece Expo hesabı / Apple hesabı gerektiren işler
+> 4. `gameEngine.ts` final satır sayısı
+> 5. Projeyi canlıya almak için elle yapılacak adımlar (kod değişikliği gerektirmeyen)
+>
+> ---
+>
+> **SUMMARY — 6 görev:**
+> - #190: Production env + oda temizleme (memory leak önlemi)
+> - #191: API URL config'den oku (hardcode kaldır)
+> - #192: Health endpoint (/health, /health/rooms)
+> - #193: HowToPlayScreen gerçek içerik
+> - #194: Tekrar Oyna akışı doğrulama
+> - #195: Final test + rapor

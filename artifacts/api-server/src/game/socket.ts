@@ -7,6 +7,7 @@ import {
   chooseRole,
   consumeVoiceQueue,
   createRoom,
+  deleteRoom,
   endDayEarly,
   getRoom,
   joinRoom,
@@ -305,6 +306,23 @@ export function attachSocketServer(http: HTTPServer) {
       }
     });
   });
+
+  // ── Hafıza sızıntısı önlemi: saatte bir bayat odaları temizle ──────────
+  const ROOM_TTL_MS = (Number(process.env["ROOM_TTL_HOURS"]) || 4) * 60 * 60 * 1000;
+  setInterval(() => {
+    const now = Date.now();
+    for (const room of listRooms()) {
+      const isStale =
+        room.phase === "ENDED" ||
+        (room.phase === "LOBBY" && room.players.every((p) => !p.isConnected));
+      const age = now - (room.createdAt ?? now);
+      if (isStale || age > ROOM_TTL_MS) {
+        io.to(room.code).disconnectSockets(false);
+        deleteRoom(room.code);
+        logger.info({ code: room.code, reason: isStale ? "stale" : "ttl" }, "Room cleaned up");
+      }
+    }
+  }, 60 * 60 * 1000);
 
   return io;
 }

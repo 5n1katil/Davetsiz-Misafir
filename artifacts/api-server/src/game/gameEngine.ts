@@ -109,6 +109,7 @@ export interface Room {
   personalAchievements: { playerId: string; roleId: string; label: string }[]; // oyun sonu kişisel başarılar
   originalHostId?: string;                    // Orijinal host oyun ortasında ayrılınca saklanır; geri bağlanınca geri yüklenir
   eventLog: GameEvent[];                      // Oyun boyunca kronolojik olay günlüğü
+  createdAt: number;                          // Unix ms — TTL temizleme için
 }
 
 const rooms = new Map<string, Room>();
@@ -212,6 +213,7 @@ export function createRoom(socketId: string, nickname: string): Room {
     innocentLynchedCount: 0,
     personalAchievements: [],
     eventLog: [],
+    createdAt: Date.now(),
   };
   rooms.set(code, room);
   return room;
@@ -2154,4 +2156,9 @@ export function publicView(room: Room, viewerPlayerId: string | null) {
     personalAchievements: room.personalAchievements,
     eventLog: room.eventLog,
   };
+}
+
+export function deleteRoom(code: string): void {
+  rooms.delete(code);
+  privateMessages.delete(code);
 }

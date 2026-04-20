@@ -22,7 +22,7 @@ Mahalle (9): muhtar, bekci, otaci, falci, kapici, muhabir, tiyatrocu, hoca, koyl
 Kargaşacılar (4): kumarbaz, kiskanc_komsu, kirik_kalp, dedikoducu
 Yalnız Kurtlar (2): anonim, kahraman_dede
 
-## Tamamlanan Özellikler (Son Güncelleme: #184-#189)
+## Tamamlanan Özellikler (Son Güncelleme: #190-#195)
 - #178 TS uyarıları: gameEngine.ts simulateGame() içindeki 3 tür daraltma uyarısı `(room.phase as Phase)` cast ile düzeltildi
 - #179 Multiplayer socket testleri: 5 yeni vitest testi (oda kurma, disconnect/geçici host, yeniden bağlanma, 4 oyuncuyla oyun başlatma, hata yönetimi) — hepsi geçiyor
 - #180 Host ayarları: RoomSettings'e `voteDurationSec` (30/45/60sn) ve `rolePackage` (standard/advanced/all) eklendi; LobbyScreen'de UI; openVote dinamik süre kullanıyor
