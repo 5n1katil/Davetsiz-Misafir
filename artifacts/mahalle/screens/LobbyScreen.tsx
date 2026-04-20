@@ -30,7 +30,7 @@ import SettingsScreen from "@/screens/SettingsScreen";
 import StatsScreen from "@/screens/StatsScreen";
 
 const SCREEN_W = Dimensions.get("window").width;
-const LOGO_SIZE = Math.min(SCREEN_W * 0.78, 300);
+const LOGO_SIZE = Math.min(SCREEN_W * 0.60, 230);
 
 // Home screen always uses dark noir palette regardless of system theme
 const HOME_BG = "#070410";
@@ -151,62 +151,65 @@ export default function LobbyScreen() {
           <ScrollView
             contentContainerStyle={[
               styles.scroll,
-              { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 48 },
+              { paddingTop: insets.top + 4, paddingBottom: insets.bottom + 48 },
             ]}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
             style={{ backgroundColor: HOME_BG }}
           >
-            {/* Full-screen atmospheric gradient */}
-            <LinearGradient
-              colors={["#1A0A3E", "#0D0525", HOME_BG]}
-              style={styles.heroBg}
-            />
+            {/* Hero wrapper: gradient + floating icons + logo */}
+            <View style={styles.heroWrap}>
+              {/* Full-screen atmospheric gradient */}
+              <LinearGradient
+                colors={["#1A0A3E", "#0D0525", HOME_BG]}
+                style={styles.heroBg}
+              />
 
-            {/* Top action icons */}
-            <View style={styles.heroIcons}>
-              <Pressable
-                onPress={() => setStatsVisible(true)}
-                hitSlop={12}
-                style={styles.iconBtn}
-              >
-                <Feather name="bar-chart-2" size={17} color="#9B7FD4" />
-              </Pressable>
-              <Pressable
-                onPress={() => setHelpVisible(true)}
-                hitSlop={12}
-                style={styles.iconBtn}
-              >
-                <Feather name="help-circle" size={17} color="#9B7FD4" />
-              </Pressable>
-            </View>
-
-            {/* Hero section */}
-            <Animated.View
-              style={[
-                styles.hero,
-                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-              ]}
-            >
-              <View style={styles.logoWrap}>
-                <Image
-                  source={require("../assets/images/logo.png")}
-                  style={styles.logoImg}
-                  resizeMode="cover"
-                />
-                <LinearGradient
-                  colors={["transparent", "transparent", HOME_BG]}
-                  style={[styles.logoFade, { pointerEvents: "none" }]}
-                />
-                <View style={[styles.logoGlow, { pointerEvents: "none" }]} />
+              {/* Floating top-right icons — sit OVER the gradient */}
+              <View style={[styles.heroIcons, { top: 6 }]}>
+                <Pressable
+                  onPress={() => setStatsVisible(true)}
+                  hitSlop={12}
+                  style={styles.iconBtn}
+                >
+                  <Feather name="bar-chart-2" size={17} color="#9B7FD4" />
+                </Pressable>
+                <Pressable
+                  onPress={() => setHelpVisible(true)}
+                  hitSlop={12}
+                  style={styles.iconBtn}
+                >
+                  <Feather name="help-circle" size={17} color="#9B7FD4" />
+                </Pressable>
               </View>
 
-              <Text style={styles.brand}>DAVETSİZ MİSAFİR</Text>
-              <View style={styles.divider} />
-              <Text style={styles.tag}>
-                Davetsiz Misafir'i bul. Yoksa mahalle onların olur.
-              </Text>
-            </Animated.View>
+              {/* Hero section — logo + title + tagline */}
+              <Animated.View
+                style={[
+                  styles.hero,
+                  { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+                ]}
+              >
+                <View style={styles.logoWrap}>
+                  <Image
+                    source={require("../assets/images/logo.png")}
+                    style={styles.logoImg}
+                    resizeMode="cover"
+                  />
+                  <LinearGradient
+                    colors={["transparent", "transparent", HOME_BG]}
+                    style={[styles.logoFade, { pointerEvents: "none" }]}
+                  />
+                  <View style={[styles.logoGlow, { pointerEvents: "none" }]} />
+                </View>
+
+                <Text style={styles.brand}>DAVETSİZ MİSAFİR</Text>
+                <View style={styles.divider} />
+                <Text style={styles.tag}>
+                  Davetsiz Misafir'i bul. Yoksa mahalle onların olur.
+                </Text>
+              </Animated.View>
+            </View>
 
             {/* Entry card */}
             <Animated.View
@@ -499,14 +502,21 @@ function HostSettings({ c, state, emit }: any) {
 
 
 const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: 18, gap: 14 },
-  heroBg: { position: "absolute", left: 0, right: 0, top: 0, height: 520 },
-  hero: { alignItems: "center", marginBottom: 8 },
+  scroll: { paddingHorizontal: 18, gap: 12 },
+  // heroWrap: relative container so absolute-positioned icons stay inside it
+  heroWrap: {
+    position: "relative",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  heroBg: { position: "absolute", left: -18, right: -18, top: -4, height: 460 },
+  hero: { alignItems: "center", paddingTop: 10 },
   heroIcons: {
+    position: "absolute",
+    right: 0,
     flexDirection: "row",
     gap: 8,
-    alignSelf: "flex-end",
-    marginBottom: 8,
+    zIndex: 10,
   },
   iconBtn: {
     padding: 9,
@@ -520,7 +530,7 @@ const styles = StyleSheet.create({
     height: LOGO_SIZE,
     borderRadius: LOGO_SIZE / 2,
     overflow: "hidden",
-    marginBottom: 22,
+    marginBottom: 16,
     borderWidth: 3,
     borderColor: "#F5C84255",
   },
@@ -544,23 +554,24 @@ const styles = StyleSheet.create({
   },
   brand: {
     fontFamily: "Cinzel_900Black",
-    fontSize: 28,
+    fontSize: 26,
     letterSpacing: 5,
     color: "#F5C842",
     textAlign: "center",
   },
   divider: {
-    width: 60,
+    width: 50,
     height: 2,
     backgroundColor: "#F5C84244",
     borderRadius: 1,
-    marginTop: 10,
-    marginBottom: 8,
+    marginTop: 8,
+    marginBottom: 6,
   },
   tag: {
     fontFamily: "Inter_400Regular",
     fontSize: 13,
     marginTop: 2,
+    marginBottom: 6,
     textAlign: "center",
     paddingHorizontal: 18,
     color: "#7A63B0",
