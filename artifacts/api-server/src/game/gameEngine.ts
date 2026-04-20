@@ -1025,7 +1025,14 @@ export function submitNightAction(
     const alreadyLocked = room.nightActions.some(
       (a) => (a.type === "kilit" || a.type === "kilit_kopya") && a.targetId === targetId,
     );
-    if (!alreadyLocked) {
+    if (alreadyLocked) {
+      pushPrivate(
+        room,
+        actorId,
+        `🔒 Bekçi sorgusu engellendi: ${t1.nickname} adlı kişinin kapısı bu gece kilitli.`,
+      );
+      newAction.immediateNotified = true;
+    } else {
       let team = t1.roleId ? ROLES[t1.roleId].team : "iyi";
       if (t1.roleId === "icten_pazarlikli") team = "iyi" as typeof team;
       pushPrivate(
@@ -1042,7 +1049,14 @@ export function submitNightAction(
     const alreadyLocked = room.nightActions.some(
       (a) => (a.type === "kilit" || a.type === "kilit_kopya") && a.targetId === targetId,
     );
-    if (!alreadyLocked) {
+    if (alreadyLocked) {
+      pushPrivate(
+        room,
+        actorId,
+        `🔒 Falcı vizyonu engellendi: ${t1.nickname} adlı kişinin kapısı bu gece kilitli.`,
+      );
+      newAction.immediateNotified = true;
+    } else {
       const role = t1.roleId ? ROLES[t1.roleId] : null;
       const wrong = Math.random() < 0.2;
       let display: RoleDef | null = role;

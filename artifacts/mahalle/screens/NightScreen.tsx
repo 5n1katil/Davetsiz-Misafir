@@ -21,7 +21,8 @@ import { useCountdown } from "@/hooks/useCountdown";
 import { useGhostActivity } from "@/hooks/useGhostActivity";
 import { useReduceMotion } from "@/hooks/useReduceMotion";
 
-function getNightResultStyle(msg: string): { accent: string; bg: string; disclaimer?: string } {
+function getNightResultStyle(msg: string): { accent: string; bg: string; disclaimer?: string; blocked?: boolean } {
+  if (msg.startsWith("🔒")) return { accent: "#6B7280", bg: "#131313", blocked: true };
   if (msg.startsWith("🔦")) return { accent: "#1ECBE1", bg: "#0A1E2E" };
   if (msg.startsWith("🔮")) return {
     accent: "#B07EFF",
@@ -219,16 +220,16 @@ export default function NightScreen() {
               </Text>
             </View>
             {localResult.map((item, idx) => {
-              const { accent, bg, disclaimer } = getNightResultStyle(item.msg);
+              const { accent, bg, disclaimer, blocked } = getNightResultStyle(item.msg);
               const formatted = formatResultMsg(item.msg);
               return (
                 <View key={idx} style={[styles.resultCard, { backgroundColor: bg, borderColor: accent + "55" }]}>
                   <View style={[styles.resultAccentBar, { backgroundColor: accent }]} />
                   <View style={{ flex: 1, paddingLeft: 12 }}>
                     <Text style={{ color: accent, fontFamily: "Inter_700Bold", fontSize: 13, letterSpacing: 0.5, marginBottom: 4 }}>
-                      GECE AKSIYON SONUCU
+                      {blocked ? "SORGU ENGELLENDİ" : "GECE AKSIYON SONUCU"}
                     </Text>
-                    <Text style={{ color: "#E8DEFF", fontFamily: "Inter_600SemiBold", fontSize: 15, lineHeight: 22 }}>
+                    <Text style={{ color: blocked ? "#9CA3AF" : "#E8DEFF", fontFamily: "Inter_600SemiBold", fontSize: 15, lineHeight: 22 }}>
                       {formatted}
                     </Text>
                     {disclaimer ? (
