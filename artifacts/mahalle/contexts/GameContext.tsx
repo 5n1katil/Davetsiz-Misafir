@@ -124,6 +124,8 @@ interface GameCtx {
   hostJustReceived: boolean;
   clearHostJustReceived: () => void;
   openHostPanelTrigger: number;
+  nightResultMessages: { msg: string; ts: number }[];
+  clearNightResult: () => void;
 }
 
 const Ctx = createContext<GameCtx | null>(null);
@@ -157,6 +159,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const wasAliveRef = useRef<boolean | null>(null);
   const stateRef = useRef<GameState | null>(null);
   stateRef.current = state;
+  const [nightResultMessages, setNightResultMessages] = useState<{ msg: string; ts: number }[]>([]);
+  const lastSeenTsRef = useRef<number>(0);
 
   useEffect(() => {
     if (!state || !myPlayerId) return;
@@ -192,6 +196,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
               : Haptics.NotificationFeedbackType.Error,
           );
         }, 400);
+      }
+    }
+    if (
+      (prev === "NIGHT" || prev === "NIGHT_ROLE") &&
+      next === "DAY" &&
+      state.privateMessages.length > 0
+    ) {
+      const newMsgs = state.privateMessages.filter((m) => m.ts > lastSeenTsRef.current);
+      lastSeenTsRef.current = Math.max(...state.privateMessages.map((m) => m.ts));
+      if (newMsgs.length > 0) {
+        setNightResultMessages(newMsgs);
       }
     }
     lastPhaseRef.current = next;
@@ -457,6 +472,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     setHostJustReceived(false);
   }, []);
 
+  const clearNightResult = useCallback(() => {
+    setNightResultMessages([]);
+  }, []);
+
   const value = useMemo<GameCtx>(
     () => ({
       socket,
@@ -482,6 +501,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       hostJustReceived,
       clearHostJustReceived,
       openHostPanelTrigger,
+      nightResultMessages,
+      clearNightResult,
     }),
     [
       socket,
@@ -506,6 +527,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       hostJustReceived,
       clearHostJustReceived,
       openHostPanelTrigger,
+      nightResultMessages,
+      clearNightResult,
     ],
   );
 

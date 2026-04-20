@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
-import React, { useEffect, useRef } from "react";
-import { Animated, Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Animated, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Btn } from "@/components/Btn";
 import { GraveyardChat } from "@/components/GraveyardChat";
@@ -169,24 +169,64 @@ function AnimatedEventCard({ event, index, graveyard, reduceMotion }: AnimatedEv
   );
 }
 
+function formatNightResultMsg(msg: string): string {
+  const bekciMatch = msg.match(/^🔦 Bekçi raporu: (.+?) → (KÖTÜ EKİP \(çete\)|İYİ EKİP)$/);
+  if (bekciMatch) {
+    const nickname = bekciMatch[1];
+    const team = bekciMatch[2].startsWith("KÖTÜ") ? "ÇETE" : "MAHALLE";
+    return `🔦 Sorgu Sonucu: ${nickname} — ${team}`;
+  }
+  return msg;
+}
+
+function getNightResultStyle(msg: string): { accent: string; bg: string; disclaimer?: string } {
+  if (msg.startsWith("🔦")) return { accent: "#1ECBE1", bg: "#0A1E2E" };
+  if (msg.startsWith("🔮")) return {
+    accent: "#B07EFF",
+    bg: "#1A0E2E",
+    disclaimer: "⚠️ %20 ihtimalle yanlış görülebilir.",
+  };
+  if (msg.startsWith("🧂")) return { accent: "#9CA3AF", bg: "#151515" };
+  if (msg.startsWith("🐍")) return { accent: "#F87171", bg: "#1E0F0F" };
+  if (msg.startsWith("🎰")) return { accent: "#FBBF24", bg: "#1E1700" };
+  if (msg.startsWith("💔")) return { accent: "#FB7185", bg: "#1E0A12" };
+  if (msg.startsWith("🎭")) return { accent: "#60A5FA", bg: "#0C1628" };
+  return { accent: "#1ECBE1", bg: "#0D1F3A" };
+}
+
 export default function DayScreen() {
   const c = useColors();
-  const { state, myPlayerId, emit } = useGame();
+  const { state, myPlayerId, emit, nightResultMessages, clearNightResult } = useGame();
   const remaining = useCountdown(state?.phaseDeadline ?? null, state?.paused ?? false);
   const reduceMotion = useReduceMotion();
-  if (!state) return null;
-  const me = state.players.find((p) => p.id === myPlayerId);
-  const alive = state.players.filter((p) => p.isAlive && p.isConnected);
-  const need = Math.ceil(alive.length / 2);
-  const isDead = !me?.isAlive;
   const ghostActive = useGhostActivity();
 
-  const mins = Math.floor(remaining / 60);
-  const secs = (remaining % 60).toString().padStart(2, "0");
-  const isCritical = remaining <= 10 && remaining > 0 && !state.paused;
-
+  const [nightResultVisible, setNightResultVisible] = useState(false);
+  const [displayedMsgs, setDisplayedMsgs] = useState<{ msg: string; ts: number }[]>([]);
+  const autoDismissRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const critColorAnim = useRef(new Animated.Value(0)).current;
+
+  const isCritical = (remaining <= 10 && remaining > 0 && !(state?.paused ?? false));
+
+  useEffect(() => {
+    if (nightResultMessages.length === 0) return;
+    setDisplayedMsgs(nightResultMessages);
+    setNightResultVisible(true);
+    fadeAnim.setValue(0);
+    Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
+    if (autoDismissRef.current) clearTimeout(autoDismissRef.current);
+    autoDismissRef.current = setTimeout(() => {
+      dismissNightResult();
+    }, 6000);
+  }, [nightResultMessages]);
+
+  useEffect(() => {
+    return () => {
+      if (autoDismissRef.current) clearTimeout(autoDismissRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (isCritical && !reduceMotion) {
@@ -211,6 +251,27 @@ export default function DayScreen() {
       critColorAnim.setValue(isCritical ? 1 : 0);
     }
   }, [isCritical, reduceMotion]);
+
+  function dismissNightResult() {
+    if (autoDismissRef.current) {
+      clearTimeout(autoDismissRef.current);
+      autoDismissRef.current = null;
+    }
+    Animated.timing(fadeAnim, { toValue: 0, duration: 200, useNativeDriver: true }).start(() => {
+      setNightResultVisible(false);
+      clearNightResult();
+    });
+  }
+
+  if (!state) return null;
+
+  const me = state.players.find((p) => p.id === myPlayerId);
+  const alive = state.players.filter((p) => p.isAlive && p.isConnected);
+  const need = Math.ceil(alive.length / 2);
+  const isDead = !me?.isAlive;
+
+  const mins = Math.floor(remaining / 60);
+  const secs = (remaining % 60).toString().padStart(2, "0");
 
   const timerColor = reduceMotion
     ? isCritical
@@ -392,6 +453,43 @@ export default function DayScreen() {
           <GraveyardChat />
         </View>
       ) : null}
+
+      <Modal
+        visible={nightResultVisible}
+        transparent
+        animationType="none"
+        onRequestClose={dismissNightResult}
+      >
+        <Pressable style={styles.overlay} onPress={dismissNightResult}>
+          <Animated.View style={[styles.resultContainer, { opacity: fadeAnim }]}>
+            <Pressable onPress={() => {}}>
+              <View style={styles.resultInner}>
+                <Text style={styles.resultHeader}>🌅 GECE SONUCU</Text>
+                {displayedMsgs.map((m, i) => {
+                  const formatted = formatNightResultMsg(m.msg);
+                  const rStyle = getNightResultStyle(formatted);
+                  return (
+                    <View
+                      key={i}
+                      style={[styles.resultMsgCard, { backgroundColor: rStyle.bg, borderColor: rStyle.accent + "55" }]}
+                    >
+                      <Text style={[styles.resultMsgText, { color: rStyle.accent }]}>
+                        {formatted}
+                      </Text>
+                      {rStyle.disclaimer ? (
+                        <Text style={styles.resultDisclaimer}>{rStyle.disclaimer}</Text>
+                      ) : null}
+                    </View>
+                  );
+                })}
+                <Pressable onPress={dismissNightResult} style={styles.dismissBtn}>
+                  <Text style={styles.dismissText}>Tamam</Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          </Animated.View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -461,5 +559,62 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     fontSize: 18,
     lineHeight: 24,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.72)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  resultContainer: {
+    width: "100%",
+    maxWidth: 380,
+  },
+  resultInner: {
+    backgroundColor: "#0D1520",
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: "#1ECBE133",
+    padding: 22,
+    gap: 12,
+  },
+  resultHeader: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 13,
+    letterSpacing: 1.8,
+    color: "#E2E8F0",
+    textAlign: "center",
+    marginBottom: 2,
+  },
+  resultMsgCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+    gap: 6,
+  },
+  resultMsgText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  resultDisclaimer: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: "#94A3B8",
+    lineHeight: 17,
+  },
+  dismissBtn: {
+    marginTop: 4,
+    alignItems: "center",
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: "#1E293B",
+  },
+  dismissText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 15,
+    color: "#E2E8F0",
+    letterSpacing: 0.4,
   },
 });
