@@ -1301,9 +1301,17 @@ function resolveMorning(room: Room) {
     }
 
     // Check if the çete attack was actually blocked by this lock (ADIM 5: isLocked && !isProtected).
-    // If the target was also protected, the protection branch fires instead — lock was not the cause.
-    if (ceteTarget === kilita.targetId && !protectedIds.has(ceteTarget)) {
-      blockedRoles.push("🔪 Çete saldırısı");
+    // If the target was also protected, the protection branch fires instead — lock was not the cause,
+    // but we still tell the Kapıcı both were present.
+    if (ceteTarget === kilita.targetId) {
+      if (protectedIds.has(ceteTarget)) {
+        // A protector was also on this house — the protector's shield took precedence,
+        // but the Kapıcı's lock was there too.
+        blockedRoles.push("🔪 Çete saldırısı (kilidin ve bir koruyucu birlikte engelledi)");
+      } else {
+        // Lock alone turned away the çete — make it clear this was all the Kapıcı.
+        blockedRoles.push("🔪 Çete saldırısı — kilidin bu gece çeteyi geri çevirdi!");
+      }
     }
 
     const prefix = kilita.type === "kilit_kopya" ? "🧂 Kopya Kapıcı özeti" : "🔑 Kapıcı özeti";
