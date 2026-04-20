@@ -1,0 +1,419 @@
+Proje gerçekten çok iyi bir noktaya geldi. Raporu inceliyorum — motor tamamlanmış, testler geçiyor, App Store altyapısı kurulmuş. Kalan eksikler net ve öncelik sırasına koyulabilir.
+
+---
+
+## Durum değerlendirmesi
+
+**Oynanabilir mi şu an?** Evet — web üzerinden lokal test edilebilir.
+**App Store'a hazır mı?** Hayır — 5 kritik adım eksik.
+**Motor sağlam mı?** Evet — 36 test, tüm kenar durumlar kapsanmış.
+
+---
+
+Replit'e ver:
+
+---
+
+> Final polish pass for Davetsiz Misafir before App Store submission. Apply all tasks below.
+>
+> ---
+>
+> **TASK #171 — EAS kurulumu ve project ID**
+>
+> Run EAS initialization and update app.json:
+>
+> ```bash
+> cd artifacts/mahalle
+> npx eas-cli init --id davetsiz-misafir
+> ```
+>
+> After init, replace `"FILL_IN_AFTER_EAS_INIT"` in app.json with the generated project ID.
+>
+> Create `artifacts/mahalle/eas.json`:
+>
+> ```json
+> {
+>   "cli": {
+>     "version": ">= 12.0.0"
+>   },
+>   "build": {
+>     "development": {
+>       "developmentClient": true,
+>       "distribution": "internal",
+>       "ios": {
+>         "simulator": true
+>       }
+>     },
+>     "preview": {
+>       "distribution": "internal",
+>       "ios": {
+>         "simulator": false
+>       },
+>       "android": {
+>         "buildType": "apk"
+>       }
+>     },
+>     "production": {
+>       "autoIncrement": true,
+>       "ios": {
+>         "resourceClass": "m-medium"
+>       }
+>     }
+>   },
+>   "submit": {
+>     "production": {
+>       "ios": {
+>         "appleId": "FILL_IN_APPLE_ID",
+>         "ascAppId": "FILL_IN_ASC_APP_ID",
+>         "appleTeamId": "FILL_IN_TEAM_ID"
+>       }
+>     }
+>   }
+> }
+> ```
+>
+> ---
+>
+> **TASK #172 — Çok oyunculu socket E2E testi**
+>
+> Bu en kritik eksik — oyunun gerçek çok kullanıcı akışının test edilmesi. Mevcut E2E iskeletini doldurun:
+>
+> ```typescript
+> // e2e/multiplayer.spec.ts
+> import { test, expect } from '@playwright/test';
+>
+> test.describe('Çok oyunculu tam oyun akışı', () => {
+>
+>   test('2 oyuncu oda kurma ve katılım', async ({ browser }) => {
+>     const hostCtx = await browser.newContext();
+>     const guestCtx = await browser.newContext();
+>     const host = await hostCtx.newPage();
+>     const guest = await guestCtx.newPage();
+>
+>     await host.goto('/');
+>     // Host oda kurar
+>     await host.fill('[placeholder="Adınız"]', 'Host');
+>     await host.click('text=Oda Kur');
+>     const roomCode = await host.locator('[data-testid="room-code"]').textContent();
+>
+>     // Guest katılır
+>     await guest.goto('/');
+>     await guest.fill('[placeholder="Adınız"]', 'Misafir');
+>     await guest.click('text=Odaya Katıl');
+>     await guest.fill('[placeholder="Oda kodu"]', roomCode!);
+>     await guest.click('text=Katıl');
+>
+>     // İkisi de lobide görünür
+>     await expect(host.locator('text=Misafir')).toBeVisible();
+>     await expect(guest.locator('text=Host')).toBeVisible();
+>
+>     await hostCtx.close();
+>     await guestCtx.close();
+>   });
+>
+>   test('Host disconnect → temp host atama → geri bağlanma', async ({ browser }) => {
+>     const hostCtx = await browser.newContext();
+>     const guestCtx = await browser.newContext();
+>     const host = await hostCtx.newPage();
+>     const guest = await guestCtx.newPage();
+>
+>     // Setup: 2 kişilik oda kur
+>     await host.goto('/');
+>     await host.fill('[placeholder="Adınız"]', 'Host');
+>     await host.click('text=Oda Kur');
+>     const roomCode = await host.locator('[data-testid="room-code"]').textContent();
+>
+>     await guest.goto('/');
+>     await guest.fill('[placeholder="Adınız"]', 'Misafir');
+>     await guest.click('text=Odaya Katıl');
+>     await guest.fill('[placeholder="Oda kodu"]', roomCode!);
+>     await guest.click('text=Katıl');
+>
+>     // Host bağlantısını keser
+>     await hostCtx.close();
+>
+>     // Guest geçici host uyarısı alır
+>     // (kısa gecikme sonra)
+>     await guest.waitForTimeout(1000);
+>     // Guest artık host — HOST badge görünür
+>     await expect(guest.locator('[data-testid="host-badge"]')).toBeVisible();
+>
+>     await guestCtx.close();
+>   });
+>
+> });
+> ```
+>
+> Add `data-testid` attributes to key UI elements in LobbyScreen.tsx:
+> - `data-testid="room-code"` → oda kodu display
+> - `data-testid="host-badge"` → HOST rozeti
+> - `data-testid="player-list"` → oyuncu listesi container
+>
+> ---
+>
+> **TASK #173 — Oyun içi hata yönetimi iyileştirmesi**
+>
+> Şu an socket hataları sessizce geçiyor. Kullanıcıya görünür hata mesajları ekle:
+>
+> In `GameContext.tsx`:
+>
+> ```typescript
+> // Bağlantı kopma
+> socket.on('disconnect', (reason) => {
+>   if (reason === 'io server disconnect') {
+>     showToast('Sunucu bağlantısı kesildi. Yeniden bağlanılıyor...', 'error');
+>   } else if (reason === 'transport close') {
+>     showToast('İnternet bağlantısı kesildi.', 'error');
+>   }
+> });
+>
+> // Yeniden bağlanma
+> socket.on('reconnect', (attemptNumber) => {
+>   showToast('Bağlantı yeniden kuruldu ✓', 'success');
+> });
+>
+> socket.on('reconnect_failed', () => {
+>   showToast('Bağlantı kurulamadı. Uygulamayı yeniden başlatın.', 'error');
+> });
+>
+> // Oda bulunamadı
+> socket.on('error', (err: { code: string; message: string }) => {
+>   const messages: Record<string, string> = {
+>     'ROOM_NOT_FOUND': 'Oda bulunamadı. Kodu kontrol edin.',
+>     'ROOM_FULL': 'Oda dolu (maksimum 30 oyuncu).',
+>     'GAME_ALREADY_STARTED': 'Oyun başlamış, katılamazsınız.',
+>     'NICKNAME_TAKEN': 'Bu isim kullanılıyor. Farklı bir isim deneyin.',
+>   };
+>   showToast(messages[err.code] ?? err.message, 'error');
+> });
+> ```
+>
+> In `socket.ts` server side, ensure all join_room errors emit structured error events:
+>
+> ```typescript
+> function emitError(socket: Socket, code: string, message: string) {
+>   socket.emit('error', { code, message });
+> }
+>
+> // Use in joinRoom handler:
+> if (!room) return emitError(socket, 'ROOM_NOT_FOUND', 'Oda bulunamadı.');
+> if (room.players.length >= 30) return emitError(socket, 'ROOM_FULL', 'Oda dolu.');
+> if (room.phase !== 'LOBBY' && !existingPlayer) return emitError(socket, 'GAME_ALREADY_STARTED', 'Oyun başladı.');
+> if (nicknameTaken) return emitError(socket, 'NICKNAME_TAKEN', 'Bu isim alınmış.');
+> ```
+>
+> ---
+>
+> **TASK #174 — Performans: büyük oyuncu listesi optimizasyonu**
+>
+> 30 oyuncuyla state her socket event'inde tüm client'lara gönderiliyor. Büyük oyunlarda bant genişliği sorunu olabilir.
+>
+> In `socket.ts`, filter state per player before sending:
+>
+> ```typescript
+> function buildClientState(room: Room, playerId: string): ClientGameState {
+>   const player = room.players.find(p => p.id === playerId);
+>   const isHost = player?.isHost ?? false;
+>   const isDead = !player?.isAlive;
+>
+>   return {
+>     phase: room.phase,
+>     round: room.round,
+>     players: room.players.map(p => ({
+>       id: p.id,
+>       nickname: p.nickname,
+>       isAlive: p.isAlive,
+>       isHost: p.isHost,
+>       isConnected: p.isConnected,
+>       // Role only visible to: self, host (for dead players), graveyard members
+>       roleId: (
+>         p.id === playerId ||
+>         (isHost && !p.isAlive) ||
+>         isDead
+>       ) ? p.roleId : undefined,
+>       // Fake role for Tiyatrocu death — use displayRoleId
+>       displayRoleId: p.displayRoleId,
+>       voteWeight: p.voteWeight,
+>     })),
+>     // Host-only fields
+>     ...(isHost ? {
+>       nightOrderQueue: room.nightOrderQueue,
+>       nightStepIndex: room.nightStepIndex,
+>       ceteVotes: room.ceteVotes,
+>     } : {}),
+>     // Private fields for this player only
+>     myPrivateMessages: room.privateMessages?.[playerId] ?? [],
+>     morningEvents: room.morningEvents,
+>     graveyard: room.graveyard,
+>     winner: room.winner,
+>     winnerLabel: room.winnerLabel,
+>     personalAchievements: room.personalAchievements,
+>     paused: room.paused,
+>   };
+> }
+>
+> // Replace broadcast(room) with per-player emit:
+> function broadcastState(room: Room, io: Server) {
+>   room.players.forEach(player => {
+>     if (player.socketId && player.isConnected) {
+>       io.to(player.socketId).emit('state', buildClientState(room, player.id));
+>     }
+>   });
+> }
+> ```
+>
+> ---
+>
+> **TASK #175 — Oyun sonu: tam olay günlüğü**
+>
+> EndScreen şu an winner ve personalAchievements gösteriyor. Oyuncular oyunun nasıl gittiğini görmek istiyor — kim kimi öldürdü, hangi gece ne oldu.
+>
+> In `gameEngine.ts`, add event log tracking to Room state:
+>
+> ```typescript
+> // Add to Room interface:
+> eventLog: GameEvent[];
+>
+> interface GameEvent {
+>   round: number;
+>   phase: 'NIGHT' | 'DAY';
+>   type: 'kill' | 'saved' | 'lynch' | 'blocked' | 'swap' | 'reveal';
+>   actorNickname?: string;
+>   targetNickname: string;
+>   targetRoleId: string; // real role
+>   description: string; // Turkish sentence
+> }
+> ```
+>
+> Log events throughout the game:
+>
+> ```typescript
+> // In resolveMorning ADIM 5 (çete öldürmesi):
+> room.eventLog.push({
+>   round: room.round,
+>   phase: 'NIGHT',
+>   type: 'kill',
+>   targetNickname: target.nickname,
+>   targetRoleId: target.roleId,
+>   description: `Gece ${room.round}: ${target.nickname} kayboldu.`
+> });
+>
+> // Saved:
+> room.eventLog.push({
+>   round: room.round, phase: 'NIGHT', type: 'saved',
+>   targetNickname: target.nickname, targetRoleId: target.roleId,
+>   description: `Gece ${room.round}: ${target.nickname} kurtarıldı.`
+> });
+>
+> // In resolveVote (linç):
+> room.eventLog.push({
+>   round: room.round, phase: 'DAY', type: 'lynch',
+>   targetNickname: eliminated.nickname, targetRoleId: eliminated.roleId,
+>   description: `Gün ${room.round}: Mahalle ${eliminated.nickname}'ı uzaklaştırdı. (${ROLES[eliminated.roleId].name})`
+> });
+>
+> // Kumarbaz swap:
+> room.eventLog.push({
+>   round: room.round, phase: 'NIGHT', type: 'swap',
+>   targetNickname: `${p1.nickname} ↔ ${p2.nickname}`,
+>   targetRoleId: 'kumarbaz',
+>   description: `Gece ${room.round}: İki kişinin rolleri yer değiştirdi.`
+> });
+> ```
+>
+> In `EndScreen.tsx`, add scrollable event log section:
+>
+> ```tsx
+> <ScrollView style={styles.logContainer}>
+>   <Text style={styles.logTitle}>📜 Oyun Günlüğü</Text>
+>   {eventLog.map((event, i) => (
+>     <View key={i} style={[styles.logRow, styles[`log_${event.type}`]]}>
+>       <Text style={styles.logRound}>
+>         {event.phase === 'NIGHT' ? '🌙' : '☀️'} {event.phase === 'NIGHT' ? 'Gece' : 'Gün'} {event.round}
+>       </Text>
+>       <Text style={styles.logDesc}>{event.description}</Text>
+>     </View>
+>   ))}
+> </ScrollView>
+>
+> // Styles:
+> // log_kill: border-left #C8102E
+> // log_saved: border-left #F5C842
+> // log_lynch: border-left #9B7FD4
+> // log_swap: border-left #1ECBE1
+> // log_reveal: border-left #888
+> ```
+>
+> Add `eventLog: []` to `restartGame()` reset and `makeRoom()` test helper.
+>
+> ---
+>
+> **TASK #176 — Lobi: QR kod ile oda katılımı**
+>
+> LobbyScreen'de oda kodu göstermenin yanında QR kod da göster. Aynı odaya katılmak isteyen biri QR'ı okutabilir.
+>
+> Install: `npx expo install react-native-qrcode-svg`
+>
+> In `LobbyScreen.tsx` (host görünümü):
+>
+> ```tsx
+> import QRCode from 'react-native-qrcode-svg';
+>
+> // Oda kodu altına ekle:
+> {isHost && (
+>   <View style={styles.qrContainer}>
+>     <QRCode
+>       value={`davetsizmisafir://join/${roomCode}`}
+>       size={140}
+>       backgroundColor="#0A0614"
+>       color="#F5C842"
+>     />
+>     <Text style={styles.qrHint}>QR kodu okutarak da katılabilirsiniz</Text>
+>   </View>
+> )}
+> ```
+>
+> In `app.json`, scheme zaten `davetsizmisafir` olarak ayarlı — deep link çalışır.
+>
+> In Expo Router, add deep link handler:
+>
+> ```typescript
+> // app/join/[code].tsx
+> import { useLocalSearchParams, router } from 'expo-router';
+> import { useEffect } from 'react';
+>
+> export default function JoinScreen() {
+>   const { code } = useLocalSearchParams<{ code: string }>();
+>   useEffect(() => {
+>     if (code) {
+>       // Pre-fill room code and navigate to join screen
+>       router.push({ pathname: '/', params: { prefillCode: code } });
+>     }
+>   }, [code]);
+>   return null;
+> }
+> ```
+>
+> ---
+>
+> **TASK #177 — Son test çalıştırması**
+>
+> ```bash
+> pnpm --filter @workspace/api-server run test
+> ```
+>
+> Confirm 36 tests still pass after all changes above.
+> If eventLog changes break any existing test (makeRoom helper doesn't initialize eventLog), fix by adding `eventLog: []` to makeRoom() in test helper.
+>
+> Report: test count, pass/fail, changed files list.
+>
+> ---
+>
+> **SUMMARY — 7 görev:**
+> - #171: EAS kurulum + eas.json
+> - #172: Çok oyunculu Playwright E2E testleri
+> - #173: Bağlantı hata yönetimi + Türkçe toast mesajları
+> - #174: Per-player state filtreleme (30 oyuncu performansı)
+> - #175: Oyun sonu tam olay günlüğü (EventLog)
+> - #176: QR kod ile oda katılımı
+> - #177: 36 test doğrulama

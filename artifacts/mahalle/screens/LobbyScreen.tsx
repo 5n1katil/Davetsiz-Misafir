@@ -323,7 +323,7 @@ export default function LobbyScreen() {
         { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 },
       ]}
     >
-      <View style={[styles.codeCard, { backgroundColor: c.card, borderColor: c.border }]}>
+      <View testID="room-code" style={[styles.codeCard, { backgroundColor: c.card, borderColor: c.border }]}>
         <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 12 }}>
           ODA KODU
         </Text>
@@ -338,7 +338,7 @@ export default function LobbyScreen() {
       <Text style={[styles.sectionTitle, { color: c.foreground }]}>
         Mahalleli ({state.players.length}/30)
       </Text>
-      <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
+      <View testID="player-list" style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
         {state.players.map((p) => (
           <View key={p.id} style={styles.playerRow}>
             <View
@@ -360,7 +360,7 @@ export default function LobbyScreen() {
               {p.id === myPlayerId ? "  •  sen" : ""}
             </Text>
             {p.isHost ? (
-              <View style={{ paddingHorizontal: 8, paddingVertical: 2, backgroundColor: c.primary, borderRadius: 6 }}>
+              <View testID="host-badge" style={{ paddingHorizontal: 8, paddingVertical: 2, backgroundColor: c.primary, borderRadius: 6 }}>
                 <Text style={{ color: c.primaryForeground, fontFamily: "Inter_600SemiBold", fontSize: 11 }}>
                   HOST
                 </Text>

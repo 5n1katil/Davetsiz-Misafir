@@ -195,7 +195,30 @@ export default function EndScreen() {
         OLAY GÜNLÜĞÜ
       </Text>
       <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
-        {state.graveyard.length === 0 ? (
+        {(state.eventLog && state.eventLog.length > 0) ? (
+          state.eventLog.map((ev: any, i: number) => (
+            <View key={i} style={{
+              paddingVertical: 7,
+              borderTopWidth: i > 0 ? StyleSheet.hairlineWidth : 0,
+              borderTopColor: c.border,
+              flexDirection: "row",
+              gap: 10,
+              alignItems: "flex-start",
+            }}>
+              <Text style={{ fontSize: 16, lineHeight: 22 }}>{ev.emoji}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: c.foreground, fontFamily: "Inter_500Medium", fontSize: 13, lineHeight: 19 }}>
+                  {ev.message}
+                </Text>
+                {ev.round > 0 && (
+                  <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 11, marginTop: 1 }}>
+                    Tur {ev.round}
+                  </Text>
+                )}
+              </View>
+            </View>
+          ))
+        ) : state.graveyard.length === 0 ? (
           <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular" }}>
             Hiç olay yaşanmadı.
           </Text>

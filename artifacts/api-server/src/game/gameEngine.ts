@@ -54,6 +54,14 @@ export interface MorningEvent {
   victims?: string[];
 }
 
+export interface GameEvent {
+  type: "game_start" | "lynch" | "kill" | "saved" | "game_end" | "info";
+  round: number;
+  ts: number;
+  message: string;
+  emoji: string;
+}
+
 export interface Room {
   code: string;
   hostId: string;
@@ -98,6 +106,7 @@ export interface Room {
   innocentLynchedCount: number;               // Dedikoducu kişisel başarısı için: masum (iyi ekip) linç sayısı
   personalAchievements: { playerId: string; roleId: string; label: string }[]; // oyun sonu kişisel başarılar
   originalHostId?: string;                    // Orijinal host oyun ortasında ayrılınca saklanır; geri bağlanınca geri yüklenir
+  eventLog: GameEvent[];                      // Oyun boyunca kronolojik olay günlüğü
 }
 
 const rooms = new Map<string, Room>();
@@ -198,6 +207,7 @@ export function createRoom(socketId: string, nickname: string): Room {
     kapiciLockHistory: {},
     innocentLynchedCount: 0,
     personalAchievements: [],
+    eventLog: [],
   };
   rooms.set(code, room);
   return room;
@@ -364,6 +374,13 @@ export function startGame(
   room.kapiciLockHistory = {};
   room.innocentLynchedCount = 0;
   room.personalAchievements = [];
+  room.eventLog = [{
+    type: "game_start",
+    round: 0,
+    ts: Date.now(),
+    message: `Oyun başladı — ${room.players.length} oyuncu`,
+    emoji: "🎬",
+  }];
 
   // Tiyatrocu'nun sahte rollerini şimdi ata (rol seçilmeden önce)
   // Kırık Kalp bağı oyun başladıktan sonra (roller dağıtılınca) atanacak
@@ -729,6 +746,13 @@ function resolveVote(room: Room, isRunoff: boolean) {
         nickname: target.nickname,
         roleId: displayRoleId ?? "?",
         cause: "Linç edildi",
+      });
+      room.eventLog.push({
+        type: "lynch",
+        round: room.round,
+        ts: Date.now(),
+        message: `${target.nickname} linç edildi (${displayRole?.name ?? "?"})`,
+        emoji: "⚖️",
       });
 
       // Muhabir öldü mü? Notlarını aç
@@ -1668,6 +1692,13 @@ function killPlayer(room: Room, player: Player, cause: string, victims: string[]
     roleId: displayRoleId ?? "?",
     cause,
   });
+  room.eventLog.push({
+    type: "kill",
+    round: room.round,
+    ts: Date.now(),
+    message: `${player.nickname} gece öldürüldü (${displayRole?.name ?? "?"})`,
+    emoji: "🔪",
+  });
   victims.push(player.nickname);
   room.morningEvents.push({
     kind: "death",
@@ -1788,6 +1819,13 @@ function endGame(room: Room, winner: string, label: string) {
   room.winnerLabel = label;
   room.phaseDeadline = null;
   room.voiceQueue.push(label);
+  room.eventLog.push({
+    type: "game_end",
+    round: room.round,
+    ts: Date.now(),
+    message: label,
+    emoji: "🏆",
+  });
 
   // ── Kişisel başarılar ──────────────────────────────────────────────────
   room.personalAchievements = [];
@@ -2004,6 +2042,7 @@ export function restartGame(
   room.kapiciLockHistory = {};
   room.innocentLynchedCount = 0;
   room.personalAchievements = [];
+  room.eventLog = [];
   privateMessages.delete(code);
   return room;
 }
@@ -2084,5 +2123,7 @@ export function publicView(room: Room, viewerPlayerId: string | null) {
     kapiciLockHistory: viewerPlayerId && room.kapiciLockHistory[viewerPlayerId]
       ? room.kapiciLockHistory[viewerPlayerId]
       : undefined,
+    personalAchievements: room.personalAchievements,
+    eventLog: room.eventLog,
   };
 }

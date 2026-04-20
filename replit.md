@@ -22,7 +22,16 @@ Mahalle (9): muhtar, bekci, otaci, falci, kapici, muhabir, tiyatrocu, hoca, koyl
 Kargaşacılar (4): kumarbaz, kiskanc_komsu, kirik_kalp, dedikoducu
 Yalnız Kurtlar (2): anonim, kahraman_dede
 
+## Tamamlanan Özellikler (Son Güncelleme)
+- GameEvent arayüzü + Room.eventLog: tüm oyun olayları (başlangıç, linç, gece ölümü, oyun sonu) kaydedilir
+- EndScreen: OLAY GÜNLÜĞÜ artık eventLog'dan emoji+tur ile gösterilir
+- GameContext: disconnect/reconnect/connect_error/reconnect_failed için toast bildirimler
+- LobbyScreen: testID="room-code", testID="player-list", testID="host-badge" öznitelikleri eklendi
+- eas.json: EAS Build konfigürasyonu oluşturuldu (Apple/Android submit parametreleri doldurulacak)
+- app/join/[code].tsx: QR deeplink path-based route eklendi
+- E2E: e2e/multiplayer.spec.ts iskelet testi oluşturuldu
+
 ## Bilinen Eksikler
-- E2E test yok (NightScreen, EndScreen, linç akışı)
+- EAS eas.projectId doldurulacak (expo account gerektirir)
 - TTS gerçek cihaz testi yapılmadı
-- App Store hazırlığı eksik (app.json, icon, splash, privacy manifest)
+- App Store submit bilgileri (Apple ID, ASC App ID, Team ID) eas.json'da doldurulacak

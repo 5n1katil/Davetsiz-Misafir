@@ -89,6 +89,7 @@ export interface GameState {
   kiskanKopyaTarget?: string | null;
   kapiciLockHistory?: Array<{ night: number; targetNickname: string }>;
   personalAchievements?: { playerId: string; roleId: string; label: string }[];
+  eventLog?: { type: string; round: number; ts: number; message: string; emoji: string }[];
 }
 
 export interface SystemToast {
@@ -304,8 +305,24 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       transports: ["websocket", "polling"],
       reconnection: true,
     });
-    s.on("connect", () => setConnected(true));
-    s.on("disconnect", () => setConnected(false));
+    s.on("connect", () => {
+      setConnected(true);
+    });
+    s.on("disconnect", (reason: string) => {
+      setConnected(false);
+      if (reason !== "io client disconnect") {
+        setSystemToast({ message: "Bağlantı kesildi, yeniden bağlanılıyor...", id: Date.now(), icon: "wifi-off" });
+      }
+    });
+    s.on("connect_error", () => {
+      setSystemToast({ message: "Sunucuya bağlanılamıyor", id: Date.now(), icon: "alert-circle" });
+    });
+    s.io.on("reconnect", () => {
+      setSystemToast({ message: "Bağlantı yeniden kuruldu", id: Date.now(), icon: "wifi" });
+    });
+    s.io.on("reconnect_failed", () => {
+      setSystemToast({ message: "Bağlantı kurulamadı. Uygulamayı yeniden başlat.", id: Date.now(), icon: "alert-circle" });
+    });
     s.on("state", (st: GameState) => {
       setState(st);
     });
