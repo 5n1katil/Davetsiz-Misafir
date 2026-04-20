@@ -1398,15 +1398,34 @@ function resolveMorning(room: Room) {
     }
   }
   const uneventfulNotified = new Set<string>();
+  const hocaTypes = new Set(["koruma_guclu", "koruma_guclu_kopya"]);
   for (const a of room.nightActions) {
-    if (protectorTypes.has(a.type) && !alreadyNotified.has(a.actorId) && !lockBlockedProtectors.has(a.actorId) && !lockBypassNotified.has(a.actorId) && !uneventfulNotified.has(a.actorId)) {
-      const selfProtect = a.actorId === a.targetId;
-      const quietMsg = selfProtect
+    if (!protectorTypes.has(a.type)) continue;
+    if (alreadyNotified.has(a.actorId)) continue;
+    if (lockBlockedProtectors.has(a.actorId)) continue;
+    if (uneventfulNotified.has(a.actorId)) continue;
+    // For regular protectors, skip if they already got a lock-bypass notice.
+    // For Hoca, always send the quiet-night confirmation (even after a lock-bypass notice).
+    if (!hocaTypes.has(a.type) && lockBypassNotified.has(a.actorId)) continue;
+    const isHoca = hocaTypes.has(a.type);
+    const selfProtect = a.actorId === a.targetId;
+    // For Hoca, only send the "safe" confirmation if the target is actually still alive.
+    if (isHoca && !selfProtect) {
+      const targetPlayer = room.players.find((p) => p.id === a.targetId);
+      if (!targetPlayer || !targetPlayer.isAlive) continue;
+    }
+    let quietMsg: string;
+    if (isHoca) {
+      quietMsg = selfProtect
+        ? "🌙 Bu gece sana saldırı olmadı — güvendesin."
+        : "🌙 Bu gece koruduğun kişiye saldırı olmadı — güvende.";
+    } else {
+      quietMsg = selfProtect
         ? "🌙 Bu gece sana kimse dokunmadı."
         : "🌙 Koruduğun kişiye bu gece kimse dokunmadı.";
-      pushPrivate(room, a.actorId, quietMsg);
-      uneventfulNotified.add(a.actorId);
     }
+    pushPrivate(room, a.actorId, quietMsg);
+    uneventfulNotified.add(a.actorId);
   }
 
   // ── ADIM 7: Bekçi sorgu sonuçları (kopya dahil) ──────────────────────────
