@@ -889,11 +889,15 @@ function executeKiskancKopya(room: Room) {
   // kopya_hedef: Kıskanç'ın kendi seçimi — döngü önlemi
   const NON_COPYABLE = new Set(["cete_oylama", "swap", "bagimsiz_oldurme", "kopya_hedef"]);
 
+  // Birinci geçiş: tüm kopyalanmış eylemleri nightActions'a ekle.
+  // Bu, aşağıdaki anında-sonuç kontrollerinin (ikinci geçiş) tüm kilit_kopya
+  // eylemlerini (dahil olmak üzere diğer Kıskanç kopyalarından gelenler) görmesini sağlar.
+  const addedCopies: { kiskancId: string; copiedActionType: string; newAction: NightAction }[] = [];
+
   for (const [kiskancId, targetPlayerId] of Object.entries(room.kiskanKopyaTargets)) {
     const targetPlayer = room.players.find((p) => p.id === targetPlayerId);
     if (!targetPlayer || !targetPlayer.isAlive) continue;
 
-    // Hedefin bu gece yaptığı eylem (kopyalanamaz türler hariç)
     const copiedAction = room.nightActions.find(
       (a) => a.actorId === targetPlayerId && !NON_COPYABLE.has(a.type),
     );
@@ -902,13 +906,81 @@ function executeKiskancKopya(room: Room) {
     const kiskancActor = room.players.find((p) => p.id === kiskancId);
     if (!kiskancActor || !kiskancActor.isAlive) continue;
 
-    // Kopyalanan eylemi Kıskanç Komşu adına nightActions'a ekle
-    // (resolveMorning bunları işleyecek)
-    room.nightActions.push({
+    const newAction: NightAction = {
       actorId: kiskancId,
       targetId: copiedAction.targetId,
-      type: copiedAction.type + "_kopya", // etiket: asıl işleme özel
-    });
+      type: copiedAction.type + "_kopya",
+    };
+    room.nightActions.push(newAction);
+    addedCopies.push({ kiskancId, copiedActionType: copiedAction.type, newAction });
+  }
+
+  // İkinci geçiş: Bekçi/Falcı kopyaları için anında sonuç gönder.
+  // Tüm kilit_kopya eylemleri artık nightActions'da mevcut olduğundan
+  // kilitleme kontrolü doğru sonuç verir.
+  for (const { kiskancId, copiedActionType, newAction } of addedCopies) {
+    if (copiedActionType !== "sorgu_ekip" && copiedActionType !== "sorgu_rol") continue;
+
+    const queryTargetId = newAction.targetId;
+    const queryTarget = room.players.find((p) => p.id === queryTargetId);
+    if (!queryTarget) continue;
+
+    // Orijinal Bekçi/Falcı'da uygulanan canSendImmediate mantığını yansıt:
+    // 1) Kumarbaz takas hedefi — takas henüz uygulanmamış, ekip/rol yanlış olur
+    const targetInSwap = room.nightActions.some(
+      (a) => a.type === "swap" && a.targetId === queryTargetId,
+    );
+    // 2) Kapıcı kilidi (hem normal hem kopya)
+    const isLocked =
+      room.lockedHouses.includes(queryTargetId) ||
+      room.nightActions.some(
+        (a) =>
+          (a.type === "kilit" || a.type === "kilit_kopya") && a.targetId === queryTargetId,
+      );
+
+    // Kumarbaz takas grubundaysa anında sonuç verilmez — sabah çözümüne bırak
+    if (targetInSwap) continue;
+
+    if (copiedActionType === "sorgu_ekip") {
+      if (isLocked) {
+        pushPrivate(
+          room,
+          kiskancId,
+          `🔒 Kıskanç kopya (Bekçi) engellendi: ${queryTarget.nickname} adlı kişinin kapısı bu gece kilitli.`,
+        );
+      } else {
+        let team = queryTarget.roleId ? ROLES[queryTarget.roleId].team : "iyi";
+        if (queryTarget.roleId === "icten_pazarlikli") team = "iyi" as typeof team;
+        pushPrivate(
+          room,
+          kiskancId,
+          `🧂 Kıskanç kopya (Bekçi): ${queryTarget.nickname} → ${team === "kotu" ? "KÖTÜ EKİP (çete)" : "İYİ EKİP"}`,
+        );
+      }
+      newAction.immediateNotified = true;
+    } else {
+      if (isLocked) {
+        pushPrivate(
+          room,
+          kiskancId,
+          `🔒 Kıskanç kopya (Falcı) engellendi: ${queryTarget.nickname} adlı kişinin kapısı bu gece kilitli.`,
+        );
+      } else {
+        const role = queryTarget.roleId ? ROLES[queryTarget.roleId] : null;
+        const wrong = Math.random() < 0.2;
+        let display: RoleDef | null = role;
+        if (wrong) {
+          const all = Object.values(ROLES).filter((r) => r.id !== role?.id);
+          display = all[Math.floor(Math.random() * all.length)];
+        }
+        pushPrivate(
+          room,
+          kiskancId,
+          `🧂 Kıskanç kopya (Falcı): ${queryTarget.nickname} → ${display?.emoji ?? ""} ${display?.name ?? "?"}`,
+        );
+      }
+      newAction.immediateNotified = true;
+    }
   }
 }
 
