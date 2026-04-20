@@ -1035,7 +1035,10 @@ function resolveMorning(room: Room) {
   const protectedIds = new Set<string>();
   for (const a of room.nightActions) {
     if (a.type === "koruma" || a.type === "koruma_kopya") {
-      if (!room.lockedHouses.includes(a.targetId)) {
+      if (room.lockedHouses.includes(a.actorId)) {
+        // Koruyucunun kendi kapısı kilitli — evden çıkamadı
+        pushPrivate(room, a.actorId, `🔒 Bu gece evinden çıkamadın — kapın kilitliydi. Koruma görevin engellendi!`);
+      } else if (!room.lockedHouses.includes(a.targetId)) {
         protectedIds.add(a.targetId);
       }
     }
