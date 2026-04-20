@@ -21,6 +21,31 @@ import { useCountdown } from "@/hooks/useCountdown";
 import { useGhostActivity } from "@/hooks/useGhostActivity";
 import { useReduceMotion } from "@/hooks/useReduceMotion";
 
+function getNightResultStyle(msg: string): { accent: string; bg: string; disclaimer?: string } {
+  if (msg.startsWith("🔦")) return { accent: "#1ECBE1", bg: "#0A1E2E" };
+  if (msg.startsWith("🔮")) return {
+    accent: "#B07EFF",
+    bg: "#1A0E2E",
+    disclaimer: "⚠️ %20 ihtimalle yanlış görülebilir.",
+  };
+  if (msg.startsWith("🧂")) return { accent: "#9CA3AF", bg: "#151515" };
+  if (msg.startsWith("🐍")) return { accent: "#F87171", bg: "#1E0F0F" };
+  if (msg.startsWith("🎰")) return { accent: "#FBBF24", bg: "#1E1700" };
+  if (msg.startsWith("💔")) return { accent: "#FB7185", bg: "#1E0A12" };
+  if (msg.startsWith("🎭")) return { accent: "#60A5FA", bg: "#0C1628" };
+  return { accent: "#1ECBE1", bg: "#0D1F3A" };
+}
+
+function formatResultMsg(msg: string): string {
+  const bekciMatch = msg.match(/^🔦 Bekçi raporu: (.+?) → (KÖTÜ EKİP \(çete\)|İYİ EKİP)$/);
+  if (bekciMatch) {
+    const nickname = bekciMatch[1];
+    const team = bekciMatch[2].startsWith("KÖTÜ") ? "ÇETE" : "MAHALLE";
+    return `🔦 Sorgu Sonucu: ${nickname} — ${team}`;
+  }
+  return msg;
+}
+
 const BG = "#060310";
 
 // Roles whose identity must stay hidden from other players during night
@@ -47,7 +72,7 @@ function getRoleAccent(roleId: string): string {
 }
 
 export default function NightScreen() {
-  const { state, myPlayerId, emit } = useGame();
+  const { state, myPlayerId, emit, nightResultMessages, clearNightResult } = useGame();
   const remaining = useCountdown(state?.phaseDeadline ?? null, state?.paused ?? false);
   const reduceMotion = useReduceMotion();
   const me = state?.players.find((p) => p.id === myPlayerId);
@@ -57,6 +82,8 @@ export default function NightScreen() {
 
   const [kumarbazFirst, setKumarbazFirst] = useState<string | null>(null);
   const [kumarbazSecond, setKumarbazSecond] = useState<string | null>(null);
+  const [localResult, setLocalResult] = useState<{ msg: string; ts: number }[]>([]);
+  const resultFadeAnim = useRef(new Animated.Value(0)).current;
 
   const moonAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(0)).current;
@@ -92,6 +119,23 @@ export default function NightScreen() {
     setKumarbazFirst(null);
     setKumarbazSecond(null);
   }, [stepRoleId]);
+
+  // Capture new private messages that arrive during NIGHT_ROLE and show them inline
+  useEffect(() => {
+    if (nightResultMessages.length === 0) return;
+    setLocalResult((prev) => [...prev, ...nightResultMessages]);
+    clearNightResult();
+    resultFadeAnim.setValue(0);
+    Animated.timing(resultFadeAnim, { toValue: 1, duration: 350, useNativeDriver: true }).start();
+  }, [nightResultMessages]);
+
+  // Clear local result when a new night begins
+  useEffect(() => {
+    if (state?.phase === "NIGHT") {
+      setLocalResult([]);
+      resultFadeAnim.setValue(0);
+    }
+  }, [state?.phase]);
 
   if (!state) return null;
 
@@ -163,6 +207,52 @@ export default function NightScreen() {
       : state.myRole === roleId;
 
   if (!isMyTurn) {
+    // If we just submitted our action and have a result, show it inline
+    if (localResult.length > 0) {
+      return (
+        <View style={[styles.intro, { backgroundColor: BG }]}>
+          <Animated.View style={{ opacity: resultFadeAnim, width: "100%", maxWidth: 380 }}>
+            <View style={[styles.resultSubmittedHint]}>
+              <Feather name="check-circle" size={16} color="#6EE7B7" />
+              <Text style={{ color: "#6EE7B7", fontFamily: "Inter_600SemiBold", fontSize: 13, marginLeft: 8 }}>
+                Aksiyon gönderildi — sonuç aşağıda
+              </Text>
+            </View>
+            {localResult.map((item, idx) => {
+              const { accent, bg, disclaimer } = getNightResultStyle(item.msg);
+              const formatted = formatResultMsg(item.msg);
+              return (
+                <View key={idx} style={[styles.resultCard, { backgroundColor: bg, borderColor: accent + "55" }]}>
+                  <View style={[styles.resultAccentBar, { backgroundColor: accent }]} />
+                  <View style={{ flex: 1, paddingLeft: 12 }}>
+                    <Text style={{ color: accent, fontFamily: "Inter_700Bold", fontSize: 13, letterSpacing: 0.5, marginBottom: 4 }}>
+                      GECE AKSIYON SONUCU
+                    </Text>
+                    <Text style={{ color: "#E8DEFF", fontFamily: "Inter_600SemiBold", fontSize: 15, lineHeight: 22 }}>
+                      {formatted}
+                    </Text>
+                    {disclaimer ? (
+                      <Text style={{ color: "#9B7FD4", fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 6 }}>
+                        {disclaimer}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+              );
+            })}
+            <Text style={{ color: "#7E7C92", fontFamily: "Inter_400Regular", fontSize: 12, textAlign: "center", marginTop: 16 }}>
+              Diğer rollerin bitmesini bekliyorsun...
+            </Text>
+          </Animated.View>
+          {ghostActive > 0 ? (
+            <View style={{ marginTop: 16 }}>
+              <GhostActivityBadge count={ghostActive} />
+            </View>
+          ) : null}
+        </View>
+      );
+    }
+
     const isHiddenRole = HIDDEN_ROLES.has(roleId);
     return (
       <View style={[styles.intro, { backgroundColor: BG }]}>
@@ -486,5 +576,24 @@ const styles = StyleSheet.create({
     flex: 1,
     borderTopWidth: 1,
     padding: 14,
+  },
+  resultSubmittedHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 16,
+  },
+  resultCard: {
+    flexDirection: "row",
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 16,
+    marginBottom: 12,
+    overflow: "hidden",
+  },
+  resultAccentBar: {
+    width: 4,
+    borderRadius: 2,
+    alignSelf: "stretch",
   },
 });

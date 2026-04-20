@@ -45,6 +45,7 @@ export interface NightAction {
   actorId: string;
   targetId: string;
   type: string;
+  immediateNotified?: boolean;
 }
 
 export interface MorningEvent {
@@ -993,7 +994,71 @@ export function submitNightAction(
   // Diğer roller için genel işlem
   if (!t1 || !t1.isAlive) return { error: "Geçersiz hedef" };
   const actionType = ROLES[roleId]?.nightAction ?? "";
-  room.nightActions.push({ actorId, targetId, type: actionType });
+  const newAction: NightAction = { actorId, targetId, type: actionType };
+  room.nightActions.push(newAction);
+
+  // Immediate result eligibility check (shared by Bekçi and Falcı)
+  // Skip if the queried target is in a Kumarbaz swap pair — the swap is not
+  // applied to player.roleId until resolveMorning, so querying pre-swap would
+  // yield a wrong team/role that morning resolution would then skip (immediateNotified).
+  const targetInSwap = room.nightActions.some(
+    (a) => a.type === "swap" && a.targetId === targetId,
+  );
+  // Skip if a Kıskanç Komşu is copying a Kapıcı who locked targetId.
+  // The resulting kilit_kopya action is added in executeKiskancKopya (after Bekçi/Falcı
+  // steps), so it isn't visible in nightActions yet, but it would block the query at morning.
+  const pendingKiskancLockBlock = Object.entries(room.kiskanKopyaTargets).some(
+    ([kiskancId, kopyaTargetId]) => {
+      const kiskancPlayer = room.players.find((p) => p.id === kiskancId);
+      if (!kiskancPlayer || !kiskancPlayer.isAlive) return false;
+      const kopyaTarget = room.players.find((p) => p.id === kopyaTargetId);
+      if (!kopyaTarget || !kopyaTarget.isAlive || kopyaTarget.roleId !== "kapici") return false;
+      return room.nightActions.some(
+        (a) => a.actorId === kopyaTargetId && a.type === "kilit" && a.targetId === targetId,
+      );
+    },
+  );
+  const canSendImmediate = !targetInSwap && !pendingKiskancLockBlock;
+
+  // Bekçi: push result immediately so the client can display it before morning
+  if (actionType === "sorgu_ekip" && canSendImmediate) {
+    const alreadyLocked = room.nightActions.some(
+      (a) => (a.type === "kilit" || a.type === "kilit_kopya") && a.targetId === targetId,
+    );
+    if (!alreadyLocked) {
+      let team = t1.roleId ? ROLES[t1.roleId].team : "iyi";
+      if (t1.roleId === "icten_pazarlikli") team = "iyi" as typeof team;
+      pushPrivate(
+        room,
+        actorId,
+        `🔦 Bekçi raporu: ${t1.nickname} → ${team === "kotu" ? "KÖTÜ EKİP (çete)" : "İYİ EKİP"}`,
+      );
+      newAction.immediateNotified = true;
+    }
+  }
+
+  // Falcı: push result immediately so the client can display it before morning
+  if (actionType === "sorgu_rol" && canSendImmediate) {
+    const alreadyLocked = room.nightActions.some(
+      (a) => (a.type === "kilit" || a.type === "kilit_kopya") && a.targetId === targetId,
+    );
+    if (!alreadyLocked) {
+      const role = t1.roleId ? ROLES[t1.roleId] : null;
+      const wrong = Math.random() < 0.2;
+      let display: RoleDef | null = role;
+      if (wrong) {
+        const all = Object.values(ROLES).filter((r) => r.id !== role?.id);
+        display = all[Math.floor(Math.random() * all.length)];
+      }
+      pushPrivate(
+        room,
+        actorId,
+        `🔮 Falcı vizyonu: ${t1.nickname} → ${display?.emoji ?? ""} ${display?.name ?? "?"}`,
+      );
+      newAction.immediateNotified = true;
+    }
+  }
+
   finishNightStep(room);
   return room;
 }
@@ -1205,6 +1270,7 @@ function resolveMorning(room: Room) {
   for (const a of room.nightActions) {
     if (a.type === "sorgu_ekip" || a.type === "sorgu_ekip_kopya") {
       if (room.lockedHouses.includes(a.targetId)) continue; // kilit engel
+      if (a.immediateNotified) continue; // already sent to client during night
       const target = room.players.find((p) => p.id === a.targetId);
       const actor = room.players.find((p) => p.id === a.actorId);
       if (target && actor) {
@@ -1224,6 +1290,7 @@ function resolveMorning(room: Room) {
   for (const a of room.nightActions) {
     if (a.type === "sorgu_rol" || a.type === "sorgu_rol_kopya") {
       if (room.lockedHouses.includes(a.targetId)) continue; // kilit engel
+      if (a.immediateNotified) continue; // already sent to client during night
       const target = room.players.find((p) => p.id === a.targetId);
       const actor = room.players.find((p) => p.id === a.actorId);
       if (target && actor) {

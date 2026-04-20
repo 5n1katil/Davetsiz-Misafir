@@ -213,6 +213,17 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     lastPhaseRef.current = next;
   }, [state?.phase, myPlayerId]);
 
+  // Detect new private messages that arrive during NIGHT_ROLE (immediate results for Bekçi/Falcı)
+  useEffect(() => {
+    if (!state || state.phase !== "NIGHT_ROLE" || !myPlayerId) return;
+    if (state.privateMessages.length === 0) return;
+    const newMsgs = state.privateMessages.filter((m) => m.ts > lastSeenTsRef.current);
+    if (newMsgs.length > 0) {
+      lastSeenTsRef.current = Math.max(...state.privateMessages.map((m) => m.ts));
+      setNightResultMessages(newMsgs);
+    }
+  }, [state?.privateMessages, state?.phase, myPlayerId]);
+
   useEffect(() => {
     Promise.all([
       AsyncStorage.getItem("mahalle:nickname"),
