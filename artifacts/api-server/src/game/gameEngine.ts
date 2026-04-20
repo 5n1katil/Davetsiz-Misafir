@@ -1215,7 +1215,7 @@ function killPlayer(room: Room, player: Player, cause: string, victims: string[]
     playerId: player.id,
     nickname: player.nickname,
     roleId: displayRoleId ?? "?",
-    cause: `${cause} (${displayRole?.name ?? "?"})`,
+    cause,
   });
   victims.push(player.nickname);
   room.morningEvents.push({
