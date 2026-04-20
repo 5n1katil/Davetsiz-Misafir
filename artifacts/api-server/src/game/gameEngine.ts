@@ -1153,6 +1153,20 @@ function resolveMorning(room: Room) {
           }
         } else {
           killPlayer(room, kdTarget, "Kahraman Dede tarafından öldürüldü", victims);
+          // Notify any protector whose action was blocked by Kapıcı and whose target was killed by Kahraman Dede
+          for (const pa of room.nightActions) {
+            if (
+              (pa.type === "koruma" || pa.type === "koruma_kopya") &&
+              pa.targetId === kdTarget.id &&
+              room.lockedHouses.includes(kdTarget.id)
+            ) {
+              const selfProtect = pa.actorId === pa.targetId;
+              const blockedMsg = selfProtect
+                ? `🔒 Bu gece kendini korumaya çalıştın, ama kapın kilitliydi — engellendi!`
+                : `🔒 ${kdTarget.nickname} adlı kişiyi korumaya çalıştın, ama kapısı kilitliydi — engellendi!`;
+              pushPrivate(room, pa.actorId, blockedMsg);
+            }
+          }
         }
       }
     }
