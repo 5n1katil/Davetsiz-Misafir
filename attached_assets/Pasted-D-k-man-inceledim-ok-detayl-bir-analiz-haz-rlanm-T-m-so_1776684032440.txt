@@ -1,0 +1,255 @@
+Dökümanı inceledim. Çok detaylı bir analiz hazırlanmış. Tüm soruların cevapları ve kritik düzeltmeler şu şekilde:
+
+---
+
+## BULGULAR & REPLIT GÜNCELLEME PROMPTU
+
+---
+
+**Kritik sorunlar:**
+
+1. Dedikoducu checkWin'de yok — kasıtlı değil, eksiklik. Kazanma koşulu hiçbir zaman tetiklenmiyor.
+2. Kırık Kalp'in aşığı çete olabilir — bu bilerek tasarlanmış bir kaos mekaniği, sorun değil. Kazanmak için takım fark etmez, sadece ikisi hayatta olmalı.
+3. Kıskanç Komşu "kopyaladığının takımıyla sayılır" kuralı kodda uygulanmıyor — eksiklik.
+4. Anonim gece öldürülürse Mahalle kazanma koşulu tetiklenmiyor — hata, gece ölümü de Mahalle'ye sayılmalı.
+5. Politikacı linçi → Kırık Kalp zinciri → aynı anda iki ölüm → çete instant win + Kırık Kalp ölümü çakışıyor — tanımsız durum.
+6. Kumarbaz Şifacı'yı çete üyesiyle takas ederse, o gece Şifacı rolüne giren çete üyesi koruma yapar ama çete lehine — bu aslında doğru davranış, takas kalıcı olduğu için tutarlı.
+7. İçten Pazarlıklı öldükten sonra sızdırma devam ediyor — hata, ölü oyuncu eylem yapmamalı.
+8. Ölü Hoca'nın koruması bir sonraki gece devreye giriyor — hata, hocaUsed kontrolü yeterli değil, alive kontrolü de lazım.
+9. Birden fazla Şifacı/Hoca aynı kişiyi korursa Set yapısı tekrarı engeller — sorun yok.
+10. Kahraman Dede vs Çete aynı anda son iki oyuncu — checkWin sırası 3. KD, 5. Çete, dolayısıyla KD önce kazanır — bu doğru davranış, tutarlı.
+
+---
+
+Replit'e yapıştır:
+
+---
+
+> Fix the following bugs and missing features in the Davetsiz Misafir game engine. Apply all changes to gameEngine.js, nightEngine.js, and roles.js:
+>
+> ---
+>
+> **BUG FIX 1 — Dedikoducu win condition missing from checkWin()**
+>
+> Dedikoducu's win condition is never checked. Add this to checkWin() BEFORE the main team checks:
+>
+> ```javascript
+> // Dedikoducu: at least 2 innocent (mahalle team) players lynched during game
+> const dedikoducu = players.find(p => p.roleId === 'dedikoducu');
+> if (dedikoducu && gameState.innocentLynchCount >= 2) {
+>   // Mark personal win — does NOT end the game, just records personal achievement
+>   // shown on end screen even if another team wins
+>   gameState.dedikoducuAchieved = true;
+> }
+> ```
+>
+> In resolveVote(), when a player is lynched, check their team:
+>
+> ```javascript
+> if (lynchedPlayer.team === 'mahalle') {
+>   gameState.innocentLynchCount = (gameState.innocentLynchCount || 0) + 1;
+> }
+> ```
+>
+> On end screen, if `gameState.dedikoducuAchieved === true`, show Dedikoducu as personal winner alongside the main winner. Dedikoducu does NOT override the main team win — it's a bonus personal achievement shown separately.
+>
+> ---
+>
+> **BUG FIX 2 — Kıskanç Komşu win condition not tracked in checkWin()**
+>
+> "Kopyaladığı kişinin takımıyla sayılır" is never implemented. Fix:
+>
+> Track who Kıskanç Komşu last copied in game state:
+>
+> ```javascript
+> gameState.kiskancLastCopied = targetPlayerId; // update each night
+> ```
+>
+> In checkWin(), when evaluating whether Kıskanç Komşu wins:
+>
+> ```javascript
+> const kiskanc = players.find(p => p.roleId === 'kiskanc_komsu' && p.alive);
+> if (kiskanc) {
+>   const lastCopied = gameState.players.find(p => p.id === gameState.kiskancLastCopied);
+>   if (lastCopied) {
+>     // Kıskanç wins with the same condition as the last copied player's team
+>     kiskanc.effectiveTeam = lastCopied.team;
+>   } else {
+>     kiskanc.effectiveTeam = 'kaos'; // no copy yet, wins with nobody
+>   }
+> }
+> ```
+>
+> If Kıskanç Komşu's effectiveTeam matches the winning team, include them in winners list on end screen.
+>
+> ---
+>
+> **BUG FIX 3 — Anonim night kill does not trigger Mahalle win check**
+>
+> Currently Mahalle can only win if Anonim is lynched. Fix: Mahalle should win if Anonim is eliminated by ANY means (night kill, lynch, chain death).
+>
+> In checkWin(), the Mahalle win condition should be:
+>
+> ```javascript
+> // Mahalle wins: ALL evil players dead AND all dangerous neutrals dead
+> const dangerousNeutrals = alivePlayers.filter(p =>
+>   ['anonim', 'kahraman_dede'].includes(p.roleId)
+> );
+> const evilAlive = alivePlayers.filter(p => p.team === 'kotu');
+>
+> if (evilAlive.length === 0 && dangerousNeutrals.length === 0) {
+>   return 'mahalle_wins';
+> }
+> ```
+>
+> This already works correctly IF checkWin() is called after every death. Currently checkWin() is only called at end of resolveMorning and resolveVote.
+>
+> **Add checkWin() call inside killPlayer() as well:**
+>
+> ```javascript
+> function killPlayer(playerId, reason) {
+>   // ... existing kill logic ...
+>   const winResult = checkWin();
+>   if (winResult) {
+>     endGame(winResult);
+>     return; // stop further processing
+>   }
+> }
+> ```
+>
+> ---
+>
+> **BUG FIX 4 — Dead İçten Pazarlıklı continues to spy**
+>
+> In resolveMorning ADIM 4, add alive check before executing spy:
+>
+> ```javascript
+> // BEFORE: all isMafia players receive spy info
+> // AFTER: add this guard
+> const icten = players.find(p => p.roleId === 'icten_pazarlikli');
+> if (icten && icten.alive) { // <-- ADD alive check
+>   // execute spy logic
+>   const randomMahalle = alivePlayers
+>     .filter(p => p.team === 'mahalle')
+>     .sort(() => Math.random() - 0.5)[0];
+>   if (randomMahalle) {
+>     const evilPlayers = alivePlayers.filter(p => p.team === 'kotu');
+>     evilPlayers.forEach(p => pushPrivate(p.id, `Casusluk: ${randomMahalle.name} → ${randomMahalle.roleId}`));
+>   }
+> }
+> ```
+>
+> ---
+>
+> **BUG FIX 5 — Dead Hoca's protection activating next night**
+>
+> In resolveMorning ADIM 3, when processing Hoca protection, add alive check:
+>
+> ```javascript
+> const hoca = players.find(p => p.roleId === 'hoca');
+> if (hoca && hoca.alive && !gameState.hocaUsed) { // <-- ADD hoca.alive check
+>   // process hoca protection
+> }
+> ```
+>
+> Also in the night action phase, if Hoca is dead, skip their night turn entirely — do not play voice prompt and do not accept input:
+>
+> ```javascript
+> // In night phase role sequencing:
+> if (role.id === 'hoca' && (!hoca.alive || gameState.hocaUsed)) {
+>   continue; // skip this step silently
+> }
+> ```
+>
+> ---
+>
+> **BUG FIX 6 — Politikacı lynch + Kırık Kalp chain death collision**
+>
+> When Politikacı is lynched, endGame() is called immediately. But if Politikacı is Kırık Kalp's aşık, the chain death fires first via checkKirikKalpDeath(). This creates a race condition.
+>
+> Fix: in resolveVote(), when Politikacı lynch is detected, process in this strict order:
+>
+> ```javascript
+> if (lynchedPlayer.roleId === 'sahte_dernek') {
+>   // Step 1: kill Politikacı first
+>   killPlayer(lynchedPlayer.id, 'lynch');
+>   // Step 2: process any chain deaths (Kırık Kalp) triggered by this death
+>   processChainDeaths();
+>   // Step 3: THEN trigger evil instant win
+>   // (chain deaths do not prevent evil win — evil wins regardless)
+>   endGame('evil_wins_politikaci');
+>   return;
+> }
+> ```
+>
+> On end screen for this case, show: "Politikacı linç edildi — Çete kazandı!" and also show any chain death victims separately.
+>
+> ---
+>
+> **BUG FIX 7 — checkWin() not called after every death**
+>
+> Currently win is only checked at end of night and end of vote. Edge case: Kırık Kalp chain death during night could create a win condition that is never detected until morning.
+>
+> Move checkWin() call into killPlayer() as shown in Fix 3 above. Make sure endGame() is idempotent (can be called multiple times without crashing — add `if (gameState.ended) return;` guard at top of endGame()).
+>
+> ---
+>
+> **RULE CLARIFICATION — add these to roles.js descriptions and enforce in engine:**
+>
+> ```javascript
+> // Kırık Kalp aşık team rule: intentional design — aşık can be any team.
+> // Kırık Kalp win condition does NOT care about aşık's team.
+> // Document this in role storyText: "Aşkın takımı olmaz."
+>
+> // Kumarbaz swap + Şifacı protection same night:
+> // If Kumarbaz swaps player A (Şifacı) with player B (evil),
+> // player B now has Şifacı role and executes protection — protection applies
+> // to whoever player B chose. This is correct behavior — swap is permanent,
+> // all subsequent actions use new roles. No fix needed, document this edge case.
+>
+> // Multiple Şifacı/Hoca protecting same person:
+> // protectedIds is a Set — adding same ID twice is harmless.
+> // No fix needed.
+> ```
+>
+> ---
+>
+> **ENHANCEMENT — End screen personal achievements**
+>
+> Add a separate "kişisel başarılar" section on end screen that shows regardless of main winner:
+>
+> ```javascript
+> const personalAchievements = [];
+>
+> if (gameState.dedikoducuAchieved) {
+>   personalAchievements.push({
+>     player: dedikoducu.name,
+>     role: 'Dedikoducu',
+>     achievement: '2 masum linç ettirdi — kişisel zafer!'
+>   });
+> }
+>
+> if (kiskancWon) {
+>   personalAchievements.push({
+>     player: kiskanc.name,
+>     role: 'Kıskanç Komşu',
+>     achievement: `${lastCopied.name} ile aynı kaderi paylaştı.`
+>   });
+> }
+> ```
+>
+> Show these on end screen with a distinct color (#1ECBE1 teal) separate from main winner announcement.
+>
+> ---
+>
+> **SUMMARY OF ALL CHANGES:**
+> 1. checkWin() — add Dedikoducu personal win tracking
+> 2. checkWin() — add Kıskanç Komşu effective team logic
+> 3. killPlayer() — add checkWin() call after every death
+> 4. resolveMorning ADIM 4 — add alive check for İçten Pazarlıklı spy
+> 5. resolveMorning ADIM 3 + night sequencer — add alive check for Hoca
+> 6. resolveVote() — fix Politikacı + Kırık Kalp chain death ordering
+> 7. endGame() — add idempotency guard
+> 8. End screen — add personal achievements section
+>
+> Do not change any UI, colors, or existing working mechanics. Only fix the above.
