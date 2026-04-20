@@ -1020,6 +1020,18 @@ export function submitNightAction(
   );
   const canSendImmediate = !targetInSwap && !pendingKiskancLockBlock;
 
+  // Bekçi/Falcı: when a pending Kıskanç Komşu copy of a Kapıcı lock would block the
+  // query at morning (but isn't in nightActions yet), send the blocked card now.
+  if (pendingKiskancLockBlock && (actionType === "sorgu_ekip" || actionType === "sorgu_rol")) {
+    const label = actionType === "sorgu_ekip" ? "Bekçi sorgusu" : "Falcı vizyonu";
+    pushPrivate(
+      room,
+      actorId,
+      `🔒 ${label} engellendi: ${t1.nickname} adlı kişinin kapısı bu gece kopyalanmış bir Kapıcı kilidiyle kilitli.`,
+    );
+    newAction.immediateNotified = true;
+  }
+
   // Bekçi: push result immediately so the client can display it before morning
   if (actionType === "sorgu_ekip" && canSendImmediate) {
     const alreadyLocked = room.nightActions.some(
