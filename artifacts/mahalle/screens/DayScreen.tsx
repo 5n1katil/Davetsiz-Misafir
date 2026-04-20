@@ -114,6 +114,64 @@ export default function DayScreen() {
           </View>
         ) : null}
 
+        {state.myRole === "anonim" && state.anonimMarks !== undefined ? (
+          <View style={[styles.eventCard, { backgroundColor: "#1A0D2E", borderColor: "#A855F755" }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <Text style={{ color: "#A855F7", fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 1.5 }}>
+                İŞARETLENEN KİŞİLER
+              </Text>
+              <Text style={{ color: "#A855F7", fontFamily: "Inter_700Bold", fontSize: 13 }}>
+                {state.anonimLynchedCount ?? 0}/3 linç edildi
+              </Text>
+            </View>
+            {state.anonimMarks.length === 0 ? (
+              <Text style={{ color: c.mutedForeground, marginTop: 8, fontFamily: "Inter_500Medium", fontSize: 13 }}>
+                Henüz kimseyi işaretlemedin.
+              </Text>
+            ) : (
+              state.anonimMarks.map((markId) => {
+                const marked = state.players.find((p) => p.id === markId);
+                const graveyardEntry = state.graveyard.find((g) => g.playerId === markId);
+                const isLynched = graveyardEntry?.cause === "Linç edildi";
+                const isDead = marked ? !marked.isAlive : !!graveyardEntry;
+                return (
+                  <View key={markId} style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
+                    <Feather
+                      name={isLynched ? "check-circle" : isDead ? "x-circle" : "target"}
+                      size={14}
+                      color={isLynched ? "#22C55E" : isDead ? c.mutedForeground : "#A855F7"}
+                    />
+                    <Text
+                      style={{
+                        color: isLynched ? "#22C55E" : isDead ? c.mutedForeground : c.foreground,
+                        fontFamily: "Inter_500Medium",
+                        fontSize: 14,
+                        textDecorationLine: isDead ? "line-through" : "none",
+                      }}
+                    >
+                      {marked?.nickname ?? graveyardEntry?.nickname ?? markId}
+                    </Text>
+                  </View>
+                );
+              })
+            )}
+          </View>
+        ) : null}
+
+        {state.myRole === "kiskanc_komsu" && state.kiskanKopyaTarget ? (
+          <View style={[styles.eventCard, { backgroundColor: "#1A1A0D", borderColor: "#EAB30855" }]}>
+            <Text style={{ color: "#EAB308", fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 1.5 }}>
+              KOPYA HEDEFİN
+            </Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
+              <Feather name="copy" size={14} color="#EAB308" />
+              <Text style={{ color: c.foreground, fontFamily: "Inter_500Medium", fontSize: 14 }}>
+                {state.players.find((p) => p.id === state.kiskanKopyaTarget)?.nickname ?? state.kiskanKopyaTarget}
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
           <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", fontSize: 11, letterSpacing: 1.5 }}>
             HAYATTA OLAN ({alive.length})

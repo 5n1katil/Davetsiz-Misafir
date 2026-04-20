@@ -85,6 +85,8 @@ export interface GameState {
   hocaUsed?: boolean;
   nextLynchReversed?: boolean;
   anonimMarks?: string[];
+  anonimLynchedCount?: number;
+  kiskanKopyaTarget?: string | null;
 }
 
 export interface SystemToast {

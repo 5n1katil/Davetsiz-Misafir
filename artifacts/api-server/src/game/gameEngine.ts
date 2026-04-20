@@ -1466,6 +1466,10 @@ export function publicView(room: Room, viewerPlayerId: string | null) {
     anonimLynchedCount: viewerRole === "anonim" && viewerPlayerId
       ? (room.anonimLynchedCounts[viewerPlayerId] ?? 0)
       : undefined,
+    // Kıskanç Komşu'ya özel: kopyaladığı kişi
+    kiskanKopyaTarget: viewerRole === "kiskanc_komsu" && viewerPlayerId
+      ? (room.kiskanKopyaTargets[viewerPlayerId] ?? null)
+      : undefined,
     // Kırık Kalp'e özel: aşığı
     kirikKalpLovedId: viewerRole === "kirik_kalp" && viewerPlayerId
       ? (room.kirikKalpBonds[viewerPlayerId] ?? null)
