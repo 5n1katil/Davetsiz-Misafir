@@ -1164,7 +1164,11 @@ function resolveMorning(room: Room) {
   const uneventfulNotified = new Set<string>();
   for (const a of room.nightActions) {
     if (protectorTypes.has(a.type) && !alreadyNotified.has(a.actorId) && !uneventfulNotified.has(a.actorId)) {
-      pushPrivate(room, a.actorId, "🌙 Koruduğun kişiye bu gece kimse dokunmadı.");
+      const selfProtect = a.actorId === a.targetId;
+      const quietMsg = selfProtect
+        ? "🌙 Bu gece sana kimse dokunmadı."
+        : "🌙 Koruduğun kişiye bu gece kimse dokunmadı.";
+      pushPrivate(room, a.actorId, quietMsg);
       uneventfulNotified.add(a.actorId);
     }
   }
