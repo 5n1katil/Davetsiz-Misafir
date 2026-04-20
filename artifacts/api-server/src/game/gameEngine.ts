@@ -1233,20 +1233,17 @@ function resolveMorning(room: Room) {
     }
   }
   // Hoca (Kapıcı kilidini aşar); _kopya türü dahil
-  const lockBypassNotified = new Set<string>(); // tracks Hoca actors already told about lock bypass
+  // Map: actorId → target nickname (deferred — message sent later, possibly combined with quiet-night)
+  const lockBypassNotified = new Map<string, string>(); // tracks Hoca actors who bypassed a locked door
   for (const a of room.nightActions) {
     if (a.type === "koruma_guclu" || a.type === "koruma_guclu_kopya") {
       protectedIds.add(a.targetId); // Hoca kilidi aşar
-      // Hoca'ya bildir: eğer hedefin kapısı kilitliyse kilidi aştığını söyle
+      // Record bypass info; the actual message is deferred to ADIM 6b so it can be merged with
+      // the quiet-night confirmation when both conditions apply.
       if (room.lockedHouses.includes(a.targetId)) {
         const savedPlayer = room.players.find((p) => p.id === a.targetId);
         const savedName = savedPlayer ? savedPlayer.nickname : "Hedefin";
-        pushPrivate(
-          room,
-          a.actorId,
-          `🔑 Bu gece ${savedName}'in kapısı kilitliydi — ama sen kilidi aştın ve korumayı uyguladın.`,
-        );
-        lockBypassNotified.add(a.actorId);
+        lockBypassNotified.set(a.actorId, savedName);
       }
     }
   }
@@ -1415,7 +1412,13 @@ function resolveMorning(room: Room) {
       if (!targetPlayer || !targetPlayer.isAlive) continue;
     }
     let quietMsg: string;
-    if (isHoca) {
+    if (isHoca && lockBypassNotified.has(a.actorId)) {
+      // Both conditions apply: bypass + quiet night → single combined message
+      const bypassTargetName = lockBypassNotified.get(a.actorId)!;
+      quietMsg = selfProtect
+        ? "🔑🌙 Bu gece kapın kilitliydi — kilidi aştın ve sana saldırı olmadı, güvendesin."
+        : `🔑🌙 Koruduğun ${bypassTargetName}'in kapısı kilitliydi — kilidi aştın ve bu gece saldırı olmadı, güvende.`;
+    } else if (isHoca) {
       quietMsg = selfProtect
         ? "🌙 Bu gece sana saldırı olmadı — güvendesin."
         : "🌙 Bu gece koruduğun kişiye saldırı olmadı — güvende.";
@@ -1426,6 +1429,17 @@ function resolveMorning(room: Room) {
     }
     pushPrivate(room, a.actorId, quietMsg);
     uneventfulNotified.add(a.actorId);
+  }
+  // Send standalone lock-bypass message for Hoca actors who bypassed a lock but whose target
+  // was attacked (they already received a success notice) — quiet-night loop skipped them.
+  for (const [actorId, targetName] of lockBypassNotified) {
+    if (!uneventfulNotified.has(actorId)) {
+      pushPrivate(
+        room,
+        actorId,
+        `🔑 Bu gece ${targetName}'in kapısı kilitliydi — ama sen kilidi aştın ve korumayı uyguladın.`,
+      );
+    }
   }
 
   // ── ADIM 7: Bekçi sorgu sonuçları (kopya dahil) ──────────────────────────
