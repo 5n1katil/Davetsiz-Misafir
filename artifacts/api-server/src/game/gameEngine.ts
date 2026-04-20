@@ -1272,6 +1272,54 @@ function resolveMorning(room: Room) {
   // (Bekçi/Falcı sorgu aktörleri zaten hayatta olduğu için gerek yok; ancak ölen aktörler olabilir)
   // Kırık Kalp bağ ölümleri killPlayer() içinde zaten çağrılıyor
 
+  // ── Kapıcı gece özeti ─────────────────────────────────────────────────────
+  // For each Kapıcı (or copy) actor, send a private summary of what their lock prevented.
+  // koruma_guclu / koruma_guclu_kopya intentionally bypass the lock (see ADIM 3),
+  // so they must NOT appear here — only actions that hit `continue` due to lockedHouses.
+  const blockedActionTypes = new Set([
+    "koruma", "koruma_kopya",
+    "sorgu_ekip", "sorgu_ekip_kopya",
+    "sorgu_rol", "sorgu_rol_kopya",
+  ]);
+  for (const kilita of room.nightActions) {
+    if (kilita.type !== "kilit" && kilita.type !== "kilit_kopya") continue;
+    const kapiciActor = room.players.find((p) => p.id === kilita.actorId);
+    if (!kapiciActor) continue;
+
+    const blockedRoles: string[] = [];
+
+    // Individual player actions whose target was in the locked house
+    for (const a of room.nightActions) {
+      if (a.actorId === kilita.actorId) continue; // skip own action
+      if (a.targetId !== kilita.targetId) continue;
+      if (!blockedActionTypes.has(a.type)) continue;
+      const blockedActor = room.players.find((p) => p.id === a.actorId);
+      if (!blockedActor) continue;
+      const roleDef = blockedActor.roleId ? ROLES[blockedActor.roleId] : null;
+      const roleName = roleDef ? `${roleDef.emoji ?? ""} ${roleDef.name}`.trim() : "Bilinmeyen";
+      if (!blockedRoles.includes(roleName)) blockedRoles.push(roleName);
+    }
+
+    // Check if the çete attack was actually blocked by this lock (ADIM 5: isLocked && !isProtected).
+    // If the target was also protected, the protection branch fires instead — lock was not the cause.
+    if (ceteTarget === kilita.targetId && !protectedIds.has(ceteTarget)) {
+      blockedRoles.push("🔪 Çete saldırısı");
+    }
+
+    const prefix = kilita.type === "kilit_kopya" ? "🧂 Kopya Kapıcı özeti" : "🔑 Kapıcı özeti";
+    if (blockedRoles.length > 0) {
+      pushPrivate(
+        room, kapiciActor.id,
+        `${prefix}: Bu gece kilitlediğin evde engellenen eylemler — ${blockedRoles.join(", ")}.`,
+      );
+    } else {
+      pushPrivate(
+        room, kapiciActor.id,
+        `${prefix}: Bu gece kilitlediğin eve kimse gelmedi.`,
+      );
+    }
+  }
+
   // ── SABAH DUYURUSU ────────────────────────────────────────────────────────
   if (
     victims.length === 0 &&
