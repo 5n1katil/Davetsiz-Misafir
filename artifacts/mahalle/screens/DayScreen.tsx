@@ -1,6 +1,6 @@
 import { Feather } from "@expo/vector-icons";
 import React, { useEffect, useRef } from "react";
-import { Animated, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Animated, Image, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { Btn } from "@/components/Btn";
 import { GraveyardChat } from "@/components/GraveyardChat";
@@ -10,6 +10,150 @@ import { useColors } from "@/hooks/useColors";
 import { useCountdown } from "@/hooks/useCountdown";
 import { useGhostActivity } from "@/hooks/useGhostActivity";
 import { useReduceMotion } from "@/hooks/useReduceMotion";
+import roleImages from "@/constants/roleImages";
+
+interface MorningEvent {
+  kind: "death" | "calm" | "saved" | "info" | "sahte_dernek_lynched";
+  message: string;
+  victims?: string[];
+}
+
+interface GraveyardEntry {
+  playerId: string;
+  nickname: string;
+  roleId: string;
+  cause: string;
+}
+
+const EVENT_CONFIG: Record<
+  string,
+  { icon: string; bgColor: string; borderColor: string; textColor: string; label: string }
+> = {
+  death: {
+    icon: "💀",
+    bgColor: "#2D0A0A",
+    borderColor: "#7F1D1D",
+    textColor: "#FCA5A5",
+    label: "KAYIP",
+  },
+  calm: {
+    icon: "🌅",
+    bgColor: "#052E16",
+    borderColor: "#14532D",
+    textColor: "#86EFAC",
+    label: "SABAH",
+  },
+  saved: {
+    icon: "🛡️",
+    bgColor: "#052E16",
+    borderColor: "#166534",
+    textColor: "#4ADE80",
+    label: "KURTARILDI",
+  },
+  info: {
+    icon: "ℹ️",
+    bgColor: "#0C1A2E",
+    borderColor: "#1E3A5F",
+    textColor: "#93C5FD",
+    label: "DUYURU",
+  },
+  sahte_dernek_lynched: {
+    icon: "⚠️",
+    bgColor: "#2D1500",
+    borderColor: "#7C2D12",
+    textColor: "#FCD34D",
+    label: "UYARI",
+  },
+  warning: {
+    icon: "⚠️",
+    bgColor: "#2D1500",
+    borderColor: "#7C2D12",
+    textColor: "#FCD34D",
+    label: "UYARI",
+  },
+};
+
+function getEventConfig(kind: string) {
+  return EVENT_CONFIG[kind] ?? EVENT_CONFIG.info;
+}
+
+interface AnimatedEventCardProps {
+  event: MorningEvent;
+  index: number;
+  graveyard: GraveyardEntry[];
+  reduceMotion: boolean;
+}
+
+function AnimatedEventCard({ event, index, graveyard, reduceMotion }: AnimatedEventCardProps) {
+  const translateY = useRef(new Animated.Value(reduceMotion ? 0 : 28)).current;
+  const opacity = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current;
+
+  useEffect(() => {
+    if (reduceMotion) return;
+    const delay = index * 140;
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 350,
+        delay,
+        useNativeDriver: true,
+      }),
+      Animated.timing(opacity, {
+        toValue: 1,
+        duration: 300,
+        delay,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  const cfg = getEventConfig(event.kind);
+
+  const victimGrave =
+    event.kind === "death" && event.victims && event.victims.length > 0
+      ? graveyard.find((g) => g.nickname === event.victims![0])
+      : null;
+
+  const roleImage = victimGrave ? roleImages[victimGrave.roleId] : null;
+
+  return (
+    <Animated.View
+      style={[
+        styles.eventItem,
+        {
+          backgroundColor: cfg.bgColor,
+          borderColor: cfg.borderColor,
+          opacity,
+          transform: [{ translateY }],
+        },
+      ]}
+    >
+      <View style={styles.eventHeader}>
+        <Text style={styles.eventIcon}>{cfg.icon}</Text>
+        <Text style={[styles.eventLabel, { color: cfg.textColor }]}>{cfg.label}</Text>
+      </View>
+
+      {event.kind === "death" && victimGrave && roleImage ? (
+        <View style={styles.deathContent}>
+          <Image source={roleImage} style={styles.roleAvatar} resizeMode="cover" />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.eventMessage, { color: cfg.textColor }]}>{event.message}</Text>
+            <Text style={[styles.causeText, { color: cfg.textColor }]}>{victimGrave.cause}</Text>
+          </View>
+        </View>
+      ) : event.kind === "death" && victimGrave ? (
+        <View style={{ marginTop: 4 }}>
+          <Text style={[styles.eventMessage, { color: cfg.textColor }]}>{event.message}</Text>
+          <Text style={[styles.causeText, { color: cfg.textColor }]}>{victimGrave.cause}</Text>
+        </View>
+      ) : (
+        <Text style={[styles.eventMessage, { color: cfg.textColor, marginTop: 4 }]}>
+          {event.message}
+        </Text>
+      )}
+    </Animated.View>
+  );
+}
 
 export default function DayScreen() {
   const c = useColors();
@@ -89,14 +233,18 @@ export default function DayScreen() {
         </View>
 
         {state.morningEvents.length > 0 ? (
-          <View style={[styles.eventCard, { backgroundColor: c.card, borderColor: c.border }]}>
-            <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 1.5 }}>
+          <View style={styles.morningSection}>
+            <Text style={[styles.sectionHeading, { color: c.mutedForeground }]}>
               SABAH DUYURUSU
             </Text>
             {state.morningEvents.map((e, i) => (
-              <Text key={i} style={{ color: c.foreground, marginTop: 6, fontFamily: "Inter_500Medium", fontSize: 15 }}>
-                {e.message}
-              </Text>
+              <AnimatedEventCard
+                key={i}
+                event={e}
+                index={i}
+                graveyard={state.graveyard}
+                reduceMotion={reduceMotion}
+              />
             ))}
           </View>
         ) : null}
@@ -242,5 +390,57 @@ const styles = StyleSheet.create({
     padding: 14,
     borderTopWidth: 1,
     height: 280,
+  },
+  morningSection: {
+    gap: 8,
+  },
+  sectionHeading: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 11,
+    letterSpacing: 1.5,
+    marginBottom: 2,
+  },
+  eventItem: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 12,
+  },
+  eventHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 2,
+  },
+  eventIcon: {
+    fontSize: 16,
+  },
+  eventLabel: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 10,
+    letterSpacing: 1.5,
+  },
+  eventMessage: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    lineHeight: 20,
+    flexShrink: 1,
+    flexWrap: "wrap",
+  },
+  deathContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 6,
+  },
+  roleAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+  },
+  causeText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    marginTop: 3,
+    opacity: 0.65,
   },
 });

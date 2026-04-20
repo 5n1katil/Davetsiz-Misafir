@@ -67,7 +67,7 @@ export interface GameState {
   nightStep: { roleId: string; actorIds: string[] } | null;
   nightStepIndex: number;
   nightOrderQueue: { roleId: string; actorIds: string[] }[];
-  morningEvents: { kind: string; message: string; victims?: string[] }[];
+  morningEvents: { kind: "death" | "calm" | "saved" | "info" | "sahte_dernek_lynched"; message: string; victims?: string[] }[];
   graveyard: {
     playerId: string;
     nickname: string;

@@ -48,7 +48,7 @@ export interface NightAction {
 }
 
 export interface MorningEvent {
-  kind: "death" | "calm" | "sahte_dernek_lynched" | "info";
+  kind: "death" | "calm" | "saved" | "sahte_dernek_lynched" | "info";
   message: string;
   victims?: string[];
 }
@@ -1082,7 +1082,13 @@ function resolveMorning(room: Room) {
     if (isLocked && !isProtected) {
       room.morningEvents.push({ kind: "calm", message: "Bu sabah mahalle sakindir. Kimse kaybolmamış." });
     } else if (isProtected) {
-      room.morningEvents.push({ kind: "calm", message: "Bu sabah mahalle sakindir. Kimse kaybolmamış." });
+      const savedPlayer = room.players.find((p) => p.id === ceteTarget);
+      const savedName = savedPlayer ? savedPlayer.nickname : "Biri";
+      room.morningEvents.push({
+        kind: "saved",
+        message: `${savedName} bu gece korunuyordu — saldırı engellendi!`,
+        victims: savedPlayer ? [savedPlayer.nickname] : [],
+      });
     } else {
       const v = room.players.find((p) => p.id === ceteTarget);
       if (v && v.isAlive) {
@@ -1100,7 +1106,11 @@ function resolveMorning(room: Room) {
       if (kdTarget && kdTarget.isAlive) {
         // Kahraman Dede Kapıcı tarafından engellenemez
         if (protectedIds.has(kdTarget.id)) {
-          room.morningEvents.push({ kind: "info", message: `${kdTarget.nickname} bu gece korunuyordu.` });
+          room.morningEvents.push({
+            kind: "saved",
+            message: `${kdTarget.nickname} bu gece korunuyordu — saldırı engellendi!`,
+            victims: [kdTarget.nickname],
+          });
         } else {
           killPlayer(room, kdTarget, "Kahraman Dede tarafından öldürüldü", victims);
         }
@@ -1175,7 +1185,11 @@ function resolveMorning(room: Room) {
   // Kırık Kalp bağ ölümleri killPlayer() içinde zaten çağrılıyor
 
   // ── SABAH DUYURUSU ────────────────────────────────────────────────────────
-  if (victims.length === 0 && !room.morningEvents.some((e) => e.kind === "death")) {
+  if (
+    victims.length === 0 &&
+    !room.morningEvents.some((e) => e.kind === "death") &&
+    !room.morningEvents.some((e) => e.kind === "saved")
+  ) {
     room.morningEvents.push({ kind: "calm", message: "Bu sabah mahalle sakindir. Kimse kaybolmamış." });
   }
   const voiceMsg = victims.length > 0
