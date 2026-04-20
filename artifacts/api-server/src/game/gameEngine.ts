@@ -1089,6 +1089,14 @@ function resolveMorning(room: Room) {
         message: `${savedName} bu gece korunuyordu — saldırı engellendi!`,
         victims: savedPlayer ? [savedPlayer.nickname] : [],
       });
+      for (const a of room.nightActions) {
+        if (
+          (a.type === "koruma" || a.type === "koruma_kopya" || a.type === "koruma_guclu" || a.type === "koruma_guclu_kopya") &&
+          a.targetId === ceteTarget
+        ) {
+          pushPrivate(room, a.actorId, `🛡️ Koruman başarılı! ${savedName} bu gece saldırıya uğradı, ama sen onları kurtardın.`);
+        }
+      }
     } else {
       const v = room.players.find((p) => p.id === ceteTarget);
       if (v && v.isAlive) {
@@ -1111,6 +1119,14 @@ function resolveMorning(room: Room) {
             message: `${kdTarget.nickname} bu gece korunuyordu — saldırı engellendi!`,
             victims: [kdTarget.nickname],
           });
+          for (const pa of room.nightActions) {
+            if (
+              (pa.type === "koruma" || pa.type === "koruma_kopya" || pa.type === "koruma_guclu" || pa.type === "koruma_guclu_kopya") &&
+              pa.targetId === kdTarget.id
+            ) {
+              pushPrivate(room, pa.actorId, `🛡️ Koruman başarılı! ${kdTarget.nickname} bu gece saldırıya uğradı, ama sen onları kurtardın.`);
+            }
+          }
         } else {
           killPlayer(room, kdTarget, "Kahraman Dede tarafından öldürüldü", victims);
         }
