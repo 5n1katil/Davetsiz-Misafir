@@ -1102,6 +1102,8 @@ function resolveMorning(room: Room) {
   // Şifacı Teyze (engellenir kapı kilitliyse); _kopya türü dahil
   const protectedIds = new Set<string>();
   const lockBlockedProtectors = new Set<string>(); // protectors already told their action was nullified by a lock
+  // Defer "target locked" messages so we can check if Hoca saves them first
+  const deferredLockMessages: Array<{ actorId: string; targetId: string }> = [];
   for (const a of room.nightActions) {
     if (a.type === "koruma" || a.type === "koruma_kopya") {
       if (room.lockedHouses.includes(a.actorId)) {
@@ -1109,8 +1111,8 @@ function resolveMorning(room: Room) {
         pushPrivate(room, a.actorId, `🔒 Bu gece evinden çıkamadın — kapın kilitliydi. Koruma görevin engellendi!`);
         lockBlockedProtectors.add(a.actorId);
       } else if (room.lockedHouses.includes(a.targetId)) {
-        // Hedefin kapısı kilitli — korumacı evden çıktı ama hedefe ulaşamadı
-        pushPrivate(room, a.actorId, `🔒 Bu gece koruduğun kişinin kapısı kilitliydi — oraya ulaşamadın. Koruma görevin engellendi!`);
+        // Hedefin kapısı kilitli — mesajı ertele, Hoca kurtarıyor olabilir
+        deferredLockMessages.push({ actorId: a.actorId, targetId: a.targetId });
         lockBlockedProtectors.add(a.actorId);
       } else {
         protectedIds.add(a.targetId);
@@ -1121,6 +1123,16 @@ function resolveMorning(room: Room) {
   for (const a of room.nightActions) {
     if (a.type === "koruma_guclu" || a.type === "koruma_guclu_kopya") {
       protectedIds.add(a.targetId); // Hoca kilidi aşar
+    }
+  }
+  // Şimdi ertelenen mesajları gönder — Hoca aynı kişiyi kurtardıysa farklı mesaj ver
+  for (const { actorId, targetId } of deferredLockMessages) {
+    if (protectedIds.has(targetId)) {
+      // Hoca güçlü korumayla kurtardı — koruyucu bunu bilmeli
+      pushPrivate(room, actorId, `🔒 Bu gece koruduğun kişinin kapısı kilitliydi ve oraya ulaşamadın — ama o yine de başka biri tarafından korundu.`);
+    } else {
+      // Kimse kurtaramadı — standart engel mesajı
+      pushPrivate(room, actorId, `🔒 Bu gece koruduğun kişinin kapısı kilitliydi — oraya ulaşamadın. Koruma görevin engellendi!`);
     }
   }
 
@@ -1177,7 +1189,8 @@ function resolveMorning(room: Room) {
       for (const a of room.nightActions) {
         if (
           (a.type === "koruma" || a.type === "koruma_kopya" || a.type === "koruma_guclu" || a.type === "koruma_guclu_kopya") &&
-          a.targetId === ceteTarget
+          a.targetId === ceteTarget &&
+          !lockBlockedProtectors.has(a.actorId)
         ) {
           const selfProtect = a.actorId === a.targetId;
           const msg = selfProtect
@@ -1219,7 +1232,8 @@ function resolveMorning(room: Room) {
           for (const pa of room.nightActions) {
             if (
               (pa.type === "koruma" || pa.type === "koruma_kopya" || pa.type === "koruma_guclu" || pa.type === "koruma_guclu_kopya") &&
-              pa.targetId === kdTarget.id
+              pa.targetId === kdTarget.id &&
+              !lockBlockedProtectors.has(pa.actorId)
             ) {
               const selfProtect = pa.actorId === pa.targetId;
               const msg = selfProtect
