@@ -99,6 +99,20 @@ export function attachSocketServer(http: HTTPServer) {
       socket.join(res.room.code);
       cb?.({ ok: true, code: res.room.code, playerId: res.player.id });
       broadcast(res.room.code);
+
+      // Orijinal host geri bağlandıysa yalnızca onun soketine bildirim gönder.
+      // ORDERING: broadcast() above already consumes the re-queued voice prompt
+      // and delivers it to the restored host's socket via the "voice" event.
+      // host_restored is sent AFTER broadcast so the client's host UI state
+      // (hostJustReceived) is set before any subsequent state updates arrive.
+      // nightStepIndex is included so the client can defensively verify that
+      // TTS was expected for this step and re-request if the voice event was
+      // somehow missed (e.g. a race between reconnect and broadcast).
+      if (res.hostRestored) {
+        socket.emit("host_restored", {
+          nightStepIndex: res.room.nightStepIndex,
+        });
+      }
     });
 
     socket.on("updateSettings", ({ patch }, cb) => {

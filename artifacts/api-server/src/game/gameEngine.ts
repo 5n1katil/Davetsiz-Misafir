@@ -97,6 +97,7 @@ export interface Room {
   kapiciLockHistory: Record<string, Array<{ night: number; targetNickname: string }>>;
   innocentLynchedCount: number;               // Dedikoducu kişisel başarısı için: masum (iyi ekip) linç sayısı
   personalAchievements: { playerId: string; roleId: string; label: string }[]; // oyun sonu kişisel başarılar
+  originalHostId?: string;                    // Orijinal host oyun ortasında ayrılınca saklanır; geri bağlanınca geri yüklenir
 }
 
 const rooms = new Map<string, Room>();
@@ -206,7 +207,7 @@ export function joinRoom(
   code: string,
   socketId: string,
   nickname: string,
-): { room: Room; player: Player } | { error: string } {
+): { room: Room; player: Player; hostRestored?: boolean } | { error: string } {
   const room = rooms.get(code);
   if (!room) return { error: "Oda bulunamadı" };
 
@@ -217,6 +218,31 @@ export function joinRoom(
   if (existing) {
     existing.socketId = socketId;
     existing.isConnected = true;
+
+    // Orijinal host geri bağlandıysa host statüsünü geri yükle
+    if (room.originalHostId && room.originalHostId === existing.id) {
+      const tempHost = room.players.find((p) => p.isHost);
+      if (tempHost && tempHost.id !== existing.id) {
+        tempHost.isHost = false;
+      }
+      existing.isHost = true;
+      room.hostId = existing.id;
+      room.originalHostId = undefined;
+
+      // Gecenin mevcut adımının ses kuyruğunu tekrar ekle, yeni host duyabilsin
+      if (room.phase === "NIGHT_ROLE" && room.nightStepIndex < room.nightOrderQueue.length) {
+        const currentStep = room.nightOrderQueue[room.nightStepIndex];
+        if (currentStep.roleId === "_cete") {
+          room.voiceQueue.push(ROLES.tefeci_basi.voiceCallTr);
+        } else {
+          const r = ROLES[currentStep.roleId];
+          if (r?.voiceCallTr) room.voiceQueue.push(r.voiceCallTr);
+        }
+      }
+
+      return { room, player: existing, hostRestored: true };
+    }
+
     return { room, player: existing };
   }
 
@@ -266,6 +292,7 @@ export function leaveRoom(
           p.isHost = false;
           candidate.isHost = true;
           room.hostId = candidate.id;
+          room.originalHostId = p.id; // Geri bağlanırsa host statüsü iade edilsin
           // Re-queue current step's voice prompt so the new host's device hears it.
           // voiceQueue may have already been consumed by the departing host; pushing here
           // ensures the new host client gets the TTS cue on next poll.

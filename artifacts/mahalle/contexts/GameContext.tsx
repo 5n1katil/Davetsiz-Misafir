@@ -340,6 +340,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         }, 4500);
       }
     });
+    s.on("host_restored", (_payload: { nightStepIndex: number }) => {
+      setHostJustReceived(true);
+      setSystemToast({
+        message: "Yönetici olarak geri döndün 👑",
+        id: Date.now(),
+        onPress: () => setOpenHostPanelTrigger((n) => n + 1),
+      });
+    });
     setSocket(s);
     return () => {
       s.disconnect();
