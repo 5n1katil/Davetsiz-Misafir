@@ -146,6 +146,13 @@ function AnimatedEventCard({ event, index, graveyard, reduceMotion }: AnimatedEv
           <Text style={[styles.eventMessage, { color: cfg.textColor }]}>{event.message}</Text>
           <Text style={[styles.causeText, { color: cfg.textColor }]}>{victimGrave.cause}</Text>
         </View>
+      ) : event.kind === "saved" && event.victims && event.victims.length > 0 ? (
+        <View style={{ marginTop: 6 }}>
+          <Text style={[styles.savedNickname, { color: cfg.textColor }]}>{event.victims[0]}</Text>
+          <Text style={[styles.causeText, { color: cfg.textColor, opacity: 0.8, marginTop: 3 }]}>
+            {event.message}
+          </Text>
+        </View>
       ) : (
         <Text style={[styles.eventMessage, { color: cfg.textColor, marginTop: 4 }]}>
           {event.message}
@@ -442,5 +449,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 3,
     opacity: 0.65,
+  },
+  savedNickname: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 18,
+    lineHeight: 24,
   },
 });
