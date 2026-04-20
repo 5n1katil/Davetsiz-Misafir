@@ -5,6 +5,9 @@ import {
   tickPhaseTimeout,
   advanceFromNightIntro,
   submitNightAction,
+  transferHost,
+  leaveRoom,
+  restartGame,
   type Room,
 } from "../gameEngine.js";
 
@@ -603,5 +606,135 @@ describe("Quiet night", () => {
     triggerNight(room, (_r) => {});
 
     expect(room.morningEvents.some((e) => e.kind === "calm")).toBe(true);
+  });
+});
+
+describe("14. Host transfer mechanics", () => {
+  it("voice prompt re-queued when host disconnects mid-night", () => {
+    const { room, ids } = makeRoom(["koylu", "bekci", "koylu", "tefeci_basi"]);
+
+    room.phase = "NIGHT_ROLE";
+    room.nightStepIndex = 0;
+    room.nightOrderQueue = [{ roleId: "bekci", actorIds: [ids[1]] }];
+    room.voiceQueue = [];
+
+    const hostPlayer = room.players.find((p) => p.isHost)!;
+    const hostSocketId = hostPlayer.socketId!;
+
+    // Give non-host players sockets so a new host can be found
+    room.players.forEach((p) => {
+      if (!p.isHost) p.socketId = uniqueSocket();
+    });
+
+    leaveRoom(hostSocketId);
+
+    expect(room.voiceQueue.length).toBeGreaterThan(0);
+    expect(room.voiceQueue.some((v) => v.includes("Bekçi"))).toBe(true);
+  });
+
+  it("originalHostId cleared after intentional transferHost()", () => {
+    const { room, ids } = makeRoom(["koylu", "koylu", "koylu", "tefeci_basi"]);
+    room.phase = "DAY";
+    const hostId = room.hostId;
+    const targetId = room.players.find((p) => !p.isHost)!.id;
+
+    // Pre-set originalHostId to simulate a previous auto-transfer
+    room.originalHostId = ids[0];
+
+    const res = transferHost(room.code, hostId, targetId);
+    expect("error" in res).toBe(false);
+    expect(room.originalHostId).toBeUndefined();
+  });
+});
+
+describe("15. restartGame() full reset", () => {
+  it("all extended state fields reset to initial values", () => {
+    const { room } = makeRoom(["koylu", "koylu", "koylu", "tefeci_basi"]);
+    const hostId = room.hostId;
+
+    // Dirty the extended state
+    room.kiskancLastCopied["some-id"] = "other-id";
+    room.innocentLynchedCount = 3;
+    room.personalAchievements = [{ playerId: "p1", roleId: "kiskanc_komsu", label: "Test" }];
+    room.nextLynchReversed = true;
+    room.hocaUsed = true;
+
+    restartGame(room.code, hostId);
+
+    expect(room.kiskancLastCopied).toEqual({});
+    expect(room.innocentLynchedCount).toBe(0);
+    expect(room.personalAchievements).toEqual([]);
+    expect(room.nextLynchReversed).toBe(false);
+    expect(room.hocaUsed).toBe(false);
+    expect(room.phase).toBe("LOBBY");
+  });
+});
+
+describe("16. Muhabir death reveals messages", () => {
+  it("Muhabir killed at night produces death morningEvent", () => {
+    const { room, ids } = makeRoom(["tefeci_basi", "muhabir", "koylu", "koylu"]);
+    const muhabirId = ids[1];
+
+    triggerNight(room, (r) => {
+      r.ceteVotes[ids[0]] = muhabirId;
+    });
+
+    expect(room.players.find((p) => p.id === muhabirId)!.isAlive).toBe(false);
+    // Death event should mention the Muhabir role name
+    const deathEvent = room.morningEvents.find(
+      (e) => e.kind === "death" && e.message.includes("Muhabir"),
+    );
+    expect(deathEvent).toBeDefined();
+  });
+
+  it("Muhabir lynched produces death morningEvent", () => {
+    const { room, ids } = makeRoom(["muhabir", "koylu", "koylu", "tefeci_basi"]);
+    const muhabirId = ids[0];
+
+    triggerVote(room, {
+      [ids[1]]: muhabirId,
+      [ids[2]]: muhabirId,
+      [ids[3]]: muhabirId,
+    });
+
+    expect(room.players.find((p) => p.id === muhabirId)!.isAlive).toBe(false);
+    const grave = room.graveyard.find((g) => g.playerId === muhabirId);
+    expect(grave).toBeDefined();
+  });
+});
+
+describe("17. Tiyatrocu fake role on death", () => {
+  it("graveyard shows fake role on night kill", () => {
+    const { room, ids } = makeRoom(["tefeci_basi", "tiyatrocu", "koylu", "koylu"]);
+    const tiyatrocuId = ids[1];
+    room.tiyatrocuFakeRoles[tiyatrocuId] = "falci";
+
+    triggerNight(room, (r) => {
+      r.ceteVotes[ids[0]] = tiyatrocuId;
+    });
+
+    expect(room.players.find((p) => p.id === tiyatrocuId)!.isAlive).toBe(false);
+    const grave = room.graveyard.find((g) => g.playerId === tiyatrocuId);
+    expect(grave).toBeDefined();
+    expect(grave!.roleId).toBe("falci");
+    // Real role still stored in players array
+    expect(room.players.find((p) => p.id === tiyatrocuId)!.roleId).toBe("tiyatrocu");
+  });
+
+  it("graveyard shows fake role on lynch", () => {
+    const { room, ids } = makeRoom(["tiyatrocu", "koylu", "koylu", "tefeci_basi"]);
+    const tiyatrocuId = ids[0];
+    room.tiyatrocuFakeRoles[tiyatrocuId] = "bekci";
+
+    triggerVote(room, {
+      [ids[1]]: tiyatrocuId,
+      [ids[2]]: tiyatrocuId,
+      [ids[3]]: tiyatrocuId,
+    });
+
+    const grave = room.graveyard.find((g) => g.playerId === tiyatrocuId);
+    expect(grave).toBeDefined();
+    expect(grave!.roleId).toBe("bekci");
+    expect(room.players.find((p) => p.id === tiyatrocuId)!.roleId).toBe("tiyatrocu");
   });
 });

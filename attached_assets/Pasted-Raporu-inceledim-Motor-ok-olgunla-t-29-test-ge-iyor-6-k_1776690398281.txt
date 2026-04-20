@@ -1,0 +1,230 @@
+Raporu inceledim. Motor çok olgunlaştı — 29 test geçiyor, 6 kenar durum kontrolü temiz çıktı, host transfer sistemi kuruldu. Kalan iki öneri (#156, #157) ve birkaç ince nokta var.
+
+Replit'e ver:
+
+---
+
+> Apply the following improvements to the Davetsiz Misafir codebase. All are small, targeted changes — do not refactor existing working code.
+>
+> ---
+>
+> **TASK #156 — Temp host warning when original host returns**
+>
+> When original host reconnects and host status is restored, the temporary host loses their host status silently. Add a clear notification for the temp host.
+>
+> In socket.ts, after host_restored logic:
+> ```typescript
+> // Notify the temp host they are no longer host
+> const tempHostPlayer = room.players.find(
+>   p => p.isHost === false && p.id !== room.hostId && p.isConnected
+> );
+> // Actually: find the player who WAS temp host (just had isHost set to false)
+> // Store tempHostSocketId before restoring, then emit:
+> io.to(tempHostSocketId).emit("host_transferred_away", {
+>   message: "Asıl yönetici geri döndü, yöneticilik iade edildi."
+> });
+> ```
+>
+> In GameContext.tsx, listen for "host_transferred_away":
+> ```typescript
+> socket.on("host_transferred_away", ({ message }) => {
+>   showToast(message, "info"); // same toast system used for host_restored
+> });
+> ```
+>
+> ---
+>
+> **TASK #157 — Clear originalHostId on intentional manual host transfer**
+>
+> Currently transferHost() does NOT clear originalHostId. This means if Host A manually gives host to Player B, then disconnects and reconnects, they silently reclaim host from B. This is wrong for intentional transfers.
+>
+> In transferHost() function in gameEngine.ts:
+> ```typescript
+> export function transferHost(room: Room, newHostId: string): void {
+>   const oldHost = room.players.find(p => p.isHost);
+>   if (!oldHost) return;
+>   oldHost.isHost = false;
+>   const newHost = room.players.find(p => p.id === newHostId);
+>   if (!newHost) return;
+>   newHost.isHost = true;
+>   room.hostId = newHostId;
+>   room.originalHostId = undefined; // ← ADD THIS LINE
+>   // Intentional transfer clears the auto-restore chain
+> }
+> ```
+>
+> ---
+>
+> **TASK #158 — Kıskanç Komşu win display on EndScreen**
+>
+> Currently personalAchievements shows Kıskanç Komşu co-winner as a "başarı" but visually it looks identical to Dedikoducu's personal achievement. Kıskanç Komşu co-winning is more significant — they effectively won alongside the main winner.
+>
+> In EndScreen.tsx, differentiate the two achievement types:
+> ```tsx
+> {personalAchievements.map(a => (
+>   <View key={a.playerId} style={[
+>     styles.achievementRow,
+>     a.roleId === 'kiskanc_komsu' ? styles.coWinnerRow : styles.personalRow
+>   ]}>
+>     <Text style={a.roleId === 'kiskanc_komsu' ? styles.coWinnerText : styles.achievementText}>
+>       {a.roleId === 'kiskanc_komsu' ? '🏆 ' : '⭐ '}{a.label}
+>     </Text>
+>   </View>
+> ))}
+> ```
+>
+> coWinnerRow: border color #F5C842 (gold), slightly larger text
+> personalRow: border color #1ECBE1 (teal), normal size
+>
+> ---
+>
+> **TASK #159 — Add missing test cases to cover recent edge cases**
+>
+> Add these test cases to gameEngine.test.ts (existing 29 tests must still pass):
+>
+> ```typescript
+> describe("13. Dedikoducu reversed vote + Politikacı collision", () => {
+>   it("reversed vote causes Politikacı elimination → instant evil win", async () => {
+>     // Setup: nextLynchReversed=true, Politikacı has lowest votes
+>     // Expected: endGame("kotu") called, Kırık Kalp chain checked first
+>   });
+> });
+>
+> describe("14. Host transfer during NIGHT_ROLE", () => {
+>   it("voice prompt re-queued when host disconnects mid-night", async () => {
+>     // Setup: phase=NIGHT_ROLE, nightStepIndex=3 (Kapıcı step)
+>     // Trigger: host disconnects
+>     // Expected: voiceQueue contains Kapıcı voice call
+>   });
+>
+>   it("originalHostId cleared after intentional transferHost()", async () => {
+>     // Setup: room with host A and player B
+>     // Action: transferHost(room, playerB.id)
+>     // Expected: room.originalHostId === undefined
+>   });
+> });
+>
+> describe("15. restartGame() full reset", () => {
+>   it("all extended state fields reset to initial values", async () => {
+>     // Play partial game, set kiskancLastCopied, innocentLynchedCount etc.
+>     // Call restartGame()
+>     // Expected: all fields at initial values
+>   });
+> });
+>
+> describe("16. Muhabir death reveals messages", () => {
+>   it("private messages broadcast to all on night kill", async () => {
+>     // Setup: Muhabir received 2 private messages during game
+>     // Trigger: night kill on Muhabir
+>     // Expected: morningEvents contains both messages as "info" type
+>   });
+>
+>   it("private messages broadcast on lynch", async () => {
+>     // Same but via resolveVote()
+>   });
+> });
+>
+> describe("17. Tiyatrocu fake role on death", () => {
+>   it("graveyard shows fake role, real role hidden", async () => {
+>     // Setup: Tiyatrocu with fakeRole="falci"
+>     // Trigger: night kill
+>     // Expected: graveyard entry has displayRoleId="falci", real roleId="tiyatrocu" only in player object
+>   });
+> });
+> ```
+>
+> Run `pnpm test` after adding — all 34+ tests should pass.
+>
+> ---
+>
+> **TASK #160 — UX: Day phase shows last night's events clearly**
+>
+> Currently morningEvents are shown but players joining mid-discussion may miss them. Add a persistent "Bu Sabah" summary card at top of DayScreen that stays visible until voting starts.
+>
+> In DayScreen.tsx:
+> ```tsx
+> {morningEvents.length > 0 && phase === 'DAY' && (
+>   <View style={styles.morningCard}>
+>     <Text style={styles.morningTitle}>🌅 Bu sabah</Text>
+>     {morningEvents.map((event, i) => (
+>       <Text key={i} style={[
+>         styles.morningEvent,
+>         event.type === 'death' ? styles.deathEvent :
+>         event.type === 'saved' ? styles.savedEvent : styles.infoEvent
+>       ]}>
+>         {event.message}
+>       </Text>
+>     ))}
+>   </View>
+> )}
+> ```
+>
+> Style: background #1A0A3E, border-left 3px solid:
+> - death events: #C8102E kırmızı
+> - saved events: #F5C842 amber
+> - info events: #1ECBE1 teal
+>
+> ---
+>
+> **TASK #161 — Role select: show team color on cards**
+>
+> In RoleSelectScreen.tsx, each of the 3 role cards should show a colored team badge so players know what faction they're picking:
+>
+> ```tsx
+> const teamColors = {
+>   iyi: '#F5C842',      // Mahalle — amber
+>   kotu: '#C8102E',     // Çete — kırmızı
+>   kaos: '#1ECBE1',     // Kargaşacılar — teal
+>   tarafsiz: '#9B7FD4'  // Yalnız Kurtlar — mor
+> };
+>
+> const teamLabels = {
+>   iyi: 'Mahalle',
+>   kotu: 'Davetsiz Misafir Çetesi',
+>   kaos: 'Kargaşacılar',
+>   tarafsiz: 'Yalnız Kurt'
+> };
+> ```
+>
+> Show as a small pill badge below the role name on each card. Team info is public — players can see what team a role belongs to before selecting.
+>
+> ---
+>
+> **TASK #162 — Night screen: show role action description**
+>
+> When a player's night turn arrives (NIGHT_ROLE phase, their step), show a brief reminder of what their action does above the target selector.
+>
+> In NightScreen.tsx, add a description box:
+> ```tsx
+> <View style={styles.actionDescBox}>
+>   <Text style={styles.actionDescText}>{currentRole.nightActionDescription}</Text>
+> </View>
+> ```
+>
+> Add `nightActionDescription` to each role in roles config:
+> ```typescript
+> bekci:    "Seçtiğin kişinin Mahalle mi, Çete mi olduğunu öğrenirsin.",
+> otaci:    "Seçtiğin kişiyi bu gece çete saldırısından korursun.",
+> falci:    "Seçtiğin kişinin tam rolünü öğrenirsin (bazen yanıltıcı olabilir).",
+> kapici:   "Seçtiğin kişinin evini kilitlersin — bu gece kimse giremez.",
+> hoca:     "Tek kullanımlık güçlü korumanı bu gece kime kullanacaksın?",
+> kumarbaz: "İki kişi seç — bu iki kişinin rolleri kalıcı olarak yer değiştirir.",
+> kiskanc:  "Bir kişiyi seç — o kişinin bu geceki eylemini kopyalarsın.",
+> kahraman_dede: "Bu gece kimi mahalleden uzaklaştıracaksın?",
+> anonim:   "Bir kişiyi işaretle. 3 işaretlediğin kişi linç edilirse kazanırsın.",
+> ```
+>
+> Style: background #2A1060, border-left 3px solid #F5C842, font-size 13, color #9B7FD4, margin-bottom 12.
+>
+> ---
+>
+> **SUMMARY — 7 tasks:**
+> - #156: Temp host uyarı toast'u
+> - #157: Manuel host devirde originalHostId sıfırlama
+> - #158: EndScreen'de Kıskanç ko-kazanma vurgulama
+> - #159: 5 yeni test senaryosu (toplam 34+ test)
+> - #160: DayScreen sabah özet kartı
+> - #161: RoleSelect kart renk rozeti
+> - #162: NightScreen eylem açıklaması
+>
+> After all changes run `pnpm test` and confirm all tests pass.

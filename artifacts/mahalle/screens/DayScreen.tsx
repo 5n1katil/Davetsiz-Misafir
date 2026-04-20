@@ -342,8 +342,8 @@ export default function DayScreen() {
 
         {state.morningEvents.length > 0 ? (
           <View style={styles.morningSection}>
-            <Text style={[styles.sectionHeading, { color: c.mutedForeground }]}>
-              SABAH DUYURUSU
+            <Text style={[styles.sectionHeading, { color: "#F5C842" }]}>
+              🌅 BU SABAH
             </Text>
             {state.morningEvents.map((e, i) => (
               <AnimatedEventCard

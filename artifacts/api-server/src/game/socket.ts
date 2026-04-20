@@ -109,6 +109,17 @@ export function attachSocketServer(http: HTTPServer) {
       // TTS was expected for this step and re-request if the voice event was
       // somehow missed (e.g. a race between reconnect and broadcast).
       if (res.hostRestored) {
+        // Geçici host'u bilgilendir: asıl yönetici geri döndü
+        if (res.tempHostId) {
+          const tempHostEntry = [...sessions.entries()].find(
+            ([, v]) => v.roomCode === res.room.code && v.playerId === res.tempHostId,
+          );
+          if (tempHostEntry) {
+            io.to(tempHostEntry[0]).emit("host_transferred_away", {
+              message: "Asıl yönetici geri döndü, yöneticilik iade edildi.",
+            });
+          }
+        }
         socket.emit("host_restored", {
           nightStepIndex: res.room.nightStepIndex,
         });

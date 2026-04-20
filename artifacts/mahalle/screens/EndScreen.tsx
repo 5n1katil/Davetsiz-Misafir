@@ -116,31 +116,41 @@ export default function EndScreen() {
             KİŞİSEL BAŞARILAR
           </Text>
           <View style={[styles.card, { backgroundColor: c.card, borderColor: "#1ECBE1" + "40", borderWidth: 1 }]}>
-            {personalAchievements.map((a, i) => (
-              <View
-                key={`${a.playerId}-${a.roleId}-${i}`}
-                style={{
-                  flexDirection: "row",
-                  paddingVertical: 10,
-                  alignItems: "flex-start",
-                  gap: 10,
-                  borderTopWidth: i > 0 ? StyleSheet.hairlineWidth : 0,
-                  borderTopColor: c.border,
-                }}
-              >
-                <View style={[styles.achieveBadge, { backgroundColor: "#1ECBE1" + "20" }]}>
-                  <Text style={{ fontSize: 20 }}>{ROLE_DEFS[a.roleId]?.emoji ?? "🏅"}</Text>
+            {personalAchievements.map((a, i) => {
+              const isCoWinner = a.roleId === "kiskanc_komsu";
+              const accent = isCoWinner ? "#F5C842" : "#1ECBE1";
+              return (
+                <View
+                  key={`${a.playerId}-${a.roleId}-${i}`}
+                  style={{
+                    flexDirection: "row",
+                    paddingVertical: 10,
+                    alignItems: "flex-start",
+                    gap: 10,
+                    borderTopWidth: i > 0 ? StyleSheet.hairlineWidth : 0,
+                    borderTopColor: c.border,
+                    borderLeftWidth: isCoWinner ? 3 : 0,
+                    borderLeftColor: isCoWinner ? "#F5C842" : "transparent",
+                    paddingLeft: isCoWinner ? 10 : 0,
+                    marginLeft: isCoWinner ? -14 : 0,
+                    paddingRight: isCoWinner ? 0 : 0,
+                  }}
+                >
+                  <View style={[styles.achieveBadge, { backgroundColor: accent + "20" }]}>
+                    <Text style={{ fontSize: 20 }}>{isCoWinner ? "🏆" : (ROLE_DEFS[a.roleId]?.emoji ?? "🏅")}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: accent, fontFamily: "Inter_600SemiBold", fontSize: isCoWinner ? 13 : 12, letterSpacing: 0.5 }}>
+                      {ROLE_DEFS[a.roleId]?.name ?? a.roleId}
+                      {isCoWinner ? " — Ko-Kazanan" : ""}
+                    </Text>
+                    <Text style={{ color: accent, fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19, marginTop: 2, opacity: 0.85 }}>
+                      {a.label}
+                    </Text>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: "#1ECBE1", fontFamily: "Inter_600SemiBold", fontSize: 12, letterSpacing: 0.5 }}>
-                    {ROLE_DEFS[a.roleId]?.name ?? a.roleId}
-                  </Text>
-                  <Text style={{ color: "#1ECBE1", fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19, marginTop: 2, opacity: 0.85 }}>
-                    {a.label}
-                  </Text>
-                </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
         </>
       )}

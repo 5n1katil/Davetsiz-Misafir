@@ -9,6 +9,7 @@ export interface RoleDef {
   winCondition: string;
   tips: string[];
   voteWeight: number;
+  nightActionDescription?: string;
 }
 
 export const ROLE_DEFS: Record<string, RoleDef> = {
@@ -48,6 +49,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "İçten Pazarlıklı seni 'Mahalle' olarak yanıltır — bilgin kesin değildir.",
     ],
     voteWeight: 1,
+    nightActionDescription: "Seçtiğin kişinin Mahalle mi, Çete mi olduğunu öğrenirsin.",
   },
   otaci: {
     id: "otaci",
@@ -66,6 +68,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "Kendini koruma hakkını sakla — en tehlikeli ana denk getir.",
     ],
     voteWeight: 1,
+    nightActionDescription: "Seçtiğin kişiyi bu gece çete saldırısından korursun.",
   },
   falci: {
     id: "falci",
@@ -84,6 +87,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "Aynı kişiyi iki ayrı gece sorgulayarak sonucu doğrulayabilirsin.",
     ],
     voteWeight: 1,
+    nightActionDescription: "Seçtiğin kişinin tam rolünü öğrenirsin (bazen yanıltıcı olabilir).",
   },
   kapici: {
     id: "kapici",
@@ -102,6 +106,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "Sabah aldığın özel özeti dikkatle oku — kimin saldırdığını ima eder.",
     ],
     voteWeight: 1,
+    nightActionDescription: "Seçtiğin kişinin evini kilitlersin — bu gece kimse giremez.",
   },
   muhabir: {
     id: "muhabir",
@@ -156,6 +161,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "Yanlış kişiye kullanırsan çete üyesini korumuş olabilirsin.",
     ],
     voteWeight: 1,
+    nightActionDescription: "Tek kullanımlık güçlü korumanı bu gece kime kullanacaksın?",
   },
   koylu: {
     id: "koylu",
@@ -267,6 +273,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "Son 3'e kadar hayatta kalmak yeterli — her turda varol.",
     ],
     voteWeight: 1,
+    nightActionDescription: "İki kişi seç — bu iki kişinin rolleri kalıcı olarak yer değiştirir.",
   },
   kiskanc_komsu: {
     id: "kiskanc_komsu",
@@ -285,6 +292,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "Hayatta kalmak birincil öncelik — kaosun ortasında kaybolup git.",
     ],
     voteWeight: 1,
+    nightActionDescription: "Bir kişiyi seç — o kişinin bu geceki eylemini kopyalarsın.",
   },
   kirik_kalp: {
     id: "kirik_kalp",
@@ -341,6 +349,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "Kim olduğunu açıklarsan mahalle ve çete seni birlikte etkisiz kılar.",
     ],
     voteWeight: 1,
+    nightActionDescription: "Bir kişiyi işaretle. 3 işaretlediğin kişi linç edilirse kazanırsın.",
   },
   kahraman_dede: {
     id: "kahraman_dede",
@@ -359,6 +368,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
       "Şifacı Teyze koruması saldırını püskürtebilir — kritik hedefleri tekrar dene.",
     ],
     voteWeight: 1,
+    nightActionDescription: "Bu gece kimi mahalleden uzaklaştıracaksın?",
   },
 };
 

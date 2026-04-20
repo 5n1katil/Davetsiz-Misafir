@@ -364,6 +364,13 @@ export default function NightScreen() {
         ) : null}
       </View>
 
+      {/* ── Action description (role ability reminder) ── */}
+      {roleDef?.nightActionDescription && !kumarbazFirst ? (
+        <View style={styles.actionDescBox}>
+          <Text style={styles.actionDescText}>{roleDef.nightActionDescription}</Text>
+        </View>
+      ) : null}
+
       {/* ── Instruction ── */}
       <View style={[styles.instructionBar, { borderColor: accent + "33" }]}>
         {roleId === "kumarbaz" && kumarbazSecond ? (
@@ -555,6 +562,22 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     marginTop: 4,
+  },
+  actionDescBox: {
+    marginHorizontal: 18,
+    marginBottom: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    backgroundColor: "#2A1060",
+    borderLeftWidth: 3,
+    borderLeftColor: "#F5C842",
+  },
+  actionDescText: {
+    color: "#9B7FD4",
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    lineHeight: 19,
   },
   infoNote: {
     flexDirection: "row",

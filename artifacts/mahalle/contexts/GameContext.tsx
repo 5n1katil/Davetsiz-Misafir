@@ -348,6 +348,9 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         onPress: () => setOpenHostPanelTrigger((n) => n + 1),
       });
     });
+    s.on("host_transferred_away", ({ message }: { message: string }) => {
+      setSystemToast({ message, id: Date.now() });
+    });
     setSocket(s);
     return () => {
       s.disconnect();

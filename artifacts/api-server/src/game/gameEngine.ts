@@ -207,7 +207,7 @@ export function joinRoom(
   code: string,
   socketId: string,
   nickname: string,
-): { room: Room; player: Player; hostRestored?: boolean } | { error: string } {
+): { room: Room; player: Player; hostRestored?: boolean; tempHostId?: string } | { error: string } {
   const room = rooms.get(code);
   if (!room) return { error: "Oda bulunamadı" };
 
@@ -240,7 +240,7 @@ export function joinRoom(
         }
       }
 
-      return { room, player: existing, hostRestored: true };
+      return { room, player: existing, hostRestored: true, tempHostId: tempHost?.id };
     }
 
     return { room, player: existing };
@@ -644,6 +644,7 @@ export function transferHost(
   if (oldHost) oldHost.isHost = false;
   newHost.isHost = true;
   room.hostId = newHostId;
+  room.originalHostId = undefined;
   return room;
 }
 

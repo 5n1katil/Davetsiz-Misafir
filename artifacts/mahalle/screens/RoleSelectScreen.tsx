@@ -125,17 +125,11 @@ function CardFan({ opts, remaining, emit, c, myPlayerId }: any) {
                 <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 17 }}>
                   {r.name}
                 </Text>
-                <Text
-                  style={{
-                    marginTop: 2,
-                    fontFamily: "Inter_700Bold",
-                    fontSize: 10,
-                    letterSpacing: 1.5,
-                    color: teamColor,
-                  }}
-                >
-                  {ROLE_TEAM_LABEL[r.team]}
-                </Text>
+                <View style={[styles.teamPill, { backgroundColor: teamColor + "22", borderColor: teamColor + "66" }]}>
+                  <Text style={{ fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 1.5, color: teamColor }}>
+                    {ROLE_TEAM_LABEL[r.team]}
+                  </Text>
+                </View>
                 <Text style={{ color: c.mutedForeground, marginTop: 6, fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 18 }}>
                   {r.description}
                 </Text>
@@ -174,5 +168,13 @@ const styles = StyleSheet.create({
   avatarImg: {
     width: "100%",
     height: "100%",
+  },
+  teamPill: {
+    alignSelf: "flex-start",
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    marginTop: 4,
   },
 });
