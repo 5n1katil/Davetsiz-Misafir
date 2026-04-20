@@ -48,7 +48,7 @@ export interface NightAction {
 }
 
 export interface MorningEvent {
-  kind: "death" | "calm" | "saved" | "sahte_dernek_lynched" | "info";
+  kind: "death" | "calm" | "saved" | "sahte_dernek_lynched" | "info" | "blocked";
   message: string;
   victims?: string[];
 }
@@ -1080,7 +1080,7 @@ function resolveMorning(room: Room) {
     const isProtected = protectedIds.has(ceteTarget);
 
     if (isLocked && !isProtected) {
-      room.morningEvents.push({ kind: "calm", message: "Bu sabah mahalle sakindir. Kimse kaybolmamış." });
+      room.morningEvents.push({ kind: "blocked", message: "Bu gece bir kapı kilitliydi — saldırı geri döndü." });
     } else if (isProtected) {
       const savedPlayer = room.players.find((p) => p.id === ceteTarget);
       const savedName = savedPlayer ? savedPlayer.nickname : "Biri";
@@ -1188,7 +1188,8 @@ function resolveMorning(room: Room) {
   if (
     victims.length === 0 &&
     !room.morningEvents.some((e) => e.kind === "death") &&
-    !room.morningEvents.some((e) => e.kind === "saved")
+    !room.morningEvents.some((e) => e.kind === "saved") &&
+    !room.morningEvents.some((e) => e.kind === "blocked")
   ) {
     room.morningEvents.push({ kind: "calm", message: "Bu sabah mahalle sakindir. Kimse kaybolmamış." });
   }

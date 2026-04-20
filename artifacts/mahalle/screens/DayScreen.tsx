@@ -13,7 +13,7 @@ import { useReduceMotion } from "@/hooks/useReduceMotion";
 import roleImages from "@/constants/roleImages";
 
 interface MorningEvent {
-  kind: "death" | "calm" | "saved" | "info" | "sahte_dernek_lynched";
+  kind: "death" | "calm" | "saved" | "info" | "sahte_dernek_lynched" | "blocked";
   message: string;
   victims?: string[];
 }
@@ -49,6 +49,13 @@ const EVENT_CONFIG: Record<
     borderColor: "#166534",
     textColor: "#4ADE80",
     label: "KURTARILDI",
+  },
+  blocked: {
+    icon: "🚪",
+    bgColor: "#1A1209",
+    borderColor: "#92400E",
+    textColor: "#FCD34D",
+    label: "KAPIYLA ENGELLENDİ",
   },
   info: {
     icon: "ℹ️",
