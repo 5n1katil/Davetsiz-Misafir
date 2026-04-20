@@ -14,7 +14,7 @@ Expo mobile app, App Store hedefli.
 - Tests: pnpm --filter @workspace/api-server run test
 
 ## Test Durumu
-41 vitest testi — tamamı geçiyor (36 gameEngine + 5 multiplayer socket).
+46 vitest testi — tamamı geçiyor (41 gameEngine + 5 multiplayer socket).
 
 ## Roller (19 adet)
 Mahalle (9): muhtar, bekci, otaci, falci, kapici, muhabir, tiyatrocu, hoca, koylu
@@ -22,7 +22,7 @@ Mahalle (9): muhtar, bekci, otaci, falci, kapici, muhabir, tiyatrocu, hoca, koyl
 Kargaşacılar (4): kumarbaz, kiskanc_komsu, kirik_kalp, dedikoducu
 Yalnız Kurtlar (2): anonim, kahraman_dede
 
-## Tamamlanan Özellikler (Son Güncelleme: #178-#183)
+## Tamamlanan Özellikler (Son Güncelleme: #184-#189)
 - #178 TS uyarıları: gameEngine.ts simulateGame() içindeki 3 tür daraltma uyarısı `(room.phase as Phase)` cast ile düzeltildi
 - #179 Multiplayer socket testleri: 5 yeni vitest testi (oda kurma, disconnect/geçici host, yeniden bağlanma, 4 oyuncuyla oyun başlatma, hata yönetimi) — hepsi geçiyor
 - #180 Host ayarları: RoomSettings'e `voteDurationSec` (30/45/60sn) ve `rolePackage` (standard/advanced/all) eklendi; LobbyScreen'de UI; openVote dinamik süre kullanıyor

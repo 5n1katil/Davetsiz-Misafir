@@ -10,6 +10,7 @@ import {
   restartGame,
   type Room,
 } from "../gameEngine.js";
+import { buildRolePool } from "../roles.js";
 
 let socketCounter = 0;
 function uniqueSocket(): string {
@@ -736,5 +737,59 @@ describe("17. Tiyatrocu fake role on death", () => {
     expect(grave).toBeDefined();
     expect(grave!.roleId).toBe("bekci");
     expect(room.players.find((p) => p.id === tiyatrocuId)!.roleId).toBe("tiyatrocu");
+  });
+});
+
+describe("18. rolePackage filtresi", () => {
+  it("standard pakette kaos/tarafsız rol yok", () => {
+    const pool = buildRolePool(8, { rolePackage: "standard" });
+    const kaosRoles = ["kumarbaz", "kiskanc_komsu", "kirik_kalp", "dedikoducu"];
+    const tarafsizRoles = ["anonim", "kahraman_dede"];
+    expect(pool.some((r) => kaosRoles.includes(r))).toBe(false);
+    expect(pool.some((r) => tarafsizRoles.includes(r))).toBe(false);
+  });
+
+  it("standard pakette tiyatrocu/falci yok", () => {
+    const pool = buildRolePool(8, { rolePackage: "standard" });
+    expect(pool.includes("tiyatrocu")).toBe(false);
+    expect(pool.includes("falci")).toBe(false);
+  });
+
+  it("all pakette 25 oyuncuyla pool 25 uzunluğunda", () => {
+    const pool = buildRolePool(25, { rolePackage: "all" });
+    expect(pool.length).toBe(25);
+  });
+
+  it("pool uzunluğu her zaman playerCount kadar", () => {
+    for (const n of [4, 8, 14, 20, 30]) {
+      const pool = buildRolePool(n, { rolePackage: "all" });
+      expect(pool.length).toBe(n);
+    }
+  });
+});
+
+describe("19. Lobby fazında host reconnect", () => {
+  it("LOBBY fazında ayrılan host geri bağlanınca host statüsü restore edilir", () => {
+    const { room, ids } = makeRoom(["koylu", "koylu", "koylu", "koylu"]);
+
+    // Simüle: host bağlantısını kesti, geçici host belirlendi
+    const hostId = ids[0];
+    room.phase = "LOBBY";
+    room.players[0].isConnected = false;
+    room.players[0].isHost = false;
+    room.players[1].isHost = true;
+    room.hostId = ids[1];
+    room.originalHostId = hostId;
+
+    // Orijinal host aynı nickname ile geri bağlanıyor
+    const result = joinRoom(room.code, "restored-socket", room.players[0].nickname);
+    expect("error" in result).toBe(false);
+    if ("error" in result) return;
+
+    expect(result.hostRestored).toBe(true);
+    expect(room.players[0].isHost).toBe(true);
+    expect(room.players[1].isHost).toBe(false);
+    expect(room.hostId).toBe(hostId);
+    expect(room.originalHostId).toBeUndefined();
   });
 });

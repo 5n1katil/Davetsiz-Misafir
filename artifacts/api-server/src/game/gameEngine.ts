@@ -285,16 +285,28 @@ export function leaveRoom(
     const p = room.players.find((x) => x.socketId === socketId);
     if (!p) continue;
     if (room.phase === "LOBBY") {
+      if (p.isHost) {
+        // Host lobi'den ayrıldığında: listeye bırak (isConnected=false) ve
+        // originalHostId'yi kaydet — geri bağlanırsa host statüsü iade edilir.
+        p.isConnected = false;
+        p.socketId = null;
+        const candidate = room.players.find((x) => x.id !== p.id);
+        if (!candidate) {
+          // Son oyuncu: odayı sil
+          rooms.delete(room.code);
+          return { room: null };
+        }
+        p.isHost = false;
+        candidate.isHost = true;
+        room.hostId = candidate.id;
+        room.originalHostId = p.id;
+        return { room, newHost: { id: candidate.id, nickname: candidate.nickname } };
+      }
+      // Misafir lobi'den ayrıldığında: listeden çıkar
       room.players = room.players.filter((x) => x.id !== p.id);
       if (room.players.length === 0) {
         rooms.delete(room.code);
         return { room: null };
-      }
-      // Host devri
-      if (p.isHost && room.players.length > 0) {
-        room.players[0].isHost = true;
-        room.hostId = room.players[0].id;
-        return { room, newHost: { id: room.players[0].id, nickname: room.players[0].nickname } };
       }
     } else {
       p.isConnected = false;
@@ -357,9 +369,10 @@ export function startGame(
   const room = rooms.get(code);
   if (!room) return { error: "Oda bulunamadı" };
   if (room.hostId !== playerId) return { error: "Sadece host başlatabilir" };
-  if (room.players.length < 4) return { error: "En az 4 oyuncu gerek" };
+  const connectedCount = room.players.filter((p) => p.isConnected).length;
+  if (connectedCount < 4) return { error: "En az 4 bağlı oyuncu gerek" };
 
-  room.rolePool = shuffle(buildRolePool(room.players.length));
+  room.rolePool = shuffle(buildRolePool(room.players.length, room.settings));
   room.roleSelectQueue = shuffle(room.players).map((p) => p.id);
   room.roleSelectIndex = 0;
   room.phase = "ROLE_SELECT";

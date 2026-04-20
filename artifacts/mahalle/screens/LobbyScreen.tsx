@@ -422,9 +422,12 @@ function HostSettings({ c, state, emit }: any) {
 
   const toggleSpecial = (id: string) => {
     const list: string[] = state.settings.activeSpecialRoles;
-    const next = list.includes(id) ? list.filter((x) => x !== id) : [...list, id];
+    const next = list.includes(id) ? list.filter((x: string) => x !== id) : [...list, id];
     emit("updateSettings", { patch: { activeSpecialRoles: next } });
   };
+
+  const connectedCount: number = state.players.filter((p: any) => p.isConnected).length;
+  const canStart: boolean = connectedCount >= 4;
 
   return (
     <>
@@ -516,11 +519,20 @@ function HostSettings({ c, state, emit }: any) {
               emit("updateSettings", { patch: { rolePackage: "all" } }),
             )}
           </View>
+          <Text style={styles.packageDesc}>
+            {(state.settings.rolePackage ?? "all") === "standard"
+              ? "Bekçi, Şifacı, Kapıcı — Yeni oyuncular için ideal."
+              : (state.settings.rolePackage ?? "all") === "advanced"
+              ? "Tüm mahalle rolleri + Kırık Kalp, Dedikoducu."
+              : "Kumarbaz, Anonim, Kahraman Dede dahil tam 19 rol. Kaotik!"}
+          </Text>
         </View>
       </View>
       <Btn
-        label={state.players.length < 4 ? `En az 4 oyuncu (${state.players.length}/4)` : "Oyunu Başlat"}
-        disabled={state.players.length < 4}
+        label={canStart
+          ? "Oyunu Başlat"
+          : `Başlamak için ${4 - connectedCount} kişi daha`}
+        disabled={!canStart}
         onPress={() => emit("startGame")}
         style={{ marginTop: 18 }}
       />
@@ -681,6 +693,7 @@ const styles = StyleSheet.create({
   // ── In-room / lobby (uses c.* theme tokens) ────────────────────────────────
   card: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 12 },
   label: { fontFamily: "Inter_500Medium", fontSize: 12, letterSpacing: 0.5, textTransform: "uppercase" },
+  packageDesc: { fontFamily: "Inter_400Regular", fontSize: 11, color: "#4A2E7A", fontStyle: "italic", marginTop: 4 },
   input: {
     borderRadius: 10,
     borderWidth: 1,

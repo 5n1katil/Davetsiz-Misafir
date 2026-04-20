@@ -1,0 +1,279 @@
+Proje çok olgun bir noktada. 41/41 test, sıfır TypeScript hatası, tüm ekranlar tamamlanmış. Kalan 5 eksikten en kritiki `rolePackage` bağlantısı — diğerleri dağıtım öncesi adımlar. Replit'e ver:
+
+---
+
+> Final pre-launch tasks for Davetsiz Misafir. Apply in order:
+>
+> ---
+>
+> **TASK #184 — rolePackage buildRolePool'a bağla**
+>
+> Bu en kritik eksik — host "Standart" seçse de tüm 19 rol havuza giriyor.
+>
+> In `artifacts/api-server/src/game/roles.ts`, update `buildRolePool()`:
+>
+> ```typescript
+> export function buildRolePool(
+>   playerCount: number,
+>   settings: RoomSettings
+> ): string[] {
+>   const pkg = settings.rolePackage ?? 'all';
+>
+>   // Her pakette hangi özel mahalle rolleri aktif
+>   const specialMahalleByPackage: Record<string, string[]> = {
+>     standard: ['bekci', 'otaci', 'kapici'],
+>     advanced: ['bekci', 'otaci', 'kapici', 'falci', 'muhtar', 'muhabir', 'hoca'],
+>     all:      ['bekci', 'otaci', 'kapici', 'falci', 'muhtar', 'muhabir', 'hoca', 'tiyatrocu']
+>   };
+>
+>   // Kaos rolleri
+>   const kaosByPackage: Record<string, string[]> = {
+>     standard:  [],
+>     advanced:  ['kirik_kalp', 'dedikoducu'],
+>     all:       ['kumarbaz', 'kiskanc_komsu', 'kirik_kalp', 'dedikoducu']
+>   };
+>
+>   // Tarafsız roller
+>   const tarafsizByPackage: Record<string, string[]> = {
+>     standard:  [],
+>     advanced:  [],
+>     all:       ['anonim', 'kahraman_dede']
+>   };
+>
+>   const specialMahalle = specialMahalleByPackage[pkg];
+>   const kaosRoles      = kaosByPackage[pkg];
+>   const tarafsizRoles  = tarafsizByPackage[pkg];
+>
+>   // Oyuncu sayısına göre çete ve özel slot hesapla
+>   const distribution = getRoleDistribution(playerCount);
+>   // distribution: { evilCount, tahsildarCount, politikaciCount, ictenCount,
+>   //                 kaosCount, tarafsizCount, specialMahalleCount }
+>
+>   const pool: string[] = [];
+>
+>   // Çete
+>   pool.push('tefeci_basi');
+>   for (let i = 0; i < distribution.tahsildarCount; i++) pool.push('tahsildar');
+>   if (distribution.politikaciCount) pool.push('sahte_dernek');
+>   if (distribution.ictenCount) pool.push('icten_pazarlikli');
+>
+>   // Özel mahalle (shuffle + slice)
+>   const shuffledMahalle = [...specialMahalle].sort(() => Math.random() - 0.5);
+>   for (let i = 0; i < Math.min(distribution.specialMahalleCount, shuffledMahalle.length); i++) {
+>     pool.push(shuffledMahalle[i]);
+>   }
+>
+>   // Kaos (shuffle + slice)
+>   if (distribution.kaosCount > 0 && kaosRoles.length > 0) {
+>     const shuffledKaos = [...kaosRoles].sort(() => Math.random() - 0.5);
+>     for (let i = 0; i < Math.min(distribution.kaosCount, shuffledKaos.length); i++) {
+>       pool.push(shuffledKaos[i]);
+>     }
+>   }
+>
+>   // Tarafsız (shuffle + slice)
+>   if (distribution.tarafsizCount > 0 && tarafsizRoles.length > 0) {
+>     const shuffledTarafsiz = [...tarafsizRoles].sort(() => Math.random() - 0.5);
+>     for (let i = 0; i < Math.min(distribution.tarafsizCount, shuffledTarafsiz.length); i++) {
+>       pool.push(shuffledTarafsiz[i]);
+>     }
+>   }
+>
+>   // Kalan slotları koylu ile doldur
+>   while (pool.length < playerCount) pool.push('koylu');
+>
+>   return pool;
+> }
+> ```
+>
+> Add test for rolePackage in `gameEngine.test.ts`:
+>
+> ```typescript
+> describe('17. rolePackage filtresi', () => {
+>   it('standard pakette kaos/tarafsız rol yok', () => {
+>     const pool = buildRolePool(8, { rolePackage: 'standard', voteDurationSec: 30 });
+>     const kaosRoles = ['kumarbaz', 'kiskanc_komsu', 'kirik_kalp', 'dedikoducu'];
+>     const tarafsizRoles = ['anonim', 'kahraman_dede'];
+>     expect(pool.some(r => kaosRoles.includes(r))).toBe(false);
+>     expect(pool.some(r => tarafsizRoles.includes(r))).toBe(false);
+>   });
+>
+>   it('standard pakette tiyatrocu/falci yok', () => {
+>     const pool = buildRolePool(8, { rolePackage: 'standard', voteDurationSec: 30 });
+>     expect(pool.includes('tiyatrocu')).toBe(false);
+>     expect(pool.includes('falci')).toBe(false);
+>   });
+>
+>   it('all pakette tüm kaos rolleri havuzda olabilir', () => {
+>     const pool = buildRolePool(25, { rolePackage: 'all', voteDurationSec: 30 });
+>     expect(pool.length).toBe(25);
+>   });
+>
+>   it('pool uzunluğu her zaman playerCount kadar', () => {
+>     [4, 8, 14, 20, 30].forEach(n => {
+>       const pool = buildRolePool(n, { rolePackage: 'all', voteDurationSec: 30 });
+>       expect(pool.length).toBe(n);
+>     });
+>   });
+> });
+> ```
+>
+> ---
+>
+> **TASK #185 — Lobby fazında host reconnect**
+>
+> Şu an `originalHostId` mekanizması yalnızca in-game fazlarda çalışıyor. LOBBY fazında host çıkıp geri gelirse host statüsü restore edilmiyor.
+>
+> In `gameEngine.ts`, `joinRoom()` fonksiyonunda reconnect bloğunu güncelle:
+>
+> ```typescript
+> // Mevcut: yalnızca non-LOBBY fazlarda restore
+> // Güncelleme: LOBBY dahil tüm fazlarda restore
+>
+> if (existing && existing.id === room.originalHostId) {
+>   // Tüm fazlarda restore et (LOBBY dahil)
+>   const tempHost = room.players.find(p => p.isHost && p.id !== existing.id);
+>   if (tempHost) tempHost.isHost = false;
+>   existing.isHost = true;
+>   room.hostId = existing.id;
+>   room.originalHostId = undefined;
+>
+>   // NIGHT_ROLE'da ses yeniden kuyruğa ekle (mevcut davranış korunuyor)
+>   if (room.phase === 'NIGHT_ROLE') {
+>     const currentStep = room.nightOrderQueue[room.nightStepIndex];
+>     if (currentStep?.voiceCallTr) {
+>       room.voiceQueue.push(currentStep.voiceCallTr);
+>     }
+>   }
+>
+>   return { ...result, hostRestored: true };
+> }
+> ```
+>
+> Add test:
+> ```typescript
+> describe('18. Lobby fazında host reconnect', () => {
+>   it('LOBBY fazında ayrılan host geri bağlanınca host statüsü restore edilir', async () => {
+>     const room = makeRoom(['koylu', 'koylu']);
+>     room.phase = 'LOBBY';
+>
+>     // Host ayrılır
+>     const hostId = room.players[0].id;
+>     room.players[0].isConnected = false;
+>     room.players[1].isHost = true;
+>     room.hostId = room.players[1].id;
+>     room.originalHostId = hostId;
+>
+>     // Host geri bağlanır
+>     const result = joinRoom(room.code, 'new-socket', room.players[0].nickname);
+>     expect(result.hostRestored).toBe(true);
+>     expect(room.players[0].isHost).toBe(true);
+>     expect(room.players[1].isHost).toBe(false);
+>     expect(room.originalHostId).toBeUndefined();
+>   });
+> });
+> ```
+>
+> ---
+>
+> **TASK #186 — buildRolePool roleSelectQueue sırasını karıştır**
+>
+> Şu an rol seçim sırası her zaman aynı oyuncu ile başlıyor. Karıştır:
+>
+> In `gameEngine.ts`, `startGame()` içinde:
+> ```typescript
+> // Mevcut:
+> room.roleSelectQueue = room.players.map(p => p.id);
+>
+> // Güncelle:
+> room.roleSelectQueue = [...room.players.map(p => p.id)]
+>   .sort(() => Math.random() - 0.5);
+> ```
+>
+> Bu zaten yapılıyorsa kontrol et ve atla.
+>
+> ---
+>
+> **TASK #187 — LobbyScreen: rolePackage açıklaması**
+>
+> Host "Standart" seçtiğinde hangi rollerin aktif olacağını bilmiyor. Kısa açıklama ekle:
+>
+> In `LobbyScreen.tsx`, rol paketi seçeneğinin altına:
+>
+> ```tsx
+> const rolePackageDescriptions = {
+>   standard: 'Bekçi, Şifacı, Kapıcı — Yeni oyuncular için ideal.',
+>   advanced: 'Tüm mahalle rolleri + Kırık Kalp, Dedikoducu.',
+>   all: 'Kumarbaz, Anonim, Kahraman Dede dahil tam 19 rol. Kaotik!'
+> };
+>
+> <Text style={styles.packageDesc}>
+>   {rolePackageDescriptions[settings.rolePackage ?? 'all']}
+> </Text>
+> ```
+>
+> Style: font-size 11, color `#4A2E7A`, italic, margin-top 4.
+>
+> ---
+>
+> **TASK #188 — Oyun başlamadan önce minimum oyuncu kontrolü**
+>
+> Host 1-3 kişiyle oyunu başlatabilir ama bu dengesiz oyun yaratır. Minimum 4 oyuncu zorunlu olsun:
+>
+> In `gameEngine.ts`, `startGame()` başına:
+>
+> ```typescript
+> const MIN_PLAYERS = 4;
+> if (room.players.filter(p => p.isConnected).length < MIN_PLAYERS) {
+>   return { error: 'MIN_PLAYERS', message: `En az ${MIN_PLAYERS} oyuncu gerekli.` };
+> }
+> ```
+>
+> In `socket.ts`, `start_game` handler:
+> ```typescript
+> const result = startGame(room);
+> if (result?.error === 'MIN_PLAYERS') {
+>   socket.emit('error', {
+>     code: 'MIN_PLAYERS',
+>     message: result.message
+>   });
+>   return;
+> }
+> ```
+>
+> In `LobbyScreen.tsx`, "Oyunu Başlat" butonunu disable et:
+> ```tsx
+> const connectedCount = players.filter(p => p.isConnected).length;
+> const canStart = isHost && connectedCount >= 4;
+>
+> <Btn
+>   label={canStart ? 'Oyunu Başlat' : `Başlamak için ${4 - connectedCount} kişi daha`}
+>   disabled={!canStart}
+>   onPress={handleStartGame}
+>   style={canStart ? styles.startBtn : styles.startBtnDisabled}
+> />
+> ```
+>
+> ---
+>
+> **TASK #189 — Son test çalıştırması**
+>
+> ```bash
+> pnpm --filter @workspace/api-server run test
+> ```
+>
+> Hedef: 41 mevcut + 5 yeni (#184'ten 4 + #185'ten 1) = 46+ test.
+>
+> Ardından:
+> ```bash
+> pnpm --filter @workspace/api-server run build
+> pnpm --filter @workspace/mahalle exec tsc --noEmit
+> ```
+>
+> Her ikisinde sıfır hata bekleniyor.
+>
+> Son durum raporu istiyorum:
+> - Test sayısı (pass/fail)
+> - Kalan eksikler (yalnızca EAS/cihaz gerektiren işler)
+> - gameEngine.ts güncel satır sayısı
+> - App Store'a göndermek için gereken adımlar listesi
