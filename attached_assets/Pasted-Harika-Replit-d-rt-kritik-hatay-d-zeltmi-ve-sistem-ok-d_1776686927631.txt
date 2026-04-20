@@ -1,0 +1,130 @@
+Harika — Replit dört kritik hatayı düzeltmiş ve sistem çok daha sağlam görünüyor. Raporu inceledim, şu an gerçekten oynanabilir bir motor var. Kalan açık noktalara bakayım.
+
+---
+
+## MEVCUT DURUM DEĞERLENDİRMESİ
+
+**Düzeltilmiş ve çalışan:**
+- endGame() idempotency ✅
+- Politikacı + Kırık Kalp sıralaması ✅
+- Dedikoducu masum linç takibi ✅
+- Kıskanç kiskancLastCopied kalıcı ✅
+- personalAchievements ✅
+- Ölü İçten Pazarlıklı sızdırmaz ✅
+- Ölü Hoca koruma yapmaz ✅
+
+**Hâlâ belirsiz / test edilmesi gereken 6 nokta var. Replit'e ver:**
+
+---
+
+> Review and fix the following remaining edge cases in gameEngine.ts. These are not confirmed bugs — verify each one exists in the code, fix only if the issue is present:
+>
+> ---
+>
+> **CHECK 1 — Kıskanç Komşu win condition in checkWin()**
+>
+> Verify that checkWin() correctly evaluates Kıskanç Komşu's effective team using kiskancLastCopied. The rule: Kıskanç Komşu wins alongside whoever they last copied, IF that person's team wins.
+>
+> Expected logic in checkWin():
+> ```typescript
+> // After determining the main winner (e.g. "iyi", "kotu", etc.)
+> // Check if Kıskanç Komşu should be added as co-winner
+> for (const [kiskancId, lastCopiedId] of Object.entries(room.kiskancLastCopied ?? {})) {
+>   const kiskanc = room.players.find(p => p.id === kiskancId && p.isAlive);
+>   const lastCopied = room.players.find(p => p.id === lastCopiedId);
+>   if (kiskanc && lastCopied && lastCopied.team === mainWinnerTeam) {
+>     room.personalAchievements.push({
+>       playerId: kiskancId,
+>       roleId: 'kiskanc_komsu',
+>       label: `${lastCopied.nickname} ile aynı kaderi paylaştı — kişisel zafer!`
+>     });
+>   }
+> }
+> ```
+> If this logic is missing or incorrect, add it.
+>
+> ---
+>
+> **CHECK 2 — Mahalle win condition includes neutral dangerous roles correctly**
+>
+> Verify that checkWin() Mahalle win check (priority 6) correctly blocks winning while BOTH anonim AND kahraman_dede are alive. Current expected logic:
+> ```typescript
+> const dangerousNeutrals = alivePlayers.filter(p =>
+>   p.roleId === 'anonim' || p.roleId === 'kahraman_dede'
+> );
+> if (evilAlive === 0 && dangerousNeutrals.length === 0) return 'iyi';
+> ```
+> Confirm this is using roleId not team for the check — team "tarafsiz" alone is insufficient since Kıskanç Komşu is also "kaos" but is NOT dangerous.
+>
+> ---
+>
+> **CHECK 3 — Kumarbaz swap edge case: swapping a protected player**
+>
+> Scenario: Kumarbaz swaps Player A (Şifacı) with Player B (evil) on Night 1.
+> Kumarbaz swap happens at nightOrder 1 — BEFORE Şifacı acts at nightOrder 5.
+> After swap, Player B now has Şifacı role and will be prompted to protect someone.
+> Player B's protection is valid and applies — this is correct intended behavior.
+>
+> Verify that after Kumarbaz swap in resolveMorning ADIM 1, the night action queue for that same night does NOT re-execute the already-completed actions. The swap should only affect FUTURE nights, not retroactively change actions already submitted that same night.
+>
+> If any action submitted before the swap is re-evaluated using the new roleId, fix it to use the roleId at time of submission.
+>
+> ---
+>
+> **CHECK 4 — Anonim killed at night: Mahalle win triggers correctly**
+>
+> Scenario: Kahraman Dede kills Anonim at night. After killPlayer(anonim), checkWin() should now be able to return 'iyi' if evil is also dead.
+>
+> Verify that killPlayer() calls checkWin() after every death — not only at end of resolveMorning(). If checkWin() is only called at end of resolveMorning, a night where both the last evil player AND Anonim die would correctly resolve since both die before checkWin() runs. However if there is a mid-resolution endGame() call that fires before all deaths are processed, it could prematurely end the game.
+>
+> Confirm the death resolution order in resolveMorning is:
+> 1. All kills resolved (ADIM 5 + 6)
+> 2. Chain deaths resolved (Kırık Kalp)
+> 3. checkWin() called ONCE at the end
+>
+> If checkWin() is called multiple times mid-resolution, consolidate to a single call at the end.
+>
+> ---
+>
+> **CHECK 5 — Dedikoducu reversed vote + Sahte Dernek Başkanı collision**
+>
+> Scenario: nextLynchReversed is true (Dedikoducu died last night). Today's vote reverses — the player with LEAST votes is eliminated. If that player happens to be Sahte Dernek Başkanı, does the instant evil win trigger?
+>
+> Expected behavior: YES — if reversed vote causes Sahte Dernek Başkanı to be eliminated via this vote (even reversed), it counts as a lynch and evil wins instantly.
+>
+> Verify in resolveVote(): the Sahte Dernek Başkanı check runs AFTER the reversed winner is determined, not before. If it currently only checks the normal highest-vote winner, fix it to also check the reversed winner:
+>
+> ```typescript
+> const eliminated = nextLynchReversed ? lowestVotePlayer : highestVotePlayer;
+> if (eliminated.roleId === 'sahte_dernek') {
+>   // process death first, then endGame
+>   killPlayer(eliminated.id, 'lynch');
+>   checkKirikKalpDeath(room, eliminated.id);
+>   endGame('kotu');
+>   return;
+> }
+> ```
+>
+> ---
+>
+> **CHECK 6 — Host transfer during NIGHT_ROLE phase**
+>
+> When host disconnects during NIGHT_ROLE phase, a new host is assigned. Verify:
+> - The new host's device starts playing TTS voice prompts from the CURRENT step (not from the beginning)
+> - The timer state (elapsed time) is correctly transferred
+> - If the old host had a pending night action (their own role's turn), it is not lost — the new host can still submit it
+>
+> If host transfer during active night role steps causes the voice queue to restart or the step to repeat, fix by storing current nightStep index in room state and resuming from that index on reconnect.
+>
+> ---
+>
+> **AFTER all checks: run a complete game simulation**
+>
+> Add a server-side test function `simulateGame()` that:
+> 1. Creates a room with 8 players
+> 2. Assigns roles: tefeci_basi, tahsildar, sahte_dernek, bekci, otaci, falci, dedikoducu, koylu
+> 3. Runs 3 night/day cycles automatically with predetermined actions
+> 4. Verifies checkWin() fires correctly
+> 5. Logs all events to console
+>
+> This is for debugging only — add it behind a `?simulate=true` query param on a test endpoint. Do not expose in production.

@@ -266,6 +266,18 @@ export function leaveRoom(
           p.isHost = false;
           candidate.isHost = true;
           room.hostId = candidate.id;
+          // Re-queue current step's voice prompt so the new host's device hears it.
+          // voiceQueue may have already been consumed by the departing host; pushing here
+          // ensures the new host client gets the TTS cue on next poll.
+          if (room.phase === "NIGHT_ROLE" && room.nightStepIndex < room.nightOrderQueue.length) {
+            const currentStep = room.nightOrderQueue[room.nightStepIndex];
+            if (currentStep.roleId === "_cete") {
+              room.voiceQueue.push(ROLES.tefeci_basi.voiceCallTr);
+            } else {
+              const r = ROLES[currentStep.roleId];
+              if (r?.voiceCallTr) room.voiceQueue.push(r.voiceCallTr);
+            }
+          }
           return { room, newHost: { id: candidate.id, nickname: candidate.nickname } };
         }
       }
@@ -1781,6 +1793,108 @@ function endGame(room: Room, winner: string, label: string) {
   }
 }
 
+// ── SIMULATE GAME (debug only, never call in production paths) ────────────────
+export function simulateGame(): { log: string[]; result: string | null } {
+  const log: string[] = [];
+  const say = (msg: string) => { log.push(msg); console.log("[simulateGame]", msg); };
+
+  // 1. Create room
+  const room = createRoom("SIM_SOCKET_0", "Host");
+  say(`Oda oluşturuldu: ${room.code}`);
+
+  // 2. Add 7 more players (total 8)
+  const nicknames = ["Ahmet", "Ayşe", "Mehmet", "Fatma", "Ali", "Veli", "Zeynep"];
+  const playerIds: string[] = [room.players[0].id];
+  for (let i = 0; i < 7; i++) {
+    const res = joinRoom(room.code, `SIM_SOCKET_${i + 1}`, nicknames[i]);
+    if ("error" in res) { say(`Katılım hatası: ${res.error}`); return { log, result: null }; }
+    playerIds.push(res.player.id);
+    say(`Oyuncu eklendi: ${nicknames[i]} (${res.player.id})`);
+  }
+
+  // 3. Manually assign roles (bypass ROLE_SELECT phase)
+  const assignedRoles = [
+    "tefeci_basi",  // Host
+    "tahsildar",    // Ahmet
+    "sahte_dernek", // Ayşe (Politikacı)
+    "bekci",        // Mehmet
+    "otaci",        // Fatma (Şifacı Teyze)
+    "falci",        // Ali
+    "dedikoducu",   // Veli
+    "koylu",        // Zeynep
+  ];
+  room.players.forEach((p, i) => { p.roleId = assignedRoles[i]; });
+  say(`Roller atandı: ${room.players.map((p, i) => `${p.nickname}=${assignedRoles[i]}`).join(", ")}`);
+
+  // 4. Enter DAY phase (round 1)
+  room.phase = "DAY";
+  room.round = 1;
+  say("--- GÜN 1 başladı ---");
+
+  // 5. VOTE — Zeynep (koylu) üzerine oy ver (8 oyuncudan masum biri)
+  room.phase = "VOTE";
+  room.votes = [];
+  const zeynepId = playerIds[7]; // Zeynep = koylu
+  for (const pid of playerIds.slice(0, 7)) {
+    room.votes.push({ voterId: pid, targetId: zeynepId });
+  }
+  say(`Oylama: tüm oylar Zeynep'e (koylu) gidiyor`);
+  resolveVote(room, false);
+  say(`Oylama sonrası phase: ${room.phase}, winner: ${room.winner}`);
+  say(`Mezarlık: ${room.graveyard.map(g => `${g.nickname}(${g.roleId})`).join(", ")}`);
+  if (room.phase === "ENDED") {
+    say(`OYUN BİTTİ: ${room.winner} — ${room.winnerLabel}`);
+    return { log, result: room.winner };
+  }
+
+  // 6. NIGHT 1 — Çete Mehmet'i (Bekçi) öldürmeye çalışıyor
+  say("--- GECE 1 başladı ---");
+  room.nightActions = [];
+  room.ceteVotes = {};
+  room.lockedHouses = [];
+  room.kiskanKopyaTargets = {};
+  const mehmetId = playerIds[3]; // Mehmet = bekci
+  room.ceteVotes[playerIds[0]] = mehmetId; // tefeci_basi
+  room.ceteVotes[playerIds[1]] = mehmetId; // tahsildar
+  room.ceteVotes[playerIds[2]] = mehmetId; // sahte_dernek
+  // Fatma (Şifacı) Mehmet'i koruyor
+  const fatmaId = playerIds[4];
+  room.nightActions.push({ actorId: fatmaId, targetId: mehmetId, type: "koruma" });
+  say(`Çete hedefi: Mehmet (Bekçi); Şifacı Teyze Mehmet'i koruyor`);
+  resolveMorning(room);
+  room.round++;
+  say(`Sabah sonrası phase: ${room.phase}, winner: ${room.winner}`);
+  say(`Sabah olayları: ${room.morningEvents.map(e => e.message).join(" | ")}`);
+  say(`Mezarlık: ${room.graveyard.map(g => `${g.nickname}(${g.roleId})`).join(", ")}`);
+  if (room.phase === "ENDED") {
+    say(`OYUN BİTTİ: ${room.winner} — ${room.winnerLabel}`);
+    return { log, result: room.winner };
+  }
+
+  // 7. GÜN 2 — Ayşe'yi (Politikacı / sahte_dernek) linç et → çete anında kazanmalı
+  say("--- GÜN 2 başladı ---");
+  const ayseId = playerIds[2]; // Ayşe = sahte_dernek
+  room.phase = "VOTE";
+  room.votes = [];
+  const aliveNow = room.players.filter(p => p.isAlive);
+  for (const p of aliveNow) {
+    if (p.id !== ayseId) room.votes.push({ voterId: p.id, targetId: ayseId });
+  }
+  say(`Oylama: tüm oylar Ayşe'ye (Politikacı) gidiyor`);
+  resolveVote(room, false);
+  say(`Oylama sonrası phase: ${room.phase}, winner: ${room.winner}`);
+  if (room.phase === "ENDED") {
+    const ok = room.winner === "kotu";
+    say(`${ok ? "✅ TEST BAŞARILI" : "❌ TEST BAŞARISIZ"}: Politikacı linç → çete kazandı=${ok} (winner=${room.winner})`);
+    say(`Kişisel başarılar: ${JSON.stringify(room.personalAchievements)}`);
+    return { log, result: room.winner };
+  }
+
+  // 8. Should not reach here
+  say("❌ Beklenen oyun sonu tetiklenmedi — sahte_dernek linç kontrolü başarısız");
+  return { log, result: room.winner };
+}
+
 const GRAVEYARD_MAX_LENGTH = 200;
 const GRAVEYARD_RATE_MS = 500;
 const graveyardLastSent = new Map<string, number>();
@@ -1858,7 +1972,10 @@ export function restartGame(
   room.kumarbazPairs = [];
   room.nextLynchReversed = false;
   room.kiskanKopyaTargets = {};
+  room.kiskancLastCopied = {};
   room.kapiciLockHistory = {};
+  room.innocentLynchedCount = 0;
+  room.personalAchievements = [];
   privateMessages.delete(code);
   return room;
 }
