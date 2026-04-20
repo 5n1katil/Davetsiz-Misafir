@@ -1085,6 +1085,21 @@ export function submitNightAction(
     }
   }
 
+  // Koruyucu (Şifacı Teyze): push blocked notification immediately when target house is locked
+  if (actionType === "koruma" && canSendImmediate) {
+    const alreadyLocked = room.nightActions.some(
+      (a) => (a.type === "kilit" || a.type === "kilit_kopya") && a.targetId === targetId,
+    );
+    if (alreadyLocked) {
+      pushPrivate(
+        room,
+        actorId,
+        `🔒 Koruma engellendi: ${t1.nickname} adlı kişinin kapısı bu gece kilitli.`,
+      );
+      newAction.immediateNotified = true;
+    }
+  }
+
   finishNightStep(room);
   return room;
 }
@@ -1153,6 +1168,10 @@ function resolveMorning(room: Room) {
   }
   // Şimdi ertelenen mesajları gönder — Hoca aynı kişiyi kurtardıysa farklı mesaj ver
   for (const { actorId, targetId } of deferredLockMessages) {
+    const alreadyTold = room.nightActions.some(
+      (a) => a.actorId === actorId && a.targetId === targetId && a.immediateNotified,
+    );
+    if (alreadyTold) continue; // immediate blocked card already shown during night
     if (protectedIds.has(targetId)) {
       // Hoca güçlü korumayla kurtardı — koruyucu bunu bilmeli
       pushPrivate(room, actorId, `🔒 Bu gece koruduğun kişinin kapısı kilitliydi ve oraya ulaşamadın — ama o yine de başka biri tarafından korundu.`);
