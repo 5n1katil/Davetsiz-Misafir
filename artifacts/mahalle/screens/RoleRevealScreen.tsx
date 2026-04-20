@@ -23,20 +23,20 @@ export default function RoleRevealScreen() {
   if (!revealed) {
     return (
       <View style={[styles.center, { backgroundColor: c.background }]}>
-        <Text style={{ fontSize: 48 }}>🔒</Text>
-        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", letterSpacing: 1.5, fontSize: 11, marginTop: 20 }}>
+        <Text style={{ fontSize: 52 }}>🔒</Text>
+        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", letterSpacing: 2, fontSize: 11, marginTop: 22 }}>
           {me?.nickname?.toUpperCase()}
         </Text>
-        <Text style={{ color: c.foreground, fontFamily: "Cinzel_700Bold", fontSize: 22, marginTop: 10, textAlign: "center", letterSpacing: 2 }}>
+        <Text style={{ color: c.foreground, fontFamily: "Cinzel_700Bold", fontSize: 22, marginTop: 10, textAlign: "center", letterSpacing: 2, paddingHorizontal: 20 }}>
           Telefonunu kimseye gösterme
         </Text>
-        <Text style={{ color: c.mutedForeground, marginTop: 10, fontFamily: "Inter_400Regular", textAlign: "center", paddingHorizontal: 30, lineHeight: 20 }}>
+        <Text style={{ color: c.mutedForeground, marginTop: 12, fontFamily: "Inter_400Regular", textAlign: "center", paddingHorizontal: 32, lineHeight: 21, fontSize: 14 }}>
           Rolünü görmek için aşağıya bas. Etrafındakilerin görmediğinden emin ol.
         </Text>
         <Btn
-          label="Rolümü göster"
+          label="Rolümü Göster"
           onPress={() => setRevealed(true)}
-          style={{ marginTop: 36, alignSelf: "stretch", marginHorizontal: 24 }}
+          style={{ marginTop: 40, alignSelf: "stretch", marginHorizontal: 24 }}
         />
       </View>
     );
@@ -47,73 +47,166 @@ export default function RoleRevealScreen() {
   return (
     <ScrollView
       style={{ backgroundColor: c.background }}
-      contentContainerStyle={{ padding: 20, gap: 14 }}
+      contentContainerStyle={{ padding: 18, gap: 12 }}
     >
-      <View style={[styles.heroCard, { backgroundColor: c.card, borderColor: teamColor }]}>
+      {/* ── Hero kart ──────────────────────────────────────────────────── */}
+      <View style={[styles.heroCard, { backgroundColor: c.card, borderColor: teamColor + "55" }]}>
+        {/* Takım rengi arka plan tonu */}
+        <View style={[styles.heroBg, { backgroundColor: teamColor + "0D" }]} />
+
         {img ? (
           <View style={[styles.avatarCircle, { borderColor: teamColor, shadowColor: teamColor }]}>
             <Image source={img} style={styles.avatarImg} />
           </View>
         ) : (
-          <Text style={{ fontSize: 68 }}>{role.emoji}</Text>
+          <Text style={{ fontSize: 72 }}>{role.emoji}</Text>
         )}
-        <Text style={{ color: c.foreground, fontFamily: "Cinzel_700Bold", fontSize: 26, marginTop: 14, letterSpacing: 2 }}>
+
+        <Text style={{ color: c.foreground, fontFamily: "Cinzel_700Bold", fontSize: 26, marginTop: 16, letterSpacing: 2, textAlign: "center" }}>
           {role.name}
         </Text>
-        <View style={{ paddingHorizontal: 14, paddingVertical: 5, borderRadius: 999, backgroundColor: teamColor + "20", marginTop: 10, borderWidth: 1, borderColor: teamColor + "55" }}>
-          <Text style={{ color: teamColor, fontFamily: "Inter_700Bold", letterSpacing: 1.5, fontSize: 11 }}>
+
+        <View style={[styles.teamBadge, { backgroundColor: teamColor + "22", borderColor: teamColor + "66" }]}>
+          <Text style={{ color: teamColor, fontFamily: "Inter_700Bold", letterSpacing: 2, fontSize: 10 }}>
             {ROLE_TEAM_LABEL[role.team]}
           </Text>
         </View>
+
+        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13, marginTop: 12, textAlign: "center", lineHeight: 20, paddingHorizontal: 8 }}>
+          {role.description}
+        </Text>
       </View>
 
-      <Section c={c} title="Hikaye" body={role.story} />
-      <Section c={c} title="Gece Yetkinliği" body={role.ability} />
-      <Section c={c} title="Kazanma Koşulu" body={role.winCondition} />
+      {/* ── Hikaye ──────────────────────────────────────────────────────── */}
+      <Section
+        c={c}
+        teamColor={teamColor}
+        icon="book-open"
+        title="Mahalle Hikayesi"
+        body={role.story}
+      />
 
-      <View style={[styles.tipsCard, { backgroundColor: c.card, borderColor: c.border }]}>
-        <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 13, marginBottom: 8, letterSpacing: 0.5 }}>
-          Taktik İpuçları
+      {/* ── Gece Yetkinliği ─────────────────────────────────────────────── */}
+      <Section
+        c={c}
+        teamColor={teamColor}
+        icon="moon"
+        title="Gece Yetkinliği"
+        body={role.ability}
+        highlight
+      />
+
+      {/* ── Kazanma Koşulu ──────────────────────────────────────────────── */}
+      <View style={[styles.winCard, { backgroundColor: teamColor + "14", borderColor: teamColor + "44" }]}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <Feather name="award" size={14} color={teamColor} />
+          <Text style={{ color: teamColor, fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 2 }}>
+            KAZANMA KOŞULU
+          </Text>
+        </View>
+        <Text style={{ color: c.foreground, fontFamily: "Inter_500Medium", lineHeight: 22, fontSize: 14 }}>
+          {role.winCondition}
         </Text>
+      </View>
+
+      {/* ── Taktik İpuçları ─────────────────────────────────────────────── */}
+      <View style={[styles.tipsCard, { backgroundColor: c.card, borderColor: c.border }]}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <Feather name="zap" size={14} color={c.primary} />
+          <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 13, letterSpacing: 0.5 }}>
+            Taktik İpuçları
+          </Text>
+        </View>
         {role.tips.map((t: string, i: number) => (
-          <View key={i} style={{ flexDirection: "row", gap: 8, alignItems: "flex-start", paddingVertical: 5 }}>
-            <Feather name="zap" size={13} color={c.primary} style={{ marginTop: 3 }} />
-            <Text style={{ color: c.foreground, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 20 }}>{t}</Text>
+          <View key={i} style={styles.tipRow}>
+            <View style={[styles.tipBullet, { backgroundColor: c.primary + "33" }]}>
+              <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: 10 }}>
+                {i + 1}
+              </Text>
+            </View>
+            <Text style={{ color: c.foreground, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 21, fontSize: 14 }}>
+              {t}
+            </Text>
           </View>
         ))}
       </View>
 
+      {/* ── Çete üyeleri (yalnızca çete takımına gösterilir) ─────────────── */}
       {state.ceteMembers.length > 0 ? (
         <View style={[styles.tipsCard, { backgroundColor: "#1E0510", borderColor: c.destructive + "44" }]}>
-          <Text style={{ color: c.destructive, fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 1.5, marginBottom: 4 }}>
-            EKİP ÜYELERİN
-          </Text>
-          {state.ceteMembers.map((m: any) => (
-            <Text key={m.id} style={{ color: c.foreground, fontFamily: "Inter_500Medium", marginTop: 6 }}>
-              • {m.nickname}{" "}
-              <Text style={{ color: c.mutedForeground }}>({ROLE_DEFS[m.roleId ?? ""]?.name ?? "?"})</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <Feather name="users" size={14} color={c.destructive} />
+            <Text style={{ color: c.destructive, fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 2 }}>
+              EKİP ÜYELERİN
             </Text>
+          </View>
+          {state.ceteMembers.map((m: any) => (
+            <View key={m.id} style={styles.memberRow}>
+              <View style={[styles.memberInitial, { backgroundColor: c.destructive + "22" }]}>
+                <Text style={{ color: c.destructive, fontFamily: "Inter_700Bold", fontSize: 13 }}>
+                  {m.nickname[0]?.toUpperCase()}
+                </Text>
+              </View>
+              <Text style={{ color: c.foreground, fontFamily: "Inter_500Medium", flex: 1 }}>
+                {m.nickname}
+              </Text>
+              <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12 }}>
+                {ROLE_DEFS[m.roleId ?? ""]?.name ?? "?"}
+              </Text>
+            </View>
           ))}
         </View>
       ) : null}
 
       <Btn
-        label={me?.isReady ? "✓ Hazırsın, diğerleri bekleniyor" : "✅ Anladım, Hazırım"}
+        label={me?.isReady ? "✓ Hazırsın — diğerleri bekleniyor" : "✅ Anladım, Hazırım"}
         disabled={me?.isReady}
         onPress={() => emit("setReady")}
-        style={{ marginTop: 6 }}
+        style={{ marginTop: 8, marginBottom: 4 }}
       />
     </ScrollView>
   );
 }
 
-function Section({ c, title, body }: any) {
+function Section({
+  c,
+  teamColor,
+  icon,
+  title,
+  body,
+  highlight,
+}: {
+  c: any;
+  teamColor: string;
+  icon: string;
+  title: string;
+  body: string;
+  highlight?: boolean;
+}) {
   return (
-    <View style={{ paddingHorizontal: 4, gap: 4 }}>
-      <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", fontSize: 10, letterSpacing: 1.5 }}>
-        {title.toUpperCase()}
-      </Text>
-      <Text style={{ color: c.foreground, fontFamily: "Inter_400Regular", lineHeight: 22 }}>
+    <View
+      style={[
+        styles.sectionCard,
+        {
+          backgroundColor: highlight ? teamColor + "0A" : c.card,
+          borderColor: highlight ? teamColor + "33" : c.border,
+        },
+      ]}
+    >
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
+        <Feather name={icon as any} size={13} color={highlight ? teamColor : c.mutedForeground} />
+        <Text
+          style={{
+            color: highlight ? teamColor : c.mutedForeground,
+            fontFamily: "Inter_600SemiBold",
+            fontSize: 10,
+            letterSpacing: 2,
+          }}
+        >
+          {title.toUpperCase()}
+        </Text>
+      </View>
+      <Text style={{ color: c.foreground, fontFamily: "Inter_400Regular", lineHeight: 22, fontSize: 14 }}>
         {body}
       </Text>
     </View>
@@ -124,10 +217,18 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
   heroCard: {
     alignItems: "center",
-    paddingVertical: 32,
+    paddingVertical: 28,
     paddingHorizontal: 20,
-    borderRadius: 16,
-    borderWidth: 2,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    overflow: "hidden",
+  },
+  heroBg: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   avatarCircle: {
     width: AVATAR_SIZE,
@@ -137,12 +238,58 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.6,
-    shadowRadius: 16,
+    shadowRadius: 18,
     elevation: 8,
   },
-  avatarImg: {
-    width: "100%",
-    height: "100%",
+  avatarImg: { width: "100%", height: "100%" },
+  teamBadge: {
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 999,
+    marginTop: 12,
+    borderWidth: 1,
   },
-  tipsCard: { padding: 16, borderRadius: 12, borderWidth: 1 },
+  sectionCard: {
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  winCard: {
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  tipsCard: {
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  tipRow: {
+    flexDirection: "row",
+    gap: 12,
+    alignItems: "flex-start",
+    paddingVertical: 6,
+  },
+  tipBullet: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    marginTop: 1,
+  },
+  memberRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 6,
+  },
+  memberInitial: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 });
