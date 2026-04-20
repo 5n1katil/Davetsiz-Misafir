@@ -9,6 +9,22 @@ import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
 import { saveGameRecord } from "@/lib/history";
 
+const WINNER_LABEL: Record<string, string> = {
+  iyi: "MAHALLE KAZANDI",
+  kotu: "DAVETSİZ MİSAFİR KAZANDI",
+  kumarbaz: "KUMARBAZ KAZANDI",
+  kahraman_dede: "KAHRAMAN DEDE KAZANDI",
+  kirik_kalp: "KIRIK KALP KAZANDI",
+  anonim: "ANONİM KAZANDI",
+};
+
+const WINNER_COLOR: Record<string, string> = {
+  kumarbaz: "#F5A623",
+  kahraman_dede: "#9B7FD4",
+  kirik_kalp: "#9B7FD4",
+  anonim: "#9B7FD4",
+};
+
 export default function EndScreen() {
   const c = useColors();
   const { state, myPlayerId, emit, leave } = useGame();
@@ -47,9 +63,14 @@ export default function EndScreen() {
 
   if (!state) return null;
   const isHost = state.hostId === myPlayerId;
-  const winner = state.winner;
-  const winnerColor = winner === "iyi" ? c.factionGood : c.factionBad;
-  const winnerLabel = winner === "iyi" ? "MAHALLE KAZANDI" : "DAVETSİZ MİSAFİR KAZANDI";
+  const winner = state.winner ?? "iyi";
+
+  const winnerColor =
+    WINNER_COLOR[winner] ??
+    (winner === "iyi" ? c.factionGood : c.factionBad);
+  const winnerLabel = WINNER_LABEL[winner] ?? "OYUN BİTTİ";
+
+  const personalAchievements = state.personalAchievements ?? [];
 
   return (
     <ScrollView
@@ -88,6 +109,36 @@ export default function EndScreen() {
           {state.winnerLabel}
         </Text>
       </View>
+
+      {personalAchievements.length > 0 && (
+        <>
+          <Text style={{ color: "#1ECBE1", fontFamily: "Inter_600SemiBold", letterSpacing: 1.5, fontSize: 10 }}>
+            KİŞİSEL BAŞARILAR
+          </Text>
+          <View style={[styles.card, { backgroundColor: c.card, borderColor: "#1ECBE1" + "40", borderWidth: 1 }]}>
+            {personalAchievements.map((a, i) => (
+              <View
+                key={a.playerId + a.roleId}
+                style={{
+                  flexDirection: "row",
+                  paddingVertical: 10,
+                  alignItems: "flex-start",
+                  gap: 10,
+                  borderTopWidth: i > 0 ? StyleSheet.hairlineWidth : 0,
+                  borderTopColor: c.border,
+                }}
+              >
+                <View style={[styles.achieveBadge, { backgroundColor: "#1ECBE1" + "20" }]}>
+                  <Text style={{ fontSize: 20 }}>{ROLE_DEFS[a.roleId]?.emoji ?? "🏅"}</Text>
+                </View>
+                <Text style={{ flex: 1, color: "#1ECBE1", fontFamily: "Inter_500Medium", fontSize: 13, lineHeight: 19 }}>
+                  {a.label}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
 
       <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", letterSpacing: 1.5, fontSize: 10 }}>
         TÜM ROLLER
@@ -162,4 +213,5 @@ export default function EndScreen() {
 
 const styles = StyleSheet.create({
   card: { padding: 14, borderRadius: 12, borderWidth: 1 },
+  achieveBadge: { width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
 });

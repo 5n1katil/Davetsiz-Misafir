@@ -88,6 +88,7 @@ export interface GameState {
   anonimLynchedCount?: number;
   kiskanKopyaTarget?: string | null;
   kapiciLockHistory?: Array<{ night: number; targetNickname: string }>;
+  personalAchievements?: { playerId: string; roleId: string; label: string }[];
 }
 
 export interface SystemToast {
