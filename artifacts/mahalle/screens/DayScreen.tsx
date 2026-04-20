@@ -208,6 +208,7 @@ export default function DayScreen() {
   const shakeAnim = useRef(new Animated.Value(0)).current;
   const critColorAnim = useRef(new Animated.Value(0)).current;
   const progressAnim = useRef(new Animated.Value(1)).current;
+  const progressValueRef = useRef(1);
 
   const isCritical = (remaining <= 10 && remaining > 0 && !(state?.paused ?? false));
 
@@ -217,6 +218,7 @@ export default function DayScreen() {
     setNightResultVisible(true);
     fadeAnim.setValue(0);
     progressAnim.setValue(1);
+    progressValueRef.current = 1;
     Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
     Animated.timing(progressAnim, { toValue: 0, duration: 6000, useNativeDriver: false }).start();
     if (autoDismissRef.current) clearTimeout(autoDismissRef.current);
@@ -230,6 +232,34 @@ export default function DayScreen() {
       if (autoDismissRef.current) clearTimeout(autoDismissRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    const id = progressAnim.addListener(({ value }) => {
+      progressValueRef.current = value;
+    });
+    return () => progressAnim.removeListener(id);
+  }, []);
+
+  function handleCardPressIn() {
+    progressAnim.stopAnimation();
+    if (autoDismissRef.current) {
+      clearTimeout(autoDismissRef.current);
+      autoDismissRef.current = null;
+    }
+  }
+
+  function handleCardPressOut() {
+    const remainingMs = progressValueRef.current * 6000;
+    if (remainingMs <= 0) return;
+    Animated.timing(progressAnim, {
+      toValue: 0,
+      duration: remainingMs,
+      useNativeDriver: false,
+    }).start();
+    autoDismissRef.current = setTimeout(() => {
+      dismissNightResult();
+    }, remainingMs);
+  }
 
   useEffect(() => {
     if (isCritical && !reduceMotion) {
@@ -487,7 +517,7 @@ export default function DayScreen() {
       >
         <Pressable style={styles.overlay} onPress={dismissNightResult}>
           <Animated.View style={[styles.resultContainer, { opacity: fadeAnim }]}>
-            <Pressable onPress={() => {}}>
+            <Pressable onPress={() => {}} onPressIn={handleCardPressIn} onPressOut={handleCardPressOut}>
               <View style={styles.resultInner}>
                 <Text style={styles.resultHeader}>🌅 GECE SONUCU</Text>
                 {displayedMsgs.map((m, i) => {
