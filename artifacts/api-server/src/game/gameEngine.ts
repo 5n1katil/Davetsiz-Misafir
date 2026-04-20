@@ -1094,7 +1094,11 @@ function resolveMorning(room: Room) {
           (a.type === "koruma" || a.type === "koruma_kopya" || a.type === "koruma_guclu" || a.type === "koruma_guclu_kopya") &&
           a.targetId === ceteTarget
         ) {
-          pushPrivate(room, a.actorId, `🛡️ Koruman başarılı! ${savedName} bu gece saldırıya uğradı, ama sen onları kurtardın.`);
+          const selfProtect = a.actorId === a.targetId;
+          const msg = selfProtect
+            ? `🛡️ Koruman başarılı! Bu gece saldırıya uğradın, ama kendini kurtardın.`
+            : `🛡️ Koruman başarılı! ${savedName} bu gece saldırıya uğradı, ama sen onları kurtardın.`;
+          pushPrivate(room, a.actorId, msg);
         }
       }
     } else {
@@ -1124,7 +1128,11 @@ function resolveMorning(room: Room) {
               (pa.type === "koruma" || pa.type === "koruma_kopya" || pa.type === "koruma_guclu" || pa.type === "koruma_guclu_kopya") &&
               pa.targetId === kdTarget.id
             ) {
-              pushPrivate(room, pa.actorId, `🛡️ Koruman başarılı! ${kdTarget.nickname} bu gece saldırıya uğradı, ama sen onları kurtardın.`);
+              const selfProtect = pa.actorId === pa.targetId;
+              const msg = selfProtect
+                ? `🛡️ Koruman başarılı! Bu gece saldırıya uğradın, ama kendini kurtardın.`
+                : `🛡️ Koruman başarılı! ${kdTarget.nickname} bu gece saldırıya uğradı, ama sen onları kurtardın.`;
+              pushPrivate(room, pa.actorId, msg);
             }
           }
         } else {
@@ -1142,7 +1150,9 @@ function resolveMorning(room: Room) {
     if (a.type === "bagimsiz_oldurme") attackedThisNight.add(a.targetId);
   }
 
-  // For each protector who submitted an action, if their target was never attacked, tell them
+  // For each protector who submitted an action, if their target was never attacked, tell them.
+  // This intentionally covers self-protection: if a protector chose themselves as target and
+  // nobody attacked them, they receive the quiet-night message just like any other quiet guard.
   const protectorTypes = new Set(["koruma", "koruma_kopya", "koruma_guclu", "koruma_guclu_kopya"]);
   // Track which actors already got a success message (target was attacked and saved)
   const alreadyNotified = new Set<string>();
