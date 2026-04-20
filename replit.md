@@ -40,8 +40,26 @@ pnpm workspace monorepo using TypeScript. Two main artifacts:
 ## Key Commands
 
 - `pnpm run typecheck` — full typecheck across all packages
+- `pnpm test` — run game-engine unit tests (vitest, 29 tests)
+- `pnpm --filter @workspace/api-server run test` — run api-server tests directly
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 - `pnpm --filter @workspace/mahalle run dev` — run Expo dev server
+
+## Testing
+
+Unit tests live at `artifacts/api-server/src/game/__tests__/gameEngine.test.ts` (vitest).  
+Config: `artifacts/api-server/vitest.config.ts`.
+
+Covered mechanics:
+- Win conditions (mahalle, çete, Kumarbaz, Kırık Kalp, Anonim, Kahraman Dede)
+- Vote resolution: normal, reversed (Dedikoducu), tie/runoff, Muhtar 1.5 weight
+- Politikacı instant-win on lynch (not on night kill)
+- Şifacı protection saves vs. Kapıcı blocking the protector
+- Kapıcı lock blocks çete attack
+- Hoca one-time-use (skips when hocaUsed=true)
+- Kumarbaz permanent role swap, interacting with Şifacı
+- Kırık Kalp chain death (night kill and day lynch)
+- Anonim 3-mark win condition
 
 ## Architecture Notes
 
