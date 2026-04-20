@@ -1134,6 +1134,31 @@ function resolveMorning(room: Room) {
     }
   }
 
+  // ── ADIM 6b: Koruyucuya "boş gece" bildirimi ─────────────────────────────
+  // Collect every target that was actually attacked this night
+  const attackedThisNight = new Set<string>();
+  if (ceteTarget) attackedThisNight.add(ceteTarget);
+  for (const a of room.nightActions) {
+    if (a.type === "bagimsiz_oldurme") attackedThisNight.add(a.targetId);
+  }
+
+  // For each protector who submitted an action, if their target was never attacked, tell them
+  const protectorTypes = new Set(["koruma", "koruma_kopya", "koruma_guclu", "koruma_guclu_kopya"]);
+  // Track which actors already got a success message (target was attacked and saved)
+  const alreadyNotified = new Set<string>();
+  for (const a of room.nightActions) {
+    if (protectorTypes.has(a.type) && attackedThisNight.has(a.targetId)) {
+      alreadyNotified.add(a.actorId);
+    }
+  }
+  const uneventfulNotified = new Set<string>();
+  for (const a of room.nightActions) {
+    if (protectorTypes.has(a.type) && !alreadyNotified.has(a.actorId) && !uneventfulNotified.has(a.actorId)) {
+      pushPrivate(room, a.actorId, "🌙 Koruduğun kişiye bu gece kimse dokunmadı.");
+      uneventfulNotified.add(a.actorId);
+    }
+  }
+
   // ── ADIM 7: Bekçi sorgu sonuçları (kopya dahil) ──────────────────────────
   for (const a of room.nightActions) {
     if (a.type === "sorgu_ekip" || a.type === "sorgu_ekip_kopya") {
