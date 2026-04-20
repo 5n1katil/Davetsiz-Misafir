@@ -1084,9 +1084,17 @@ function resolveMorning(room: Room) {
     } else if (isProtected) {
       const savedPlayer = room.players.find((p) => p.id === ceteTarget);
       const savedName = savedPlayer ? savedPlayer.nickname : "Biri";
+      const isSelfSave = room.nightActions.some(
+        (a) =>
+          (a.type === "koruma" || a.type === "koruma_kopya" || a.type === "koruma_guclu" || a.type === "koruma_guclu_kopya") &&
+          a.actorId === ceteTarget &&
+          a.targetId === ceteTarget
+      );
       room.morningEvents.push({
         kind: "saved",
-        message: `${savedName} bu gece korunuyordu — saldırı engellendi!`,
+        message: isSelfSave
+          ? "Bu gece bir saldırı püskürtüldü!"
+          : `${savedName} bu gece korunuyordu — saldırı engellendi!`,
         victims: savedPlayer ? [savedPlayer.nickname] : [],
       });
       for (const a of room.nightActions) {
@@ -1118,9 +1126,17 @@ function resolveMorning(room: Room) {
       if (kdTarget && kdTarget.isAlive) {
         // Kahraman Dede Kapıcı tarafından engellenemez
         if (protectedIds.has(kdTarget.id)) {
+          const isKdSelfSave = room.nightActions.some(
+            (pa) =>
+              (pa.type === "koruma" || pa.type === "koruma_kopya" || pa.type === "koruma_guclu" || pa.type === "koruma_guclu_kopya") &&
+              pa.actorId === kdTarget.id &&
+              pa.targetId === kdTarget.id
+          );
           room.morningEvents.push({
             kind: "saved",
-            message: `${kdTarget.nickname} bu gece korunuyordu — saldırı engellendi!`,
+            message: isKdSelfSave
+              ? "Bu gece bir saldırı püskürtüldü!"
+              : `${kdTarget.nickname} bu gece korunuyordu — saldırı engellendi!`,
             victims: [kdTarget.nickname],
           });
           for (const pa of room.nightActions) {
