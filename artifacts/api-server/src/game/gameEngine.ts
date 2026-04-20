@@ -92,6 +92,7 @@ export interface Room {
   kumarbazPairs: [string, string][];          // takas edilen çiftler (geçmiş)
   nextLynchReversed: boolean;                 // Dedikoducu sonraki linç ters
   kiskanKopyaTargets: Record<string, string>; // kiskancId -> kopyalanacak playerId
+  kapiciLockHistory: Record<string, Array<{ night: number; targetNickname: string }>>;
 }
 
 const rooms = new Map<string, Room>();
@@ -188,6 +189,7 @@ export function createRoom(socketId: string, nickname: string): Room {
     kumarbazPairs: [],
     nextLynchReversed: false,
     kiskanKopyaTargets: {},
+    kapiciLockHistory: {},
   };
   rooms.set(code, room);
   return room;
@@ -312,6 +314,7 @@ export function startGame(
   room.kumarbazPairs = [];
   room.nextLynchReversed = false;
   room.kiskanKopyaTargets = {};
+  room.kapiciLockHistory = {};
 
   // Tiyatrocu'nun sahte rollerini şimdi ata (rol seçilmeden önce)
   // Kırık Kalp bağı oyun başladıktan sonra (roller dağıtılınca) atanacak
@@ -1314,6 +1317,18 @@ function resolveMorning(room: Room) {
       }
     }
 
+    // Record this night's lock in the Kapıcı's personal history
+    const lockedTarget = room.players.find((p) => p.id === kilita.targetId);
+    if (lockedTarget) {
+      if (!room.kapiciLockHistory[kapiciActor.id]) {
+        room.kapiciLockHistory[kapiciActor.id] = [];
+      }
+      room.kapiciLockHistory[kapiciActor.id].push({
+        night: room.round,
+        targetNickname: lockedTarget.nickname,
+      });
+    }
+
     const prefix = kilita.type === "kilit_kopya" ? "🧂 Kopya Kapıcı özeti" : "🔑 Kapıcı özeti";
     if (blockedRoles.length > 0) {
       pushPrivate(
@@ -1559,6 +1574,7 @@ export function restartGame(
   room.kumarbazPairs = [];
   room.nextLynchReversed = false;
   room.kiskanKopyaTargets = {};
+  room.kapiciLockHistory = {};
   privateMessages.delete(code);
   return room;
 }
@@ -1635,5 +1651,9 @@ export function publicView(room: Room, viewerPlayerId: string | null) {
       : undefined,
     // Dedikoducu bayrağı (public)
     nextLynchReversed: room.nextLynchReversed,
+    // Kapıcı'ya özel: kilitli ev geçmişi
+    kapiciLockHistory: viewerPlayerId && room.kapiciLockHistory[viewerPlayerId]
+      ? room.kapiciLockHistory[viewerPlayerId]
+      : undefined,
   };
 }

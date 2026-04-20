@@ -398,6 +398,28 @@ export default function DayScreen() {
           </View>
         ) : null}
 
+        {state.kapiciLockHistory && state.kapiciLockHistory.length > 0 ? (
+          <View style={[styles.eventCard, { backgroundColor: "#0D1A2E", borderColor: "#60A5FA55" }]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Feather name="lock" size={12} color="#60A5FA" />
+              <Text style={{ color: "#60A5FA", fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 1.5 }}>
+                KİLİTLEDİĞİN EVLER
+              </Text>
+            </View>
+            {state.kapiciLockHistory.map((entry, i) => (
+              <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
+                <Feather name="moon" size={13} color="#60A5FA" />
+                <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 13 }}>
+                  Gece {entry.night}:
+                </Text>
+                <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
+                  {entry.targetNickname}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
           <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", fontSize: 11, letterSpacing: 1.5 }}>
             HAYATTA OLAN ({alive.length})
