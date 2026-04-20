@@ -92,8 +92,11 @@ export interface Room {
   tiyatrocuFakeRoles: Record<string, string>; // tiyatrocuId -> sahte roleId
   kumarbazPairs: [string, string][];          // takas edilen çiftler (geçmiş)
   nextLynchReversed: boolean;                 // Dedikoducu sonraki linç ters
-  kiskanKopyaTargets: Record<string, string>; // kiskancId -> kopyalanacak playerId
+  kiskanKopyaTargets: Record<string, string>; // kiskancId -> kopyalanacak playerId (bu gece, her gece sıfırlanır)
+  kiskancLastCopied: Record<string, string>;  // kiskancId -> son kopyalanan playerId (kalıcı, gece sıfırlanmaz)
   kapiciLockHistory: Record<string, Array<{ night: number; targetNickname: string }>>;
+  innocentLynchedCount: number;               // Dedikoducu kişisel başarısı için: masum (iyi ekip) linç sayısı
+  personalAchievements: { playerId: string; roleId: string; label: string }[]; // oyun sonu kişisel başarılar
 }
 
 const rooms = new Map<string, Room>();
@@ -190,7 +193,10 @@ export function createRoom(socketId: string, nickname: string): Room {
     kumarbazPairs: [],
     nextLynchReversed: false,
     kiskanKopyaTargets: {},
+    kiskancLastCopied: {},
     kapiciLockHistory: {},
+    innocentLynchedCount: 0,
+    personalAchievements: [],
   };
   rooms.set(code, room);
   return room;
@@ -315,7 +321,10 @@ export function startGame(
   room.kumarbazPairs = [];
   room.nextLynchReversed = false;
   room.kiskanKopyaTargets = {};
+  room.kiskancLastCopied = {};
   room.kapiciLockHistory = {};
+  room.innocentLynchedCount = 0;
+  room.personalAchievements = [];
 
   // Tiyatrocu'nun sahte rollerini şimdi ata (rol seçilmeden önce)
   // Kırık Kalp bağı oyun başladıktan sonra (roller dağıtılınca) atanacak
@@ -698,10 +707,10 @@ function resolveVote(room: Room, isRunoff: boolean) {
         `Mahalle kararını verdi. ${target.nickname} uzaklaştırılıyor. Rolü: ${displayRole?.name ?? "bilinmiyor"}.`,
       );
 
-      // Politikacı linç → çete anında kazanır
-      if (target.roleId === "sahte_dernek") {
-        endGame(room, "kotu", "Politikacı linç edildi! Davetsiz Misafir kazandı.");
-        return;
+      // Masum linç sayacı (Dedikoducu kişisel başarısı için)
+      const victimRole = target.roleId ? ROLES[target.roleId] : null;
+      if (victimRole && victimRole.team === "iyi") {
+        room.innocentLynchedCount++;
       }
 
       // Anonim işaret sayısını güncelle
@@ -711,8 +720,14 @@ function resolveVote(room: Room, isRunoff: boolean) {
         }
       }
 
-      // Kırık Kalp bağ ölümü
+      // Kırık Kalp bağ ölümü — Politikacı'dan önce çalışmalı
       checkKirikKalpDeath(room, target.id, "Aşığı linç edildi.");
+
+      // Politikacı linç → çete anında kazanır (KK zincirinden sonra)
+      if (target.roleId === "sahte_dernek") {
+        endGame(room, "kotu", "Politikacı linç edildi! Davetsiz Misafir kazandı.");
+        return;
+      }
     }
     if (checkWin(room)) return;
     startNight(room);
@@ -1036,6 +1051,7 @@ export function submitNightAction(
     if (!t1 || !t1.isAlive) return { error: "Geçersiz hedef" };
     if (targetId === actorId) return { error: "Kendini kopyalayamazsın" };
     room.kiskanKopyaTargets[actorId] = targetId;
+    room.kiskancLastCopied[actorId] = targetId; // kalıcı — gece sıfırlanmaz
     room.nightActions.push({ actorId, targetId, type: "kopya_hedef" });
     finishNightStep(room);
     return room;
@@ -1725,11 +1741,44 @@ function checkWin(room: Room): boolean {
 }
 
 function endGame(room: Room, winner: string, label: string) {
+  if (room.phase === "ENDED") return; // idempotency: birden fazla tetiklenirse yoksay
+
   room.phase = "ENDED";
   room.winner = winner;
   room.winnerLabel = label;
   room.phaseDeadline = null;
   room.voiceQueue.push(label);
+
+  // ── Kişisel başarılar ──────────────────────────────────────────────────
+  room.personalAchievements = [];
+
+  // Dedikoducu: 2 veya daha fazla masum (iyi ekip) linç ettirdiyse
+  const dedikoducu = room.players.find((p) => p.roleId === "dedikoducu");
+  if (dedikoducu && room.innocentLynchedCount >= 2) {
+    room.personalAchievements.push({
+      playerId: dedikoducu.id,
+      roleId: "dedikoducu",
+      label: `🗣️ ${dedikoducu.nickname} mahalleden ${room.innocentLynchedCount} masum linç ettirdi — kişisel zafer!`,
+    });
+  }
+
+  // Kıskanç Komşu: son kopyaladığı kişinin takımı kazananla eşleşiyorsa
+  for (const [kiskancId, lastCopiedId] of Object.entries(room.kiskancLastCopied)) {
+    const kiskanc = room.players.find((p) => p.id === kiskancId);
+    const lastCopied = room.players.find((p) => p.id === lastCopiedId);
+    if (!kiskanc || !lastCopied) continue;
+    const copiedRole = lastCopied.roleId ? ROLES[lastCopied.roleId] : null;
+    const copiedTeam = copiedRole?.team ?? "iyi";
+    // Kazanan takım iyi/kotu olmayan özel kazanmalarda (kumarbaz vb.) Kıskanç eşleşmez
+    if (copiedTeam === winner) {
+      const winLabel = winner === "iyi" ? "Mahalle" : "Çete";
+      room.personalAchievements.push({
+        playerId: kiskancId,
+        roleId: "kiskanc_komsu",
+        label: `🧂 ${kiskanc.nickname}, ${lastCopied.nickname} ile aynı kaderi paylaştı — ${winLabel} ile kazandı!`,
+      });
+    }
+  }
 }
 
 const GRAVEYARD_MAX_LENGTH = 200;
