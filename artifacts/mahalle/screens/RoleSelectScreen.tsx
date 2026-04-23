@@ -3,6 +3,7 @@ import { haptic } from "@/lib/haptics";
 import React, { useEffect, useRef, useState } from "react";
 import {
   Animated,
+  Easing,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -28,10 +29,12 @@ const TEAM_LABEL: Record<string, string> = {
   tarafsiz: "YALNIZ KURT",
 };
 
+// ── Root ──────────────────────────────────────────────────────────────────────
 export default function RoleSelectScreen() {
   const { state, myPlayerId, emit } = useGame();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
+  const panelWidth = isMobile ? 152 : 200;
   const remaining = useCountdown(state?.roleSelectDeadline ?? null);
 
   if (!state) return null;
@@ -51,20 +54,26 @@ export default function RoleSelectScreen() {
     emit("chooseRole", { roleId: roleId ?? "__random__" });
   };
 
-  return (
-    <View style={[styles.root, { flexDirection: isMobile ? "column" : "row" }]}>
-      {isMobile ? (
-        <MobilePlayerPanel players={sortedPlayers} myId={myPlayerId} />
-      ) : (
-        <DesktopPlayerPanel players={sortedPlayers} myId={myPlayerId} />
-      )}
+  // Main area width for calculating card sizes
+  const mainWidth = width - panelWidth;
 
+  return (
+    <View style={styles.root}>
+      {/* Left panel — always side by side */}
+      <PlayerPanel
+        players={sortedPlayers}
+        myId={myPlayerId}
+        panelWidth={panelWidth}
+      />
+
+      {/* Right content */}
       <View style={styles.mainArea}>
         {isMyTurn ? (
           <PickingArea
             choices={choices}
             timeLeft={remaining}
             onSelect={handleSelect}
+            mainWidth={mainWidth}
             isMobile={isMobile}
           />
         ) : (
@@ -78,137 +87,129 @@ export default function RoleSelectScreen() {
   );
 }
 
-// ── DesktopPlayerPanel ────────────────────────────────────────────────────────
-function DesktopPlayerPanel({ players, myId }: { players: any[]; myId: string | null }) {
+// ── PlayerPanel — GGD style, always left side ─────────────────────────────────
+function PlayerPanel({
+  players,
+  myId,
+  panelWidth,
+}: {
+  players: any[];
+  myId: string | null;
+  panelWidth: number;
+}) {
   return (
-    <View style={styles.desktopPanel}>
-      <Text style={styles.panelTitle}>OYUNCULAR</Text>
-      <ScrollView showsVerticalScrollIndicator={false}>
+    <View style={[styles.panel, { width: panelWidth }]}>
+      <View style={styles.panelHeader}>
+        <Text style={styles.panelTitle}>OYUNCULAR</Text>
+      </View>
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.panelScroll}>
         {players.map((p) => (
-          <PlayerRow key={p.id} player={p} myId={myId} layout="vertical" />
+          <PlayerRow key={p.id} player={p} myId={myId} panelWidth={panelWidth} />
         ))}
       </ScrollView>
     </View>
   );
 }
 
-// ── MobilePlayerPanel ─────────────────────────────────────────────────────────
-function MobilePlayerPanel({ players, myId }: { players: any[]; myId: string | null }) {
-  return (
-    <View style={styles.mobilePanel}>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.mobilePanelScroll}
-      >
-        {players.map((p) => (
-          <PlayerRow key={p.id} player={p} myId={myId} layout="horizontal" />
-        ))}
-      </ScrollView>
-    </View>
-  );
-}
-
-// ── PlayerRow ─────────────────────────────────────────────────────────────────
+// ── PlayerRow — GGD-inspired ──────────────────────────────────────────────────
 function PlayerRow({
   player,
   myId,
-  layout,
+  panelWidth,
 }: {
   player: any;
   myId: string | null;
-  layout: "vertical" | "horizontal";
+  panelWidth: number;
 }) {
   const isMe = player.id === myId;
   const isDone = player.roleSelectStatus === "done";
   const isPicking = player.roleSelectStatus === "picking";
+  const isWaiting = player.roleSelectStatus === "waiting";
+  const isNarrow = panelWidth < 160;
 
   const role = isDone && player.selectedRoleId ? ROLE_DEFS[player.selectedRoleId] : null;
   const teamColor = role ? (TEAM_COLOR[role.team] ?? "#4A2E7A") : "#4A2E7A";
 
-  if (layout === "horizontal") {
-    return (
-      <View
-        style={[
-          styles.mobilePlayerCard,
-          isPicking && styles.mobilePlayerCardPicking,
-          isDone && { borderColor: teamColor },
-          isMe && styles.mobilePlayerCardMe,
-        ]}
-      >
-        <View style={[styles.positionBadge, isPicking && styles.positionBadgePicking]}>
-          <Text style={[styles.positionText, isPicking && styles.positionTextPicking]}>
-            {String(player.roleSelectPosition ?? "?").padStart(2, "0")}
-          </Text>
-        </View>
-
-        {isDone && role ? (
-          <>
-            <Text style={styles.mobileRoleEmoji}>{role.emoji}</Text>
-            <Text style={[styles.mobileRoleName, { color: teamColor }]} numberOfLines={2}>
-              {role.name}
-            </Text>
-            <View style={styles.doneTick}>
-              <Text style={[styles.doneTickText, { color: teamColor }]}>✓</Text>
-            </View>
-          </>
-        ) : isPicking ? (
-          <>
-            <Text style={styles.pickingDots}>···</Text>
-            <Text style={styles.pickingLabel}>seçiyor</Text>
-          </>
-        ) : (
-          <Text style={styles.waitingLabel}>bekliyor</Text>
-        )}
-
-        {isMe && <Text style={styles.meMark}>sen</Text>}
-      </View>
-    );
-  }
+  // Pulsing animation for "picking" state
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (isPicking) {
+      const loop = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 0.4,
+            duration: 600,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 600,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      loop.start();
+      return () => loop.stop();
+    } else {
+      pulseAnim.setValue(1);
+    }
+  }, [isPicking]);
 
   return (
     <View
       style={[
-        styles.desktopPlayerRow,
-        isPicking && styles.desktopPlayerRowPicking,
-        isDone && { borderLeftColor: teamColor, borderLeftWidth: 3 },
-        isMe && styles.desktopPlayerRowMe,
+        styles.playerRow,
+        isPicking && styles.playerRowPicking,
+        isDone && { borderLeftColor: teamColor },
+        isMe && styles.playerRowMe,
       ]}
     >
-      <View style={[styles.positionBadge, isPicking && styles.positionBadgePicking]}>
-        <Text style={[styles.positionText, isPicking && styles.positionTextPicking]}>
+      {/* Position badge */}
+      <View style={[styles.posBadge, isPicking && styles.posBadgePicking]}>
+        <Text style={[styles.posNum, isPicking && styles.posNumPicking]}>
           {String(player.roleSelectPosition ?? "?").padStart(2, "0")}
         </Text>
       </View>
 
-      <View style={styles.desktopPlayerInfo}>
+      {/* Name + status */}
+      <View style={styles.playerInfo}>
+        <Text
+          style={[styles.playerName, isMe && styles.playerNameMe]}
+          numberOfLines={1}
+        >
+          {isNarrow
+            ? player.nickname.length > 7
+              ? player.nickname.slice(0, 7) + "…"
+              : player.nickname
+            : player.nickname.length > 11
+            ? player.nickname.slice(0, 11) + "…"
+            : player.nickname}
+        </Text>
+
         {isDone && role ? (
-          <>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <Text style={{ fontSize: 16 }}>{role.emoji}</Text>
-              <Text style={[styles.desktopRoleName, { color: teamColor }]} numberOfLines={1}>
-                {role.name}
-              </Text>
-            </View>
-            <View
-              style={[
-                styles.teamBadge,
-                { backgroundColor: teamColor + "22", borderColor: teamColor },
-              ]}
-            >
-              <Text style={[styles.teamBadgeText, { color: teamColor }]}>
-                {TEAM_LABEL[role.team] ?? role.team}
-              </Text>
-            </View>
-          </>
+          <Text style={[styles.statusDone, { color: teamColor }]} numberOfLines={1}>
+            ✓ {role.name}
+          </Text>
         ) : isPicking ? (
-          <Text style={styles.pickingLabel}>seçiyor...</Text>
+          <Animated.Text style={[styles.statusPicking, { opacity: pulseAnim }]}>
+            seçiyor...
+          </Animated.Text>
         ) : (
-          <Text style={styles.waitingLabelText}>bekliyor</Text>
+          <Text style={styles.statusWaiting}>bekliyor</Text>
         )}
       </View>
 
-      {isMe && <Text style={styles.meMarkDesktop}>sen</Text>}
+      {/* Right side: role emoji when done, or "sen" badge */}
+      <View style={styles.playerRight}>
+        {isDone && role ? (
+          <Text style={styles.doneEmoji}>{role.emoji}</Text>
+        ) : isDone ? (
+          <Text style={[styles.checkmark, { color: teamColor }]}>✓</Text>
+        ) : null}
+        {isMe && <Text style={styles.youBadge}>sen</Text>}
+      </View>
     </View>
   );
 }
@@ -218,34 +219,46 @@ function PickingArea({
   choices,
   timeLeft,
   onSelect,
+  mainWidth,
   isMobile,
 }: {
   choices: string[];
   timeLeft: number;
   onSelect: (roleId: string | null) => void;
+  mainWidth: number;
   isMobile: boolean;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const urgentTime = timeLeft <= 5;
 
-  return (
-    <ScrollView
-      contentContainerStyle={[
-        styles.pickingContainer,
-        isMobile && styles.pickingContainerMobile,
-      ]}
-      showsVerticalScrollIndicator={false}
-    >
-      <Text style={styles.pickingTitle}>ROL SEÇ</Text>
-      <Text style={styles.pickingSubtitle}>Kaderini koy ortaya</Text>
+  // Card sizing: fit 3 cards + 1 random horizontally, never wrap
+  const hPad = isMobile ? 10 : 20;
+  const cardGap = isMobile ? 6 : 10;
+  const numCards = Math.min(choices.length, 3) + 1; // +1 for random
+  const cardWidth = Math.max(
+    60,
+    (mainWidth - hPad * 2 - cardGap * (numCards - 1)) / numCards
+  );
+  const cardHeight = isMobile ? 110 : 140;
 
-      <View style={styles.timerContainer}>
-        <Text style={[styles.timerNumber, urgentTime && styles.timerUrgent]}>
+  return (
+    <View style={styles.pickingRoot}>
+      {/* Header */}
+      <View style={[styles.pickingHeader, isMobile && styles.pickingHeaderMobile]}>
+        <Text style={styles.pickingTitle}>ROL SEÇ!</Text>
+        <Text style={[styles.pickingSubtitle, isMobile && styles.pickingSubtitleMobile]}>
+          Kaderini belirle
+        </Text>
+      </View>
+
+      {/* Timer */}
+      <View style={[styles.timerRow, isMobile && styles.timerRowMobile]}>
+        <Text style={[styles.timerNum, urgentTime && styles.timerUrgent]}>
           {timeLeft}
         </Text>
-        <Text style={styles.timerUnit}>saniye</Text>
+        <Text style={styles.timerLabel}>sn</Text>
       </View>
-      <View style={styles.timerBarBg}>
+      <View style={[styles.timerBarBg, { marginHorizontal: hPad }]}>
         <View
           style={[
             styles.timerBarFill,
@@ -255,43 +268,62 @@ function PickingArea({
         />
       </View>
 
-      <View
-        style={[
-          styles.cardsGrid,
-          choices.length === 1 && styles.cardsGrid1,
-          choices.length === 2 && styles.cardsGrid2,
-          isMobile && styles.cardsGridMobile,
-        ]}
-      >
-        {choices.map((roleId) => (
+      {/* Role cards + Random — always horizontal row */}
+      <View style={[styles.cardsRow, { paddingHorizontal: hPad, gap: cardGap }]}>
+        {choices.slice(0, 3).map((roleId, idx) => (
           <RoleCard
             key={roleId}
             roleId={roleId}
             isSelected={selected === roleId}
-            onPress={() => setSelected((prev) => (prev === roleId ? null : roleId))}
+            cardWidth={cardWidth}
+            cardHeight={cardHeight}
+            delay={idx * 80}
             isMobile={isMobile}
+            onPress={() => {
+              haptic(Haptics.ImpactFeedbackStyle.Light);
+              setSelected((prev) => (prev === roleId ? null : roleId));
+            }}
           />
         ))}
+
+        {/* Random card — same style */}
+        <RandomCard
+          cardWidth={cardWidth}
+          cardHeight={cardHeight}
+          isMobile={isMobile}
+          onPress={() => onSelect(null)}
+        />
       </View>
 
-      <Pressable
-        style={styles.randomBtn}
-        onPress={() => onSelect(null)}
-      >
-        <Text style={styles.randomBtnEmoji}>🎲</Text>
-        <Text style={styles.randomBtnText}>Rastgele Seç — kaderini koy ortaya!</Text>
-      </Pressable>
+      {/* Selected description */}
+      {selected && ROLE_DEFS[selected] && (
+        <View style={[styles.descBox, { marginHorizontal: hPad }]}>
+          <Text style={styles.descText} numberOfLines={2}>
+            {ROLE_DEFS[selected].shortDesc ?? ROLE_DEFS[selected].description}
+          </Text>
+        </View>
+      )}
 
-      <Pressable
-        style={[styles.confirmBtn, !selected && styles.confirmBtnDisabled]}
-        onPress={() => selected && onSelect(selected)}
-        disabled={!selected}
-      >
-        <Text style={[styles.confirmBtnText, !selected && styles.confirmBtnTextDisabled]}>
-          {selected ? `✓  ${ROLE_DEFS[selected]?.name ?? ""} — Seç` : "Bir rol seç"}
-        </Text>
-      </Pressable>
-    </ScrollView>
+      {/* Confirm button */}
+      <View style={[styles.confirmWrap, { paddingHorizontal: hPad }]}>
+        <Pressable
+          style={[styles.confirmBtn, !selected && styles.confirmBtnDisabled]}
+          onPress={() => {
+            if (selected) {
+              haptic(Haptics.ImpactFeedbackStyle.Medium);
+              onSelect(selected);
+            }
+          }}
+          disabled={!selected}
+        >
+          <Text style={[styles.confirmBtnText, !selected && styles.confirmBtnTextDisabled]}>
+            {selected
+              ? `✓  ${ROLE_DEFS[selected]?.name ?? ""} — ONAYLA`
+              : "Bir rol seç"}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
@@ -299,13 +331,19 @@ function PickingArea({
 function RoleCard({
   roleId,
   isSelected,
-  onPress,
+  cardWidth,
+  cardHeight,
+  delay,
   isMobile,
+  onPress,
 }: {
   roleId: string;
   isSelected: boolean;
-  onPress: () => void;
+  cardWidth: number;
+  cardHeight: number;
+  delay: number;
   isMobile: boolean;
+  onPress: () => void;
 }) {
   const role = ROLE_DEFS[roleId];
   if (!role) return null;
@@ -313,54 +351,138 @@ function RoleCard({
   const teamColor = TEAM_COLOR[role.team] ?? "#9B7FD4";
   const teamLabel = TEAM_LABEL[role.team] ?? role.team;
 
-  const slideAnim = useRef(new Animated.Value(30)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(slideAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
-      Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 280,
+        delay,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 280,
+        delay,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  const emojiSize = isMobile ? (cardWidth < 70 ? 20 : 26) : 32;
+  const nameSize = isMobile ? (cardWidth < 70 ? 8 : 10) : 12;
+
+  return (
+    <Animated.View
+      style={{
+        opacity: fadeAnim,
+        transform: [{ translateY: slideAnim }],
+        width: cardWidth,
+      }}
+    >
+      <Pressable
+        style={[
+          styles.roleCard,
+          { height: cardHeight, borderColor: isSelected ? teamColor : "#2A1060" },
+          isSelected && styles.roleCardSelected,
+          isSelected && { shadowColor: teamColor },
+        ]}
+        onPress={onPress}
+      >
+        {isSelected && (
+          <View style={[styles.selBadge, { backgroundColor: teamColor }]}>
+            <Text style={styles.selBadgeText}>✓</Text>
+          </View>
+        )}
+
+        <Text style={{ fontSize: emojiSize }}>{role.emoji}</Text>
+        <Text
+          style={[
+            styles.cardName,
+            { fontSize: nameSize, color: isSelected ? teamColor : "#E8DEFF" },
+          ]}
+          numberOfLines={2}
+          adjustsFontSizeToFit
+        >
+          {role.name}
+        </Text>
+        <View
+          style={[
+            styles.cardTeamBadge,
+            { backgroundColor: teamColor + "25", borderColor: teamColor + "70" },
+          ]}
+        >
+          <Text style={[styles.cardTeamText, { color: teamColor, fontSize: isMobile ? 6 : 8 }]}>
+            {teamLabel}
+          </Text>
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+// ── RandomCard ────────────────────────────────────────────────────────────────
+function RandomCard({
+  cardWidth,
+  cardHeight,
+  isMobile,
+  onPress,
+}: {
+  cardWidth: number;
+  cardHeight: number;
+  isMobile: boolean;
+  onPress: () => void;
+}) {
+  const nameSize = isMobile ? (cardWidth < 70 ? 8 : 10) : 12;
+  const emojiSize = isMobile ? (cardWidth < 70 ? 20 : 26) : 32;
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(20)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 280,
+        delay: 3 * 80,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 280,
+        delay: 3 * 80,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
     ]).start();
   }, []);
 
   return (
     <Animated.View
-      style={[
-        styles.roleCardWrap,
-        isMobile && styles.roleCardWrapMobile,
-        { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-      ]}
+      style={{
+        opacity: fadeAnim,
+        transform: [{ translateY: slideAnim }],
+        width: cardWidth,
+      }}
     >
       <Pressable
-        style={[
-          styles.roleCard,
-          isSelected && styles.roleCardSelected,
-          isSelected && { borderColor: teamColor },
-        ]}
+        style={[styles.roleCard, styles.randomCard, { height: cardHeight }]}
         onPress={onPress}
       >
-        {isSelected && (
-          <View style={[styles.selectedBadge, { backgroundColor: teamColor }]}>
-            <Text style={styles.selectedBadgeText}>✓</Text>
-          </View>
-        )}
-
-        <Text style={styles.roleCardEmoji}>{role.emoji}</Text>
-        <Text style={[styles.roleCardName, isSelected && { color: teamColor }]}>
-          {role.name}
-        </Text>
-
-        <View
-          style={[
-            styles.roleCardTeamBadge,
-            { backgroundColor: teamColor + "20", borderColor: teamColor + "60" },
-          ]}
+        <Text style={{ fontSize: emojiSize }}>🎲</Text>
+        <Text
+          style={[styles.cardName, { fontSize: nameSize, color: "#9B7FD4" }]}
+          numberOfLines={2}
+          adjustsFontSizeToFit
         >
-          <Text style={[styles.roleCardTeamText, { color: teamColor }]}>{teamLabel}</Text>
-        </View>
-
-        <Text style={styles.roleCardAbility} numberOfLines={3}>
-          {role.shortDesc ?? role.description}
+          RASTGELE
         </Text>
+        <View style={[styles.cardTeamBadge, styles.randomBadge]}>
+          <Text style={[styles.cardTeamText, { color: "#9B7FD4", fontSize: isMobile ? 6 : 8 }]}>
+            ŞANS
+          </Text>
+        </View>
       </Pressable>
     </Animated.View>
   );
@@ -375,26 +497,50 @@ function WaitingArea({
   totalCount: number;
 }) {
   const pct = totalCount > 0 ? (selectedCount / totalCount) * 100 : 0;
-  return (
-    <View style={styles.waitingContainer}>
-      <Text style={styles.waitingTitle}>ROL DAĞITIMI</Text>
-      <Text style={styles.waitingFraction}>
-        {selectedCount}
-        <Text style={styles.waitingFractionTotal}>/{totalCount}</Text>
-      </Text>
-      <Text style={styles.waitingSubtitle}>seçimini yaptı</Text>
 
-      <View style={styles.waitingBarBg}>
-        <View style={[styles.waitingBarFill, { width: `${pct}%` as any }]} />
+  // Pulsing question marks
+  const qAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(qAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(qAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
+      ])
+    ).start();
+  }, []);
+
+  return (
+    <View style={styles.waitingRoot}>
+      <Text style={styles.waitingLabel}>ROL DAĞITIMI</Text>
+
+      <View style={styles.fractionRow}>
+        <Text style={styles.fractionNum}>{selectedCount}</Text>
+        <Text style={styles.fractionSep}>/{totalCount}</Text>
+      </View>
+      <Text style={styles.fractionSub}>seçimini yaptı</Text>
+
+      <View style={styles.waitBarBg}>
+        <View style={[styles.waitBarFill, { width: `${pct}%` as any }]} />
       </View>
 
-      <Text style={styles.waitingHint}>Sıranı bekle...</Text>
+      <Text style={styles.waitHint}>Sıranı bekle...</Text>
 
-      <View style={styles.questionMarks}>
-        {["?", "?", "?"].map((q, i) => (
-          <Text key={i} style={[styles.questionMark, { opacity: 0.2 + i * 0.2 }]}>
-            {q}
-          </Text>
+      <View style={styles.qRow}>
+        {[0, 1, 2].map((i) => (
+          <Animated.Text
+            key={i}
+            style={[
+              styles.qMark,
+              {
+                opacity: qAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.15 + i * 0.15, 0.5 + i * 0.15],
+                }),
+              },
+            ]}
+          >
+            ?
+          </Animated.Text>
         ))}
       </View>
     </View>
@@ -403,224 +549,273 @@ function WaitingArea({
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: "#0A0614" },
+  root: {
+    flex: 1,
+    backgroundColor: "#0A0614",
+    flexDirection: "row",
+  },
 
-  // ── Desktop panel ──
-  desktopPanel: {
-    width: 220,
-    backgroundColor: "#0D0820",
+  // ── Panel ──
+  panel: {
+    backgroundColor: "#0C0720",
     borderRightWidth: 1,
     borderRightColor: "#1A0A3E",
-    paddingTop: 20,
+    flexShrink: 0,
+  },
+  panelHeader: {
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1A0A3E",
   },
   panelTitle: {
     fontFamily: "Inter_700Bold",
-    fontSize: 10,
-    color: "#4A2E7A",
+    fontSize: 9,
+    color: "#3B1F8C",
     letterSpacing: 2,
     textAlign: "center",
-    marginBottom: 16,
   },
+  panelScroll: { flex: 1 },
 
-  // ── Mobile panel ──
-  mobilePanel: {
-    height: 110,
-    backgroundColor: "#0D0820",
-    borderBottomWidth: 1,
-    borderBottomColor: "#1A0A3E",
-  },
-  mobilePanelScroll: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
-    alignItems: "center",
-  },
-
-  // ── Mobile player card ──
-  mobilePlayerCard: {
-    width: 80,
-    height: 90,
-    borderRadius: 12,
-    backgroundColor: "#1A0A3E",
-    borderWidth: 2,
-    borderColor: "#2A1060",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 6,
-    position: "relative",
-    gap: 2,
-  },
-  mobilePlayerCardPicking: { borderColor: "#F5C842", backgroundColor: "#2A1060" },
-  mobilePlayerCardMe: { borderStyle: "dashed" },
-  mobileRoleEmoji: { fontSize: 22, marginBottom: 1 },
-  mobileRoleName: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 9,
-    textAlign: "center",
-    lineHeight: 12,
-  },
-
-  // ── Desktop player row ──
-  desktopPlayerRow: {
+  // ── Player row ──
+  playerRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingVertical: 9,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#1A0A3E",
+    borderBottomColor: "#130830",
     borderLeftWidth: 3,
     borderLeftColor: "transparent",
+    gap: 6,
+    minHeight: 52,
   },
-  desktopPlayerRowPicking: { backgroundColor: "#1A0A3E" },
-  desktopPlayerRowMe: { backgroundColor: "#0F0625" },
-  desktopPlayerInfo: { flex: 1, gap: 4 },
-  desktopRoleName: { fontFamily: "Inter_700Bold", fontSize: 12 },
+  playerRowPicking: {
+    backgroundColor: "#160935",
+    borderLeftColor: "#F5C842",
+  },
+  playerRowMe: {
+    backgroundColor: "#0F0625",
+  },
 
-  // ── Position badge ──
-  positionBadge: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "#2A1060",
+  posBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "#1E0B4A",
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
-  positionBadgePicking: { backgroundColor: "#F5C842" },
-  positionText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 10,
-    color: "#E8DEFF",
+  posBadgePicking: {
+    backgroundColor: "#F5C842",
   },
-  positionTextPicking: { color: "#0A0614" },
-
-  // ── Team badge ──
-  teamBadge: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 99,
-    borderWidth: 1,
-    marginTop: 2,
-  },
-  teamBadgeText: { fontFamily: "Inter_700Bold", fontSize: 8, letterSpacing: 0.5 },
-
-  // ── Status indicators ──
-  doneTick: { position: "absolute", top: 4, right: 4 },
-  doneTickText: { fontFamily: "Inter_700Bold", fontSize: 10 },
-  meMark: {
-    position: "absolute",
-    bottom: 3,
+  posNum: {
     fontFamily: "Inter_700Bold",
-    fontSize: 8,
+    fontSize: 9,
+    color: "#9B7FD4",
+  },
+  posNumPicking: {
+    color: "#0A0614",
+  },
+
+  playerInfo: {
+    flex: 1,
+    gap: 2,
+    overflow: "hidden",
+  },
+  playerName: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 11,
+    color: "#C8B8FF",
+    letterSpacing: 0.2,
+  },
+  playerNameMe: {
     color: "#F5C842",
   },
-  meMarkDesktop: { fontFamily: "Inter_700Bold", fontSize: 9, color: "#F5C842" },
-  pickingLabel: { fontFamily: "Inter_600SemiBold", fontSize: 10, color: "#F5C842" },
-  pickingDots: { fontSize: 18, color: "#F5C842", letterSpacing: 2 },
-  waitingLabel: { fontFamily: "Inter_400Regular", fontSize: 9, color: "#4A2E7A" },
-  waitingLabelText: { fontFamily: "Inter_400Regular", fontSize: 11, color: "#4A2E7A" },
+  statusDone: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 9,
+    letterSpacing: 0.1,
+  },
+  statusPicking: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 9,
+    color: "#F5C842",
+  },
+  statusWaiting: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 9,
+    color: "#3B1F8C",
+  },
+
+  playerRight: {
+    alignItems: "center",
+    gap: 2,
+    flexShrink: 0,
+  },
+  doneEmoji: {
+    fontSize: 16,
+  },
+  checkmark: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 14,
+  },
+  youBadge: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 7,
+    color: "#F5C842",
+    letterSpacing: 0.5,
+  },
 
   // ── Main area ──
-  mainArea: { flex: 1 },
-
-  // ── Picking container ──
-  pickingContainer: {
-    padding: 32,
-    alignItems: "center",
-    gap: 16,
-    paddingBottom: 48,
+  mainArea: {
+    flex: 1,
+    overflow: "hidden",
   },
-  pickingContainerMobile: { padding: 16, gap: 12 },
+
+  // ── Picking root ──
+  pickingRoot: {
+    flex: 1,
+    justifyContent: "center",
+    gap: 10,
+    paddingVertical: 12,
+  },
+
+  pickingHeader: {
+    paddingHorizontal: 20,
+    gap: 2,
+  },
+  pickingHeaderMobile: {
+    paddingHorizontal: 10,
+  },
   pickingTitle: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 12,
-    letterSpacing: 3,
-    color: "#4A2E7A",
+    fontFamily: "Cinzel_700Bold",
+    fontSize: 20,
+    color: "#E8DEFF",
     textAlign: "center",
   },
   pickingSubtitle: {
-    fontFamily: "Cinzel_700Bold",
-    fontSize: 22,
-    color: "#E8DEFF",
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: "#4A2E7A",
     textAlign: "center",
+    letterSpacing: 1,
+  },
+  pickingSubtitleMobile: {
+    fontSize: 10,
   },
 
-  // ── Timer ──
-  timerContainer: { flexDirection: "row", alignItems: "baseline", gap: 6 },
-  timerNumber: {
+  // Timer
+  timerRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    justifyContent: "center",
+    gap: 4,
+  },
+  timerRowMobile: {},
+  timerNum: {
     fontFamily: "Inter_700Bold",
-    fontSize: 56,
+    fontSize: 44,
     color: "#F5C842",
     fontVariant: ["tabular-nums"],
   },
-  timerUnit: { fontFamily: "Inter_400Regular", fontSize: 14, color: "#9B7FD4" },
+  timerLabel: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    color: "#9B7FD4",
+  },
   timerUrgent: { color: "#C8102E" },
   timerBarBg: {
     height: 3,
-    backgroundColor: "#2A1060",
+    backgroundColor: "#1A0A3E",
     borderRadius: 2,
-    width: "100%",
-    maxWidth: 400,
   },
-  timerBarFill: { height: 3, backgroundColor: "#F5C842", borderRadius: 2 },
+  timerBarFill: {
+    height: 3,
+    backgroundColor: "#F5C842",
+    borderRadius: 2,
+  },
   timerBarUrgent: { backgroundColor: "#C8102E" },
 
-  // ── Cards grid ──
-  cardsGrid: {
+  // Cards row — always horizontal
+  cardsRow: {
     flexDirection: "row",
-    gap: 12,
-    justifyContent: "center",
-    width: "100%",
-    maxWidth: 700,
-  },
-  cardsGrid1: { justifyContent: "center" },
-  cardsGrid2: { justifyContent: "center" },
-  cardsGridMobile: { flexDirection: "column", alignItems: "stretch" },
-
-  roleCardWrap: {
-    flex: 1,
-    maxWidth: 200,
-    minWidth: 120,
-  },
-  roleCardWrapMobile: {
-    flex: 0,
-    maxWidth: "100%",
-    minWidth: 0,
-    width: "100%",
+    alignItems: "flex-start",
   },
 
-  // ── Role card ──
+  // Role card — NO aspectRatio, fixed height
   roleCard: {
-    flex: 1,
-    aspectRatio: 0.75,
-    backgroundColor: "#1A0A3E",
-    borderRadius: 16,
+    backgroundColor: "#140830",
+    borderRadius: 12,
     borderWidth: 2,
     borderColor: "#2A1060",
     alignItems: "center",
     justifyContent: "center",
-    padding: 16,
+    padding: 8,
+    gap: 5,
     position: "relative",
-    gap: 6,
+    shadowOpacity: 0,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
   },
-  roleCardSelected: { borderWidth: 3, backgroundColor: "#2A1060" },
-  roleCardEmoji: { fontSize: 52, marginBottom: 6 },
-  roleCardName: {
+  roleCardSelected: {
+    backgroundColor: "#1E0C40",
+    borderWidth: 2.5,
+    shadowOpacity: 0.5,
+    elevation: 6,
+  },
+  selBadge: {
+    position: "absolute",
+    top: 5,
+    right: 5,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  selBadgeText: {
     fontFamily: "Inter_700Bold",
-    fontSize: 16,
-    color: "#E8DEFF",
-    textAlign: "center",
+    fontSize: 10,
+    color: "#0A0614",
   },
-  roleCardTeamBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+  cardName: {
+    fontFamily: "Inter_700Bold",
+    textAlign: "center",
+    lineHeight: 13,
+  },
+  cardTeamBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: 99,
     borderWidth: 1,
   },
-  roleCardTeamText: { fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1 },
-  roleCardAbility: {
+  cardTeamText: {
+    fontFamily: "Inter_700Bold",
+    letterSpacing: 0.5,
+  },
+
+  randomCard: {
+    borderColor: "#2A1060",
+    borderStyle: "dashed",
+  },
+  randomBadge: {
+    backgroundColor: "#1A0A3E",
+    borderColor: "#3B1F8C",
+  },
+
+  // Description box
+  descBox: {
+    backgroundColor: "#130830",
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: "#2A1060",
+  },
+  descText: {
     fontFamily: "Inter_400Regular",
     fontSize: 11,
     color: "#9B7FD4",
@@ -628,96 +823,87 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 
-  // ── Selected badge ──
-  selectedBadge: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  selectedBadgeText: { fontFamily: "Inter_700Bold", fontSize: 12, color: "#0A0614" },
-
-  // ── Buttons ──
-  randomBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    borderWidth: 1,
-    borderColor: "#3B1F8C",
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    width: "100%",
-    maxWidth: 400,
-  },
-  randomBtnEmoji: { fontSize: 20 },
-  randomBtnText: { fontFamily: "Inter_500Medium", fontSize: 13, color: "#9B7FD4", flex: 1 },
+  // Confirm button
+  confirmWrap: {},
   confirmBtn: {
     backgroundColor: "#F5C842",
     borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 40,
-    width: "100%",
-    maxWidth: 400,
+    paddingVertical: 14,
     alignItems: "center",
   },
-  confirmBtnDisabled: { backgroundColor: "#2A1060" },
-  confirmBtnText: { fontFamily: "Inter_700Bold", fontSize: 15, color: "#0A0614" },
-  confirmBtnTextDisabled: { color: "#4A2E7A" },
+  confirmBtnDisabled: {
+    backgroundColor: "#1A0A3E",
+  },
+  confirmBtnText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 14,
+    color: "#0A0614",
+  },
+  confirmBtnTextDisabled: {
+    color: "#3B1F8C",
+  },
 
   // ── Waiting area ──
-  waitingContainer: {
+  waitingRoot: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: 32,
-    gap: 12,
+    padding: 20,
+    gap: 10,
   },
-  waitingTitle: {
+  waitingLabel: {
     fontFamily: "Inter_700Bold",
-    fontSize: 11,
+    fontSize: 10,
     letterSpacing: 3,
-    color: "#4A2E7A",
-    textAlign: "center",
+    color: "#3B1F8C",
   },
-  waitingFraction: {
+  fractionRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+  },
+  fractionNum: {
     fontFamily: "Inter_700Bold",
-    fontSize: 80,
+    fontSize: 72,
     color: "#F5C842",
-    lineHeight: 90,
+    lineHeight: 80,
     fontVariant: ["tabular-nums"],
   },
-  waitingFractionTotal: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 40,
-    color: "#9B7FD4",
-  },
-  waitingSubtitle: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 16,
-    color: "#9B7FD4",
-  },
-  waitingBarBg: {
-    height: 3,
-    backgroundColor: "#2A1060",
-    borderRadius: 2,
-    width: 200,
-  },
-  waitingBarFill: { height: 3, backgroundColor: "#F5C842", borderRadius: 2 },
-  waitingHint: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 13,
-    color: "#4A2E7A",
-    marginTop: 8,
-  },
-  questionMarks: { flexDirection: "row", gap: 20, marginTop: 12 },
-  questionMark: {
+  fractionSep: {
     fontFamily: "Inter_700Bold",
     fontSize: 36,
+    color: "#4A2E7A",
+  },
+  fractionSub: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    color: "#9B7FD4",
+  },
+  waitBarBg: {
+    height: 3,
+    backgroundColor: "#1A0A3E",
+    borderRadius: 2,
+    width: 160,
+    marginTop: 4,
+  },
+  waitBarFill: {
+    height: 3,
+    backgroundColor: "#F5C842",
+    borderRadius: 2,
+  },
+  waitHint: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: "#3B1F8C",
+    marginTop: 6,
+  },
+  qRow: {
+    flexDirection: "row",
+    gap: 16,
+    marginTop: 8,
+  },
+  qMark: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 32,
     color: "#3B1F8C",
   },
 });
