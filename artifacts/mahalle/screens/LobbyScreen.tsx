@@ -163,76 +163,45 @@ export default function LobbyScreen() {
   if (!inRoom) {
     return (
       <>
-        <KeyboardAvoidingView
-          style={{ flex: 1, backgroundColor: HOME_BG }}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
-          keyboardVerticalOffset={0}
-        >
-          <ScrollView
-            contentContainerStyle={[
-              styles.scroll,
-              { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 48 },
-            ]}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            showsVerticalScrollIndicator={false}
-            style={{ backgroundColor: HOME_BG }}
+        <View style={{ flex: 1, backgroundColor: HOME_BG }}>
+          {/* ── TOP BAR — ayrı panel, atmosferik arka plandan bağımsız ── */}
+          <View style={[styles.topBar, { paddingTop: insets.top }]}>
+            <View style={{ flex: 1 }} />
+            <Pressable onPress={() => setStatsVisible(true)} hitSlop={12} style={styles.topBarBtn} accessibilityLabel="İstatistikler">
+              <Feather name="bar-chart-2" size={18} color="#9B7FD4" />
+            </Pressable>
+            <Pressable onPress={() => setHelpVisible(true)} hitSlop={12} style={styles.topBarBtn} accessibilityLabel="Nasıl oynanır">
+              <Feather name="help-circle" size={18} color="#9B7FD4" />
+            </Pressable>
+            <Pressable onPress={toggleVibrations} hitSlop={12} style={styles.topBarBtn} accessibilityLabel={vibrationsEnabled ? "Titreşimi kapat" : "Titreşimi aç"}>
+              <Feather name={vibrationsEnabled ? "smartphone" : "slash"} size={18} color={vibrationsEnabled ? "#9B7FD4" : "#4A3570"} />
+            </Pressable>
+            <Pressable onPress={() => setSettingsVisible(true)} hitSlop={12} style={styles.topBarBtn} accessibilityLabel="Ayarlar">
+              <Feather name="settings" size={18} color="#9B7FD4" />
+            </Pressable>
+          </View>
+
+          {/* ── İÇERİK — klavye aware, dikey ortalanmış ── */}
+          <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            keyboardVerticalOffset={0}
           >
-            {/* Hero wrapper: gradient + floating icons + logo */}
-            <View style={styles.heroWrap}>
-              {/* Full-screen atmospheric gradient */}
-              <LinearGradient
-                colors={["#1A0A3E", "#0D0525", HOME_BG]}
-                style={styles.heroBg}
-              />
-
-              {/* Floating top-right icons — sit OVER the gradient */}
-              <View style={[styles.heroIcons, { top: 6 }]}>
-                <Pressable
-                  onPress={() => setStatsVisible(true)}
-                  hitSlop={12}
-                  style={styles.iconBtn}
-                  accessibilityLabel="İstatistikler"
-                >
-                  <Feather name="bar-chart-2" size={17} color="#9B7FD4" />
-                </Pressable>
-                <Pressable
-                  onPress={() => setHelpVisible(true)}
-                  hitSlop={12}
-                  style={styles.iconBtn}
-                  accessibilityLabel="Nasıl oynanır"
-                >
-                  <Feather name="help-circle" size={17} color="#9B7FD4" />
-                </Pressable>
-                <Pressable
-                  onPress={toggleVibrations}
-                  hitSlop={12}
-                  style={styles.iconBtn}
-                  accessibilityLabel={vibrationsEnabled ? "Titreşimi kapat" : "Titreşimi aç"}
-                >
-                  <Feather
-                    name={vibrationsEnabled ? "smartphone" : "slash"}
-                    size={17}
-                    color={vibrationsEnabled ? "#9B7FD4" : "#4A3570"}
-                  />
-                </Pressable>
-                <Pressable
-                  onPress={() => setSettingsVisible(true)}
-                  hitSlop={12}
-                  style={styles.iconBtn}
-                  accessibilityLabel="Ayarlar"
-                >
-                  <Feather name="settings" size={17} color="#9B7FD4" />
-                </Pressable>
-              </View>
-
-              {/* Hero section — logo + title + tagline */}
+            <ScrollView
+              contentContainerStyle={[styles.homeScroll, { paddingBottom: insets.bottom + 32 }]}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Hero: logo + başlık + etiket */}
               <Animated.View
-                style={[
-                  styles.hero,
-                  { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
-                ]}
+                style={[styles.hero, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
               >
+                <LinearGradient
+                  colors={["#1A0A3E88", "#0D052500"]}
+                  style={styles.heroTopGlow}
+                  pointerEvents="none"
+                />
                 <View style={styles.logoWrap}>
                   <Image
                     source={require("../assets/images/logo.png")}
@@ -252,7 +221,6 @@ export default function LobbyScreen() {
                   Davetsiz Misafir'i bul. Yoksa mahalle onların olur.
                 </Text>
               </Animated.View>
-            </View>
 
             {/* Entry card */}
             <Animated.View
@@ -359,7 +327,8 @@ export default function LobbyScreen() {
               <Text style={styles.footer}>4–30 oyuncu • Yüz yüze • Türkçe anlatım</Text>
             </Animated.View>
           </ScrollView>
-        </KeyboardAvoidingView>
+          </KeyboardAvoidingView>
+        </View>
 
         <StatsScreen visible={statsVisible} onClose={() => setStatsVisible(false)} />
         <HowToPlayScreen visible={helpVisible} onClose={() => setHelpVisible(false)} />
@@ -856,14 +825,52 @@ function HostSettings({ state, emit }: any) {
 
 const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 18, gap: 12 },
-  // heroWrap: relative container so absolute-positioned icons stay inside it
+
+  // ── Ana ekran üst bar ────────────────────────────────────────────────────────
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: "#0D0520",
+    borderBottomWidth: 1,
+    borderBottomColor: "#1E0A48",
+  },
+  topBarBtn: {
+    width: 38,
+    height: 38,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#2A1060",
+    backgroundColor: "rgba(26,10,62,0.5)",
+  },
+
+  // ── Ana ekran scrollview içeriği — dikey ortalanmış ─────────────────────────
+  homeScroll: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingHorizontal: 18,
+    gap: 16,
+    paddingTop: 24,
+  },
+
+  // ── Legacy (heroWrap kullanılmıyor artık ama diğer kod referans edebilir) ────
   heroWrap: {
     position: "relative",
     alignItems: "center",
     marginBottom: 4,
   },
   heroBg: { position: "absolute", left: -18, right: -18, top: -4, height: 460 },
-  hero: { alignItems: "center", paddingTop: 10 },
+  heroTopGlow: {
+    position: "absolute",
+    left: -18,
+    right: -18,
+    top: -24,
+    height: 200,
+  },
+  hero: { alignItems: "center", paddingTop: 8 },
   heroIcons: {
     position: "absolute",
     right: 0,
