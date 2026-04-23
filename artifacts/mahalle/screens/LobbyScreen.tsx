@@ -599,6 +599,15 @@ function HostSettings({ state, emit }: any) {
             onChange={(v) => update("voiceEnabled", v === "on")}
           />
 
+          <SettingRow
+            label="Rol Seçiminde İsimler"
+            tooltip="Gizli: oyuncular sırayla sadece numara görür, kim hangi rolü aldı belli olmaz. Görünür: herkes adını görür."
+            options={["hidden", "visible"]}
+            labels={["Gizli", "Görünür"]}
+            value={settings.roleSelectShowNames ?? "hidden"}
+            onChange={(v) => update("roleSelectShowNames", v)}
+          />
+
           <View style={styles.hsDivider} />
 
           {/* Rol Paketi */}

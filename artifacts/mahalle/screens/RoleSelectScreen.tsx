@@ -1,180 +1,631 @@
 import * as Haptics from "expo-haptics";
 import { haptic } from "@/lib/haptics";
-import React, { useEffect, useRef } from "react";
-import { Animated, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from "react-native";
 
-import { Btn } from "@/components/Btn";
 import { ROLE_DEFS, ROLE_TEAM_COLOR, ROLE_TEAM_LABEL } from "@/constants/roles";
 import roleImages from "@/constants/roleImages";
 import { useGame } from "@/contexts/GameContext";
-import { useColors } from "@/hooks/useColors";
 import { useCountdown } from "@/hooks/useCountdown";
 
-const AVATAR_SIZE = 72;
-
 export default function RoleSelectScreen() {
-  const c = useColors();
   const { state, myPlayerId, emit } = useGame();
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
   const remaining = useCountdown(state?.roleSelectDeadline ?? null);
 
   if (!state) return null;
-  const myTurn =
-    state.currentChoice && state.currentChoice.playerId === myPlayerId;
-  const currentPlayer = state.players.find(
-    (p) => p.id === state.currentChoice?.playerId,
-  );
 
-  if (!myTurn) {
-    const done = state.players.filter((p) => p.hasSelectedRole).length;
-    return (
-      <View style={[styles.center, { backgroundColor: c.background }]}>
-        <Text style={{ color: c.mutedForeground, fontSize: 11, fontFamily: "Inter_500Medium", letterSpacing: 1.5 }}>
-          ROL DAĞITIMI
-        </Text>
-        <Text style={{ color: c.foreground, fontFamily: "Cinzel_700Bold", fontSize: 24, marginTop: 10, letterSpacing: 2 }}>
-          {currentPlayer?.nickname ?? "..."}
-        </Text>
-        <Text style={{ color: c.mutedForeground, marginTop: 6, fontFamily: "Inter_400Regular" }}>
-          kartlarına bakıyor...
-        </Text>
-        <View style={{ marginTop: 28, alignItems: "center" }}>
-          <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: 36 }}>
-            {done}/{state.players.length}
-          </Text>
-          <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 4 }}>
-            seçimini yaptı
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
-  const opts = state.currentChoice!.options;
+  const isMyTurn =
+    !!(state.currentChoice && state.currentChoice.playerId === myPlayerId);
+  const choices = isMyTurn ? state.currentChoice!.options : [];
+  const selectedCount = state.players.filter((p: any) => p.hasSelectedRole).length;
+  const totalCount = state.players.length;
+  const showNames = state.settings?.roleSelectShowNames === "visible";
 
   return (
-    <CardFan opts={opts} remaining={remaining} emit={emit} c={c} myPlayerId={myPlayerId} />
-  );
-}
+    <View style={[styles.root, { flexDirection: isMobile ? "column" : "row" }]}>
+      {/* ── SOL PANEL — Oyuncu listesi ── */}
+      <View
+        style={[
+          styles.leftPanel,
+          isMobile && { width: "100%", height: 80, flexDirection: "row" },
+        ]}
+      >
+        {!isMobile && (
+          <Text style={styles.leftTitle}>OYUNCULAR</Text>
+        )}
+        <ScrollView
+          horizontal={isMobile}
+          showsHorizontalScrollIndicator={false}
+          showsVerticalScrollIndicator={false}
+        >
+          {state.players.map((p: any, index: number) => {
+            const isPicking =
+              state.currentChoice?.playerId === p.id && !p.hasSelectedRole;
+            const isDone = p.hasSelectedRole;
+            const isMe = p.id === myPlayerId;
+            const roleDef = isDone ? ROLE_DEFS[p.selectedRoleId] : null;
 
-function CardFan({ opts, remaining, emit, c, myPlayerId }: any) {
-  const anims = useRef(opts.map(() => new Animated.Value(0))).current;
-  const rotations = [-3, 0, 3];
-
-  useEffect(() => {
-    Animated.stagger(
-      100,
-      anims.map((anim: Animated.Value) =>
-        Animated.timing(anim, { toValue: 1, duration: 500, useNativeDriver: true }),
-      ),
-    ).start();
-  }, []);
-
-  return (
-    <View style={{ flex: 1, padding: 18, gap: 14, backgroundColor: c.background }}>
-      <View style={{ alignItems: "center", marginBottom: 4 }}>
-        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", letterSpacing: 1.5, fontSize: 11 }}>
-          ROL SEÇ
-        </Text>
-        <Text style={{ color: c.foreground, fontFamily: "Cinzel_700Bold", fontSize: 20, marginTop: 6, letterSpacing: 2 }}>
-          Kaderini koy ortaya
-        </Text>
-        <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: 30, marginTop: 8, fontVariant: ["tabular-nums"] }}>
-          {remaining}s
-        </Text>
-      </View>
-
-      {opts.map((rid: string, i: number) => {
-        const r = ROLE_DEFS[rid];
-        if (!r) return null;
-        const teamColor = ROLE_TEAM_COLOR[r.team] ?? c.factionGood;
-        const img = roleImages[rid];
-        return (
-          <Animated.View
-            key={rid}
-            style={{
-              opacity: anims[i],
-              transform: [
-                { translateY: anims[i].interpolate({ inputRange: [0, 1], outputRange: [60, 0] }) },
-                { rotateZ: `${rotations[i] ?? 0}deg` },
-              ],
-            }}
-          >
-            <Pressable
-              onPress={() => {
-                haptic(Haptics.ImpactFeedbackStyle.Medium);
-                emit("chooseRole", { roleId: rid });
-              }}
-              style={({ pressed }) => [
-                styles.roleCard,
-                {
-                  backgroundColor: pressed ? c.surface : c.card,
-                  borderColor: pressed ? teamColor : teamColor + "44",
-                  borderWidth: pressed ? 2 : 1,
-                  opacity: pressed ? 0.88 : 1,
-                },
-              ]}
-            >
-              {img ? (
-                <View style={[styles.avatarCircle, { borderColor: teamColor + "88" }]}>
-                  <Image source={img} style={styles.avatarImg} />
-                </View>
-              ) : (
-                <Text style={{ fontSize: 38 }}>{r.emoji}</Text>
-              )}
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 17 }}>
-                  {r.name}
-                </Text>
-                <View style={[styles.teamPill, { backgroundColor: teamColor + "22", borderColor: teamColor + "66" }]}>
-                  <Text style={{ fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 1.5, color: teamColor }}>
-                    {ROLE_TEAM_LABEL[r.team]}
+            return (
+              <View
+                key={p.id}
+                style={[
+                  styles.playerRow,
+                  isPicking && styles.playerRowActive,
+                  isDone && styles.playerRowDone,
+                  !isPicking && !isDone && styles.playerRowWaiting,
+                  isMobile && styles.playerRowMobile,
+                ]}
+              >
+                <View style={[styles.playerAvatar, isPicking && styles.playerAvatarActive]}>
+                  <Text style={[styles.playerAvatarText, isPicking && styles.playerAvatarTextActive]}>
+                    {String(index + 1).padStart(2, "0")}
                   </Text>
                 </View>
-                <Text style={{ color: c.mutedForeground, marginTop: 6, fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 18 }}>
-                  {r.description}
-                </Text>
-              </View>
-            </Pressable>
-          </Animated.View>
-        );
-      })}
 
-      <Btn
-        label="🎲 Rastgele Seç — kaderini koy ortaya!"
-        variant="ghost"
-        onPress={() => emit("chooseRole", { roleId: "__random__" })}
-      />
+                {!isMobile && (
+                  <View style={styles.playerInfo}>
+                    {isDone && roleDef ? (
+                      <>
+                        <Text style={styles.playerRoleEmoji}>{roleDef.emoji}</Text>
+                        <Text style={styles.playerRoleName} numberOfLines={1}>
+                          {roleDef.name}
+                        </Text>
+                      </>
+                    ) : isPicking ? (
+                      <Text style={styles.pickingLabel}>seçiyor…</Text>
+                    ) : (
+                      <Text style={styles.waitingLabelSmall}>bekliyor</Text>
+                    )}
+                    {isMe && !isDone && (
+                      <Text style={styles.meLabel}>SEN</Text>
+                    )}
+                  </View>
+                )}
+                {isMobile && isDone && roleDef && (
+                  <Text style={styles.mobileRoleEmoji}>{roleDef.emoji}</Text>
+                )}
+              </View>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* ── SAĞ PANEL — Seçim alanı ── */}
+      <View style={styles.rightPanel}>
+        {isMyTurn ? (
+          <MyTurnPanel
+            choices={choices}
+            remaining={remaining}
+            onSelect={(roleId) => {
+              haptic(Haptics.ImpactFeedbackStyle.Medium);
+              emit("chooseRole", { roleId: roleId ?? "__random__" });
+            }}
+          />
+        ) : (
+          <WaitingPanel selectedCount={selectedCount} totalCount={totalCount} />
+        )}
+      </View>
     </View>
   );
 }
 
+// ── MyTurnPanel ───────────────────────────────────────────────────────────────
+function MyTurnPanel({
+  choices,
+  remaining,
+  onSelect,
+}: {
+  choices: string[];
+  remaining: number;
+  onSelect: (roleId: string | null) => void;
+}) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const urgent = remaining <= 5;
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
+
+  return (
+    <View style={styles.myTurnContainer}>
+      <Text style={styles.myTurnTitle}>ROL SEÇ</Text>
+      <Text style={styles.myTurnSubtitle}>Kaderini koy ortaya</Text>
+
+      {/* Timer */}
+      <View style={styles.timerRow}>
+        <Text style={[styles.timerText, urgent && styles.timerTextUrgent]}>
+          {remaining}s
+        </Text>
+      </View>
+      <View style={styles.timerBarBg}>
+        <View
+          style={[
+            styles.timerBarFill,
+            { width: `${Math.max(0, (remaining / 25) * 100)}%` as any },
+            urgent && styles.timerBarUrgent,
+          ]}
+        />
+      </View>
+
+      {/* Kartlar */}
+      <ScrollView
+        contentContainerStyle={[
+          styles.cardsRow,
+          isMobile && styles.cardsRowMobile,
+          choices.length === 1 && styles.cardsRowSingle,
+          choices.length === 2 && styles.cardsRowDouble,
+        ]}
+        horizontal={!isMobile}
+        showsHorizontalScrollIndicator={false}
+        style={{ marginTop: 20 }}
+      >
+        {choices.map((rid) => (
+          <RoleCard
+            key={rid}
+            roleId={rid}
+            selected={selected === rid}
+            onPress={() => setSelected((prev) => (prev === rid ? null : rid))}
+          />
+        ))}
+      </ScrollView>
+
+      {/* Butonlar */}
+      <Pressable
+        style={styles.randomBtn}
+        onPress={() => onSelect(null)}
+      >
+        <Text style={styles.randomBtnText}>🎲 Rastgele Seç — kaderini koy ortaya!</Text>
+      </Pressable>
+
+      {selected && (
+        <Pressable
+          style={styles.confirmBtn}
+          onPress={() => onSelect(selected)}
+        >
+          <Text style={styles.confirmBtnText}>✓ Seç</Text>
+        </Pressable>
+      )}
+    </View>
+  );
+}
+
+// ── RoleCard ──────────────────────────────────────────────────────────────────
+function RoleCard({
+  roleId,
+  selected,
+  onPress,
+}: {
+  roleId: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  const role = ROLE_DEFS[roleId];
+  if (!role) return null;
+  const teamColor = ROLE_TEAM_COLOR[role.team] ?? "#9B7FD4";
+  const img = roleImages[roleId];
+
+  const slideAnim = useRef(new Animated.Value(40)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(slideAnim, { toValue: 0, duration: 350, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 350, useNativeDriver: true }),
+    ]).start();
+  }, []);
+
+  return (
+    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+      <Pressable
+        onPress={onPress}
+        style={[
+          styles.roleCard,
+          selected && styles.roleCardSelected,
+          selected && { borderColor: teamColor },
+        ]}
+      >
+        {/* Emoji / görsel */}
+        <View style={styles.roleCardImageArea}>
+          {img ? (
+            <View style={[styles.roleCardImgCircle, { borderColor: teamColor + "88" }]}>
+              <Animated.Image source={img} style={styles.roleCardImg} />
+            </View>
+          ) : (
+            <Text style={styles.roleCardEmoji}>{role.emoji}</Text>
+          )}
+        </View>
+
+        <Text style={styles.roleCardName}>{role.name}</Text>
+
+        <View style={[styles.roleCardTeamBadge, { backgroundColor: teamColor + "22", borderColor: teamColor }]}>
+          <Text style={[styles.roleCardTeamText, { color: teamColor }]}>
+            {ROLE_TEAM_LABEL[role.team]}
+          </Text>
+        </View>
+
+        <Text style={styles.roleCardDesc} numberOfLines={3}>
+          {role.description}
+        </Text>
+
+        {selected && (
+          <View style={[styles.roleCardSelectedBadge, { backgroundColor: teamColor }]}>
+            <Text style={styles.roleCardSelectedText}>✓</Text>
+          </View>
+        )}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
+// ── WaitingPanel ──────────────────────────────────────────────────────────────
+function WaitingPanel({
+  selectedCount,
+  totalCount,
+}: {
+  selectedCount: number;
+  totalCount: number;
+}) {
+  const pct = totalCount > 0 ? (selectedCount / totalCount) * 100 : 0;
+  return (
+    <View style={styles.waitingContainer}>
+      <Text style={styles.waitingTitle}>ROL DAĞITIMI</Text>
+      <Text style={styles.waitingProgress}>{selectedCount}/{totalCount}</Text>
+      <Text style={styles.waitingProgressLabel}>seçimini yaptı</Text>
+
+      <View style={styles.waitingBarBg}>
+        <View style={[styles.waitingBarFill, { width: `${pct}%` as any }]} />
+      </View>
+
+      <Text style={styles.waitingHint}>Sıranı bekle…</Text>
+      <Text style={styles.waitingDecor}>? ? ?</Text>
+    </View>
+  );
+}
+
+// ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
-  roleCard: {
+  root: {
+    flex: 1,
+    backgroundColor: "#0A0614",
+  },
+
+  // Left panel
+  leftPanel: {
+    width: 200,
+    backgroundColor: "#1A0A3E",
+    borderRightWidth: 1,
+    borderRightColor: "#2A1060",
+    paddingTop: 16,
+  },
+  leftTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 11,
+    letterSpacing: 2,
+    color: "#4A2E7A",
+    textAlign: "center",
+    marginBottom: 12,
+    textTransform: "uppercase",
+  },
+  playerRow: {
     flexDirection: "row",
-    gap: 14,
-    padding: 16,
-    borderRadius: 12,
+    alignItems: "center",
+    padding: 10,
+    marginHorizontal: 8,
+    marginBottom: 4,
+    borderRadius: 8,
+    backgroundColor: "#0A0614",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  playerRowMobile: {
+    marginHorizontal: 4,
+    marginBottom: 0,
+    marginRight: 0,
+    flexDirection: "column",
+    padding: 8,
+    width: 60,
     alignItems: "center",
   },
-  avatarCircle: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-    overflow: "hidden",
-    borderWidth: 2,
+  playerRowActive: {
+    backgroundColor: "#2A1060",
+    borderColor: "#F5C842",
+  },
+  playerRowDone: {
+    backgroundColor: "#0A1A14",
+    borderColor: "#1ECBE188",
+  },
+  playerRowWaiting: {
+    opacity: 0.5,
+  },
+  playerAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#2A1060",
+    alignItems: "center",
+    justifyContent: "center",
     flexShrink: 0,
   },
-  avatarImg: {
+  playerAvatarActive: {
+    backgroundColor: "#F5C842",
+  },
+  playerAvatarText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 11,
+    color: "#E8DEFF",
+  },
+  playerAvatarTextActive: {
+    color: "#0A0614",
+  },
+  playerInfo: {
+    flex: 1,
+    gap: 2,
+  },
+  playerRoleEmoji: {
+    fontSize: 16,
+  },
+  playerRoleName: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 11,
+    color: "#1ECBE1",
+  },
+  pickingLabel: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 11,
+    color: "#F5C842",
+    fontStyle: "italic",
+  },
+  waitingLabelSmall: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: "#4A2E7A",
+  },
+  meLabel: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 9,
+    color: "#9B7FD4",
+    letterSpacing: 1,
+    marginTop: 2,
+  },
+  mobileRoleEmoji: { fontSize: 14, marginTop: 2 },
+
+  // Right panel
+  rightPanel: {
+    flex: 1,
+    padding: 24,
+    justifyContent: "center",
+  },
+
+  // MyTurnPanel
+  myTurnContainer: {
+    flex: 1,
+    justifyContent: "center",
+    maxWidth: 700,
+    alignSelf: "center",
+    width: "100%",
+  },
+  myTurnTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 11,
+    letterSpacing: 3,
+    color: "#4A2E7A",
+    textAlign: "center",
+    textTransform: "uppercase",
+  },
+  myTurnSubtitle: {
+    fontFamily: "Cinzel_700Bold",
+    fontSize: 20,
+    letterSpacing: 2,
+    color: "#E8DEFF",
+    textAlign: "center",
+    marginTop: 6,
+  },
+  timerRow: {
+    alignItems: "center",
+    marginTop: 12,
+  },
+  timerText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 40,
+    color: "#F5C842",
+    fontVariant: ["tabular-nums"],
+  },
+  timerTextUrgent: { color: "#C8102E" },
+  timerBarBg: {
+    height: 4,
+    backgroundColor: "#2A1060",
+    borderRadius: 2,
+    marginHorizontal: 16,
+    marginTop: 6,
+  },
+  timerBarFill: {
+    height: 4,
+    backgroundColor: "#F5C842",
+    borderRadius: 2,
+  },
+  timerBarUrgent: { backgroundColor: "#C8102E" },
+
+  cardsRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 12,
+    paddingHorizontal: 8,
+  },
+  cardsRowMobile: {
+    flexDirection: "column",
+    alignItems: "stretch",
+  },
+  cardsRowSingle: {
+    paddingHorizontal: 80,
+  },
+  cardsRowDouble: {
+    paddingHorizontal: 40,
+  },
+
+  // RoleCard
+  roleCard: {
+    backgroundColor: "#1A0A3E",
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: "#2A1060",
+    padding: 16,
+    alignItems: "center",
+    flex: 1,
+    minWidth: 160,
+    maxWidth: 220,
+    gap: 6,
+  },
+  roleCardSelected: {
+    borderWidth: 3,
+  },
+  roleCardImageArea: {
+    marginBottom: 4,
+  },
+  roleCardImgCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    overflow: "hidden",
+    borderWidth: 2,
+  },
+  roleCardImg: {
     width: "100%",
     height: "100%",
   },
-  teamPill: {
-    alignSelf: "flex-start",
+  roleCardEmoji: {
+    fontSize: 48,
+  },
+  roleCardName: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 15,
+    color: "#E8DEFF",
+    textAlign: "center",
+  },
+  roleCardTeamBadge: {
     borderRadius: 20,
     borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 3,
+  },
+  roleCardTeamText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 10,
+    letterSpacing: 1.5,
+  },
+  roleCardDesc: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: "#9B7FD4",
+    textAlign: "center",
+    lineHeight: 16,
     marginTop: 4,
+  },
+  roleCardSelectedBadge: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  roleCardSelectedText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 12,
+    color: "#0A0614",
+  },
+
+  // Random / Confirm buttons
+  randomBtn: {
+    borderWidth: 1,
+    borderColor: "#3B1F8C",
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 16,
+    alignSelf: "stretch",
+  },
+  randomBtnText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    color: "#9B7FD4",
+    textAlign: "center",
+  },
+  confirmBtn: {
+    backgroundColor: "#F5C842",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    marginTop: 12,
+    alignSelf: "center",
+  },
+  confirmBtnText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+    color: "#0A0614",
+  },
+
+  // WaitingPanel
+  waitingContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    flex: 1,
+    gap: 8,
+  },
+  waitingTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 11,
+    letterSpacing: 3,
+    color: "#4A2E7A",
+    textAlign: "center",
+    textTransform: "uppercase",
+  },
+  waitingProgress: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 64,
+    color: "#F5C842",
+    textAlign: "center",
+    fontVariant: ["tabular-nums"],
+  },
+  waitingProgressLabel: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 14,
+    color: "#9B7FD4",
+    textAlign: "center",
+  },
+  waitingBarBg: {
+    height: 4,
+    backgroundColor: "#2A1060",
+    borderRadius: 2,
+    width: 200,
+    marginTop: 12,
+  },
+  waitingBarFill: {
+    height: 4,
+    backgroundColor: "#9B7FD4",
+    borderRadius: 2,
+  },
+  waitingHint: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: "#4A2E7A",
+    textAlign: "center",
+    marginTop: 24,
+  },
+  waitingDecor: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 32,
+    color: "#2A1060",
+    textAlign: "center",
+    marginTop: 8,
+    letterSpacing: 16,
   },
 });

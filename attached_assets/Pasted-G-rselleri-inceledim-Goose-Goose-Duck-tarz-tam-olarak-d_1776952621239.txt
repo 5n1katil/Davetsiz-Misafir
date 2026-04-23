@@ -1,0 +1,473 @@
+Görselleri inceledim. Goose Goose Duck tarzı tam olarak doğru referans. Replit'e ver:
+
+---
+
+> Redesign the RoleSelectScreen completely. Apply these exact changes:
+>
+> ---
+>
+> **PROBLEM 1 — Bekleme ekranında isim görünüyor**
+>
+> Şu an "ALPIMO kartlarına bakıyor..." yazıyor. Bu yanlış — kim seçiyor bilinmemeli.
+>
+> Bekleme ekranında isim gösterme. Sadece sıra numarası ve durum göster:
+>
+> ```tsx
+> // YANLIŞ:
+> <Text>{currentPlayer.nickname} kartlarına bakıyor...</Text>
+>
+> // DOĞRU:
+> <Text style={styles.waitingLabel}>ROL DAĞITIMI</Text>
+> <Text style={styles.waitingProgress}>{selectedCount}/{totalCount}</Text>
+> <Text style={styles.waitingSubtitle}>seçimini yaptı</Text>
+> <Text style={styles.waitingHint}>Sıranı bekle...</Text>
+> ```
+>
+> ---
+>
+> **PROBLEM 2 — Az oyuncuda 2 kart aynı çıkıyor**
+>
+> Az oyuncuda havuzda yeterli farklı rol olmayınca tekrar ediyor. Çözüm:
+>
+> In `gameEngine.ts`, `buildCurrentChoices()` veya rol seçim kartlarını hazırlayan fonksiyonda:
+>
+> ```typescript
+> function buildChoicesForPlayer(room: Room, playerId: string): string[] {
+>   // Havuzdan henüz seçilmemiş roller
+>   const remaining = room.rolePool.filter(r => !room.assignedRoles.includes(r));
+>
+>   // Tekrar eden rolleri teke indir (ör: 3 koylu varsa 1 koylu göster)
+>   const unique = [...new Set(remaining)];
+>
+>   // Karıştır
+>   const shuffled = unique.sort(() => Math.random() - 0.5);
+>
+>   // Max 3 seçenek — ama unique sayısı 3'ten azsa o kadar göster (min 1)
+>   return shuffled.slice(0, Math.min(3, shuffled.length));
+> }
+> ```
+>
+> Frontend'de kart sayısı dinamik olarak ayarlanır:
+> ```tsx
+> // 3 seçenek varsa 3 kart, 2 varsa 2 kart, 1 varsa 1 kart + zorunlu seç
+> const cardCount = choices.length; // 1, 2, veya 3
+> ```
+>
+> ---
+>
+> **PROBLEM 3 — Goose Goose Duck tarzı tam ekran layout**
+>
+> Ekranı ikiye böl: sol panel (oyuncu listesi) + sağ panel (rol seçim kartları).
+> Web'de yan yana, mobilde üst/alt.
+>
+> ```tsx
+> <View style={styles.rootContainer}>
+>
+>   {/* SOL PANEL — Oyuncu listesi */}
+>   <View style={styles.leftPanel}>
+>     <Text style={styles.leftPanelTitle}>OYUNCULAR</Text>
+>     <ScrollView>
+>       {room.players.map((p, index) => {
+>         const status = getPlayerStatus(p, index);
+>         return (
+>           <View key={p.id} style={[
+>             styles.playerListRow,
+>             status === 'picking' && styles.playerRowActive,
+>             status === 'done' && styles.playerRowDone,
+>             status === 'waiting' && styles.playerRowWaiting,
+>           ]}>
+>             {/* Avatar — sadece numara, isim YOK */}
+>             <View style={[styles.playerAvatar, status === 'picking' && styles.playerAvatarActive]}>
+>               <Text style={styles.playerAvatarText}>
+>                 {String(index + 1).padStart(2, '0')}
+>               </Text>
+>             </View>
+>
+>             {/* Durum */}
+>             <View style={styles.playerInfo}>
+>               {status === 'done' && (
+>                 <>
+>                   {/* Seçilen ROL görünür — ama hangi OYUNCU seçti bilinmez */}
+>                   <Text style={styles.playerRoleEmoji}>
+>                     {ROLES[p.selectedRoleId]?.emoji ?? '?'}
+>                   </Text>
+>                   <Text style={styles.playerRoleName}>
+>                     {ROLES[p.selectedRoleId]?.name ?? ''}
+>                   </Text>
+>                   <View style={styles.doneCheckmark}>
+>                     <Text style={styles.doneCheckmarkText}>✓</Text>
+>                   </View>
+>                 </>
+>               )}
+>               {status === 'picking' && (
+>                 <Text style={styles.pickingLabel}>seçiyor...</Text>
+>               )}
+>               {status === 'waiting' && (
+>                 <Text style={styles.waitingLabel}>bekliyor</Text>
+>               )}
+>             </View>
+>           </View>
+>         );
+>       })}
+>     </ScrollView>
+>   </View>
+>
+>   {/* SAĞ PANEL — Seçim alanı */}
+>   <View style={styles.rightPanel}>
+>     {isMyTurn ? (
+>       <MyTurnPanel choices={choices} onSelect={handleSelect} timeLeft={timeLeft} />
+>     ) : (
+>       <WaitingPanel selectedCount={selectedCount} totalCount={totalCount} />
+>     )}
+>   </View>
+>
+> </View>
+> ```
+>
+> ---
+>
+> **MyTurnPanel — Sıra bendeyken:**
+>
+> ```tsx
+> function MyTurnPanel({ choices, onSelect, timeLeft }) {
+>   const [selected, setSelected] = useState<string | null>(null);
+>
+>   return (
+>     <View style={styles.myTurnContainer}>
+>       <Text style={styles.myTurnTitle}>ROL SEÇ</Text>
+>       <Text style={styles.myTurnSubtitle}>Kaderini koy ortaya</Text>
+>
+>       {/* Zamanlayıcı */}
+>       <View style={styles.timerRow}>
+>         <Text style={[
+>           styles.timerText,
+>           timeLeft <= 5 && styles.timerTextUrgent
+>         ]}>
+>           {timeLeft}s
+>         </Text>
+>         <View style={styles.timerBarBg}>
+>           <View style={[
+>             styles.timerBarFill,
+>             { width: `${(timeLeft / 25) * 100}%` },
+>             timeLeft <= 5 && styles.timerBarUrgent
+>           ]} />
+>         </View>
+>       </View>
+>
+>       {/* Rol kartları — dinamik sayı */}
+>       <View style={[
+>         styles.cardsRow,
+>         choices.length === 1 && styles.cardsRowSingle,
+>         choices.length === 2 && styles.cardsRowDouble,
+>         choices.length === 3 && styles.cardsRowTriple,
+>       ]}>
+>         {choices.map(roleId => (
+>           <RoleCard
+>             key={roleId}
+>             roleId={roleId}
+>             selected={selected === roleId}
+>             onPress={() => setSelected(roleId)}
+>           />
+>         ))}
+>       </View>
+>
+>       {/* Rastgele seç */}
+>       <TouchableOpacity
+>         style={styles.randomBtn}
+>         onPress={() => onSelect(null)} // null = rastgele
+>       >
+>         <Text style={styles.randomBtnText}>🎲 Rastgele Seç — kaderini koy ortaya!</Text>
+>       </TouchableOpacity>
+>
+>       {/* Onayla butonu — seçim yapılınca aktif */}
+>       {selected && (
+>         <TouchableOpacity
+>           style={styles.confirmBtn}
+>           onPress={() => onSelect(selected)}
+>         >
+>           <Text style={styles.confirmBtnText}>✓ Seç</Text>
+>         </TouchableOpacity>
+>       )}
+>     </View>
+>   );
+> }
+> ```
+>
+> ---
+>
+> **RoleCard bileşeni:**
+>
+> ```tsx
+> function RoleCard({ roleId, selected, onPress }) {
+>   const role = ROLES[roleId];
+>   const teamColors = {
+>     iyi: '#F5C842',
+>     kotu: '#C8102E',
+>     kaos: '#1ECBE1',
+>     tarafsiz: '#9B7FD4'
+>   };
+>   const teamLabels = {
+>     iyi: 'MAHALLE',
+>     kotu: 'ÇETE',
+>     kaos: 'KARGAŞACI',
+>     tarafsiz: 'YALNIZ KURT'
+>   };
+>
+>   return (
+>     <TouchableOpacity
+>       style={[
+>         styles.roleCard,
+>         selected && styles.roleCardSelected,
+>         selected && { borderColor: teamColors[role.team] }
+>       ]}
+>       onPress={onPress}
+>       activeOpacity={0.8}
+>     >
+>       {/* Rol görseli / emoji */}
+>       <View style={styles.roleCardImageArea}>
+>         <Text style={styles.roleCardEmoji}>{role.emoji}</Text>
+>       </View>
+>
+>       {/* Rol adı */}
+>       <Text style={styles.roleCardName}>{role.name}</Text>
+>
+>       {/* Takım rozeti */}
+>       <View style={[styles.roleCardTeamBadge, { backgroundColor: teamColors[role.team] + '22', borderColor: teamColors[role.team] }]}>
+>         <Text style={[styles.roleCardTeamText, { color: teamColors[role.team] }]}>
+>           {teamLabels[role.team]}
+>         </Text>
+>       </View>
+>
+>       {/* Kısa açıklama */}
+>       <Text style={styles.roleCardDesc} numberOfLines={2}>
+>         {role.shortDesc ?? role.ability}
+>       </Text>
+>
+>       {/* Seçili işareti */}
+>       {selected && (
+>         <View style={styles.roleCardSelectedBadge}>
+>           <Text style={styles.roleCardSelectedText}>✓</Text>
+>         </View>
+>       )}
+>     </TouchableOpacity>
+>   );
+> }
+> ```
+>
+> ---
+>
+> **WaitingPanel — Sıra başkasındayken:**
+>
+> ```tsx
+> function WaitingPanel({ selectedCount, totalCount }) {
+>   return (
+>     <View style={styles.waitingContainer}>
+>       <Text style={styles.waitingTitle}>ROL DAĞITIMI</Text>
+>
+>       {/* Progress */}
+>       <Text style={styles.waitingProgress}>
+>         {selectedCount}/{totalCount}
+>       </Text>
+>       <Text style={styles.waitingProgressLabel}>seçimini yaptı</Text>
+>
+>       {/* Progress bar */}
+>       <View style={styles.waitingBarBg}>
+>         <View style={[
+>           styles.waitingBarFill,
+>           { width: `${(selectedCount / totalCount) * 100}%` }
+>         ]} />
+>       </View>
+>
+>       <Text style={styles.waitingHint}>
+>         Sıranı bekle...
+>       </Text>
+>
+>       {/* Dekoratif soru işaretleri */}
+>       <Text style={styles.waitingDecor}>? ? ?</Text>
+>     </View>
+>   );
+> }
+> ```
+>
+> ---
+>
+> **Oyuncu listesinde isim gizleme — önemli kural:**
+>
+> Sol panelde oyuncu listesinde:
+> - İsimler HİÇ gösterilmez
+> - Sadece sıra numarası: OYUNCU 01, OYUNCU 02...
+> - Seçim yapıldıktan sonra: rol emoji + rol adı görünür
+> - Hangi numaranın kim olduğu bilinmez
+> - Tek istisna: kendi sıran — "sen" ibaresi gösterilebilir opsiyonel
+>
+> ```typescript
+> // gameEngine.ts publicView() içinde, ROLE_SELECT fazında:
+> // Diğer oyuncuların selectedRoleId'sini göster ama nickname sıralamasını karıştır
+>
+> // publicView'da roleSelect fazı için özel mapping:
+> if (room.phase === 'ROLE_SELECT') {
+>   // Oyuncuları karıştırılmış sırayla ver (gerçek sıra gizli)
+>   // Sadece: seçim yaptı mı (done/picking/waiting) + seçtiyse hangi rol
+>   // nickname'i VERME — sadece shuffledIndex ver
+>   return room.players.map((p, i) => ({
+>     shuffledIndex: i, // gerçek sıra değil, görsel sıra
+>     status: getStatus(p),
+>     selectedRoleId: p.status === 'done' ? p.selectedRoleId : null,
+>     isMe: p.id === viewerId,
+>   }));
+> }
+> ```
+>
+> ---
+>
+> **Ayarlar — isim gizleme toggle:**
+>
+> LobbyScreen ayarlar paneline ekle:
+>
+> ```tsx
+> <SettingRow
+>   label="Rol Seçiminde İsimler"
+>   tooltip="Rol seçim ekranında oyuncu isimleri yerine numara gösterilir. Kim ne seçti bilinmez, sadece hangi rol seçildiği görünür. Varsayılan: gizli."
+>   options={['hidden', 'visible']}
+>   labels={['Gizli (Önerilen)', 'Görünür']}
+>   value={settings.roleSelectShowNames ?? 'hidden'}
+>   onChange={v => updateSetting('roleSelectShowNames', v)}
+> />
+> ```
+>
+> `RoomSettings` interface'e ekle:
+> ```typescript
+> roleSelectShowNames?: 'hidden' | 'visible';
+> ```
+>
+> Frontend'de bu ayara göre sol panelde isim göster/gizle:
+> ```tsx
+> const showNames = room.settings.roleSelectShowNames === 'visible';
+>
+> // Sol panelde:
+> <Text style={styles.playerLabel}>
+>   {showNames ? p.nickname : `OYUNCU ${String(index + 1).padStart(2, '0')}`}
+> </Text>
+> ```
+>
+> ---
+>
+> **STİL:**
+>
+> ```typescript
+> // Layout
+> rootContainer: {
+>   flex: 1, flexDirection: 'row', backgroundColor: '#0A0614'
+> }
+>
+> // Sol panel
+> leftPanel: {
+>   width: 200, backgroundColor: '#1A0A3E',
+>   borderRightWidth: 1, borderRightColor: '#2A1060',
+>   paddingTop: 16
+> }
+> leftPanelTitle: {
+>   fontSize: 11, fontWeight: '700', color: '#4A2E7A',
+>   letterSpacing: 2, textAlign: 'center', marginBottom: 12
+> }
+>
+> // Oyuncu satırı
+> playerListRow: {
+>   flexDirection: 'row', alignItems: 'center',
+>   padding: 10, marginHorizontal: 8, marginBottom: 4,
+>   borderRadius: 8, backgroundColor: '#0A0614'
+> }
+> playerRowActive: { backgroundColor: '#2A1060', borderWidth: 1, borderColor: '#F5C842' }
+> playerRowDone: { backgroundColor: '#0A1A0A', borderWidth: 1, borderColor: '#1ECBE1' }
+> playerRowWaiting: { opacity: 0.5 }
+>
+> // Avatar numara
+> playerAvatar: {
+>   width: 32, height: 32, borderRadius: 16,
+>   backgroundColor: '#2A1060', alignItems: 'center', justifyContent: 'center'
+> }
+> playerAvatarActive: { backgroundColor: '#F5C842' }
+> playerAvatarText: { fontSize: 11, fontWeight: '700', color: '#E8DEFF' }
+>
+> // Sağ panel
+> rightPanel: { flex: 1, padding: 24, justifyContent: 'center' }
+>
+> // Rol kartı
+> roleCard: {
+>   backgroundColor: '#1A0A3E', borderRadius: 16,
+>   borderWidth: 2, borderColor: '#2A1060',
+>   padding: 16, alignItems: 'center',
+>   flex: 1, marginHorizontal: 6
+> }
+> roleCardSelected: { borderWidth: 3 }
+> roleCardEmoji: { fontSize: 48, marginBottom: 8 }
+> roleCardName: {
+>   fontSize: 15, fontWeight: '700', color: '#E8DEFF',
+>   textAlign: 'center', marginBottom: 6
+> }
+> roleCardDesc: {
+>   fontSize: 11, color: '#9B7FD4', textAlign: 'center',
+>   lineHeight: 16, marginTop: 6
+> }
+>
+> // Kartlar row
+> cardsRowTriple: { flexDirection: 'row', justifyContent: 'center' }
+> cardsRowDouble: { flexDirection: 'row', justifyContent: 'center', paddingHorizontal: 40 }
+> cardsRowSingle: { flexDirection: 'row', justifyContent: 'center', paddingHorizontal: 80 }
+>
+> // Timer
+> timerText: { fontSize: 32, fontWeight: '800', color: '#F5C842', textAlign: 'center' }
+> timerTextUrgent: { color: '#C8102E' }
+> timerBarBg: { height: 4, backgroundColor: '#2A1060', borderRadius: 2, marginTop: 8 }
+> timerBarFill: { height: 4, backgroundColor: '#F5C842', borderRadius: 2 }
+> timerBarUrgent: { backgroundColor: '#C8102E' }
+>
+> // Confirm butonu
+> confirmBtn: {
+>   backgroundColor: '#F5C842', borderRadius: 12,
+>   paddingVertical: 14, paddingHorizontal: 40,
+>   marginTop: 16, alignSelf: 'center'
+> }
+> confirmBtnText: { fontSize: 16, fontWeight: '800', color: '#0A0614' }
+>
+> // Random butonu
+> randomBtn: {
+>   borderWidth: 1, borderColor: '#3B1F8C', borderRadius: 10,
+>   padding: 12, marginTop: 16, alignSelf: 'stretch'
+> }
+> randomBtnText: { fontSize: 13, color: '#9B7FD4', textAlign: 'center' }
+>
+> // Waiting panel
+> waitingTitle: { fontSize: 12, letterSpacing: 3, color: '#4A2E7A', textAlign: 'center' }
+> waitingProgress: { fontSize: 64, fontWeight: '800', color: '#F5C842', textAlign: 'center' }
+> waitingProgressLabel: { fontSize: 14, color: '#9B7FD4', textAlign: 'center' }
+> waitingHint: { fontSize: 13, color: '#4A2E7A', textAlign: 'center', marginTop: 24 }
+> waitingDecor: { fontSize: 32, color: '#2A1060', textAlign: 'center', marginTop: 16, letterSpacing: 16 }
+> ```
+>
+> ---
+>
+> **Mobil uyum:**
+>
+> ```typescript
+> // 768px altında dikey layout'a geç
+> import { useWindowDimensions } from 'react-native';
+>
+> const { width } = useWindowDimensions();
+> const isMobile = width < 768;
+>
+> // rootContainer'da:
+> flexDirection: isMobile ? 'column' : 'row'
+>
+> // Sol panel mobilde yatay scroll'a döner
+> // leftPanel mobilde:
+> width: isMobile ? '100%' : 200,
+> height: isMobile ? 80 : '100%',
+> flexDirection: isMobile ? 'row' : 'column',
+> ```
+>
+> ---
+>
+> **Son olarak pnpm test çalıştır — 46 test geçmeli.**
+>
+> Değişen dosyalar: `RoleSelectScreen.tsx`, `gameEngine.ts` (buildChoicesForPlayer + publicView ROLE_SELECT filtresi), `LobbyScreen.tsx` (roleSelectShowNames ayarı), `roles.ts` (shortDesc alanı ekle).

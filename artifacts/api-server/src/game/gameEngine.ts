@@ -32,6 +32,7 @@ export interface RoomSettings {
   voteDurationSec: number;
   rolePackage: "standard" | "advanced" | "all";
   disabledRoles: string[];
+  roleSelectShowNames: "hidden" | "visible";
 }
 
 export interface RoleChoice {
@@ -178,6 +179,7 @@ export function createRoom(socketId: string, nickname: string): Room {
       voteDurationSec: 30,
       rolePackage: "all",
       disabledRoles: [],
+      roleSelectShowNames: "hidden",
     },
     rolePool: [],
     roleSelectQueue: [],
@@ -417,7 +419,8 @@ function startNextRoleChoice(room: Room) {
     return;
   }
   const playerId = room.roleSelectQueue[room.roleSelectIndex];
-  const opts = shuffle(room.rolePool).slice(0, Math.min(3, room.rolePool.length));
+  const unique = [...new Set(room.rolePool)];
+  const opts = shuffle(unique).slice(0, Math.min(3, unique.length));
   room.currentChoice = { playerId, options: opts };
   room.roleSelectDeadline = Date.now() + 25_000;
 }
@@ -2093,6 +2096,7 @@ export function publicView(room: Room, viewerPlayerId: string | null) {
       isConnected: p.isConnected,
       isReady: p.isReady,
       hasSelectedRole: p.hasSelectedRole,
+      selectedRoleId: p.hasSelectedRole ? p.roleId : null,
     })),
     currentChoice:
       room.currentChoice && room.currentChoice.playerId === viewerPlayerId

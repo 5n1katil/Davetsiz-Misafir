@@ -35,6 +35,7 @@ export interface PlayerView {
   isConnected: boolean;
   isReady: boolean;
   hasSelectedRole: boolean;
+  selectedRoleId: string | null;
 }
 
 export interface GameState {
@@ -59,6 +60,8 @@ export interface GameState {
     nightActionDurationSec: number;
     voteDurationSec: number;
     rolePackage: "standard" | "advanced" | "all";
+    disabledRoles: string[];
+    roleSelectShowNames: "hidden" | "visible";
   };
   phaseDeadline: number | null;
   roleSelectDeadline: number | null;
