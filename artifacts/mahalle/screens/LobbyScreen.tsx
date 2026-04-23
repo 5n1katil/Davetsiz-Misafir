@@ -167,14 +167,14 @@ export default function LobbyScreen() {
           {/* ── TOP BAR — ayrı panel, atmosferik arka plandan bağımsız ── */}
           <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
             <View style={{ flex: 1 }} />
-            <Pressable onPress={() => setStatsVisible(true)} hitSlop={12} style={styles.topBarBtn} accessibilityLabel="İstatistikler">
-              <Feather name="bar-chart-2" size={18} color="#9B7FD4" />
-            </Pressable>
             <Pressable onPress={() => setHelpVisible(true)} hitSlop={12} style={styles.topBarBtn} accessibilityLabel="Nasıl oynanır">
               <Feather name="help-circle" size={18} color="#9B7FD4" />
             </Pressable>
             <Pressable onPress={() => setSettingsVisible(true)} hitSlop={12} style={styles.topBarBtn} accessibilityLabel="Ayarlar">
               <Feather name="settings" size={18} color="#9B7FD4" />
+            </Pressable>
+            <Pressable onPress={() => setStatsVisible(true)} hitSlop={12} style={styles.topBarBtn} accessibilityLabel="İstatistikler">
+              <Feather name="bar-chart-2" size={18} color="#9B7FD4" />
             </Pressable>
           </View>
 
