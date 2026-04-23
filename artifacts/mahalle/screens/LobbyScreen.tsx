@@ -165,7 +165,7 @@ export default function LobbyScreen() {
       <>
         <View style={{ flex: 1, backgroundColor: HOME_BG }}>
           {/* ── TOP BAR — ayrı panel, atmosferik arka plandan bağımsız ── */}
-          <View style={[styles.topBar, { paddingTop: insets.top }]}>
+          <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
             <View style={{ flex: 1 }} />
             <Pressable onPress={() => setStatsVisible(true)} hitSlop={12} style={styles.topBarBtn} accessibilityLabel="İstatistikler">
               <Feather name="bar-chart-2" size={18} color="#9B7FD4" />
@@ -197,11 +197,6 @@ export default function LobbyScreen() {
               <Animated.View
                 style={[styles.hero, { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }]}
               >
-                <LinearGradient
-                  colors={["#1A0A3E88", "#0D052500"]}
-                  style={styles.heroTopGlow}
-                  pointerEvents="none"
-                />
                 <View style={styles.logoWrap}>
                   <Image
                     source={require("../assets/images/logo.png")}
@@ -831,19 +826,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 16,
     backgroundColor: HOME_BG,
-    gap: 6,
+    gap: 8,
   },
   topBarBtn: {
-    width: 40,
-    height: 40,
+    width: 42,
+    height: 42,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 12,
+    borderRadius: 13,
     borderWidth: 1,
     borderColor: "#2A1060",
-    backgroundColor: "#110330",
+    backgroundColor: "#0E0228",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 4,
   },
 
   // ── Ana ekran scrollview içeriği — dikey ortalanmış ─────────────────────────
