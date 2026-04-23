@@ -1,0 +1,491 @@
+Görselleri inceledim. Şu an lobi ekranı çok bilgi yığıyor — oda kodu, QR, ayarlar hepsi üst üste. Replit'e ver:
+
+---
+
+> Completely redesign the LobbyScreen for clarity and usability. The current screen is overwhelming. Apply these exact changes:
+>
+> ---
+>
+> **LOBBY SCREEN — NEW LAYOUT**
+>
+> Split the screen into 4 clearly separated sections with section headers. Use a scrollable single-column layout:
+>
+> ```
+> ┌─────────────────────────────┐
+> │  HEADER: Oda adı + HOST rozeti │
+> ├─────────────────────────────┤
+> │  SECTION 1: Oda Kodu + QR   │
+> ├─────────────────────────────┤
+> │  SECTION 2: Mahalleli listesi│
+> ├─────────────────────────────┤
+> │  SECTION 3: Oyun Ayarları   │
+> │  (host görür, accordion)    │
+> ├─────────────────────────────┤
+> │  FOOTER: Başlat butonu      │
+> └─────────────────────────────┘
+> ```
+>
+> ---
+>
+> **SECTION 1 — Oda Kodu**
+>
+> ```tsx
+> <View style={styles.codeSection}>
+>   <Text style={styles.codeSectionLabel}>ODA KODU</Text>
+>   <Text style={styles.codeText} testID="room-code">{state.code}</Text>
+>   <Text style={styles.codeHint}>Bu kodu arkadaşlarına söyle veya QR kodu tarat</Text>
+>
+>   {/* QR toggle — default kapalı, butona basınca açılır */}
+>   <TouchableOpacity
+>     style={styles.qrToggleBtn}
+>     onPress={() => setShowQR(v => !v)}
+>   >
+>     <Text style={styles.qrToggleText}>
+>       {showQR ? '▲ QR Kodu Gizle' : '▼ QR Kodu Göster'}
+>     </Text>
+>   </TouchableOpacity>
+>
+>   {showQR && (
+>     <View style={styles.qrWrapper}>
+>       <QRCode
+>         value={`mahalle://join?code=${state.code}`}
+>         size={160}
+>         backgroundColor="#1A0A3E"
+>         color="#F5C842"
+>       />
+>     </View>
+>   )}
+> </View>
+> ```
+>
+> ---
+>
+> **SECTION 2 — Oyuncu Listesi**
+>
+> ```tsx
+> <View style={styles.playerSection}>
+>   <View style={styles.sectionHeader}>
+>     <Text style={styles.sectionTitle}>Mahalleli</Text>
+>     <Text style={styles.playerCount}>
+>       {connectedCount}/30
+>       {connectedCount < 4 && (
+>         <Text style={styles.playerCountWarn}> — en az 4 kişi gerekli</Text>
+>       )}
+>     </Text>
+>   </View>
+>
+>   {state.players.map(p => (
+>     <View key={p.id} style={styles.playerRow} testID="player-list">
+>       {/* Avatar */}
+>       <View style={[styles.avatar, p.isHost && styles.avatarHost]}>
+>         <Text style={styles.avatarText}>{p.nickname[0].toUpperCase()}</Text>
+>       </View>
+>
+>       {/* İsim */}
+>       <Text style={styles.playerName}>
+>         {p.nickname}
+>         {p.id === myId && <Text style={styles.youLabel}> • sen</Text>}
+>       </Text>
+>
+>       {/* Sağ taraf */}
+>       <View style={styles.playerMeta}>
+>         {p.isHost && (
+>           <View style={styles.hostBadge} testID="host-badge">
+>             <Text style={styles.hostBadgeText}>HOST</Text>
+>           </View>
+>         )}
+>         {/* Bağlantı noktası */}
+>         <View style={[
+>           styles.connDot,
+>           p.isConnected ? styles.connDotGreen : styles.connDotGray
+>         ]} />
+>         {/* Host: oyuncuyu at */}
+>         {amHost && p.id !== myId && (
+>           <TouchableOpacity onPress={() => kickPlayer(p.id)}>
+>             <Text style={styles.kickBtn}>✕</Text>
+>           </TouchableOpacity>
+>         )}
+>       </View>
+>     </View>
+>   ))}
+> </View>
+> ```
+>
+> ---
+>
+> **SECTION 3 — Oyun Ayarları (sadece host görür)**
+>
+> Her ayar satırı şu yapıya sahip olacak:
+>
+> ```tsx
+> // Reusable bileşen: SettingRow
+> function SettingRow({
+>   label,
+>   tooltip,   // "?" butonu açıklaması
+>   options,
+>   labels,
+>   value,
+>   unit,
+>   onChange
+> }) {
+>   const [showTip, setShowTip] = useState(false);
+>   return (
+>     <View style={styles.settingRow}>
+>       {/* Başlık + soru işareti */}
+>       <View style={styles.settingLabelRow}>
+>         <Text style={styles.settingLabel}>{label}</Text>
+>         <TouchableOpacity
+>           style={styles.tooltipBtn}
+>           onPress={() => setShowTip(v => !v)}
+>         >
+>           <Text style={styles.tooltipBtnText}>?</Text>
+>         </TouchableOpacity>
+>       </View>
+>
+>       {/* Açıklama — "?" tıklanınca görünür */}
+>       {showTip && (
+>         <View style={styles.tooltipBox}>
+>           <Text style={styles.tooltipText}>{tooltip}</Text>
+>         </View>
+>       )}
+>
+>       {/* Seçenekler */}
+>       <View style={styles.optionRow}>
+>         {options.map((opt, i) => (
+>           <TouchableOpacity
+>             key={opt}
+>             style={[
+>               styles.optionBtn,
+>               value === opt && styles.optionBtnActive
+>             ]}
+>             onPress={() => onChange(opt)}
+>           >
+>             <Text style={[
+>               styles.optionBtnText,
+>               value === opt && styles.optionBtnTextActive
+>             ]}>
+>               {labels?.[i] ?? `${opt}${unit ?? ''}`}
+>             </Text>
+>           </TouchableOpacity>
+>         ))}
+>       </View>
+>     </View>
+>   );
+> }
+> ```
+>
+> Ayarlar paneli — tüm ayarlar ve tooltip açıklamaları:
+>
+> ```tsx
+> {amHost && (
+>   <View style={styles.settingsSection}>
+>     <TouchableOpacity
+>       style={styles.settingsSectionHeader}
+>       onPress={() => setSettingsOpen(v => !v)}
+>     >
+>       <Text style={styles.sectionTitle}>⚙️ Oyun Ayarları</Text>
+>       <Text style={styles.settingsChevron}>
+>         {settingsOpen ? '▲' : '▼'}
+>       </Text>
+>     </TouchableOpacity>
+>
+>     {settingsOpen && (
+>       <View style={styles.settingsBody}>
+>
+>         <SettingRow
+>           label="Gündüz Süresi"
+>           tooltip="Her turda tartışma için ne kadar süren olsun? 3 dk hızlı oyunlar için, 5 dk daha sakin tartışmalar için idealdir."
+>           options={[180, 300]}
+>           labels={['3 dakika', '5 dakika']}
+>           value={settings.dayDurationSec}
+>           onChange={v => updateSetting('dayDurationSec', v)}
+>         />
+>
+>         <SettingRow
+>           label="Oylama Süresi"
+>           tooltip="Linç oylaması için her oyuncunun ne kadar süresi var? Süre dolunca oy kullanmayanlar sayılmaz."
+>           options={[30, 45, 60]}
+>           unit="sn"
+>           value={settings.voteDurationSec}
+>           onChange={v => updateSetting('voteDurationSec', v)}
+>         />
+>
+>         <SettingRow
+>           label="Gece Aksiyon Süresi"
+>           tooltip="Her rolün gece eylemini seçmesi için verilen süre. Az süre oyunu hızlandırır ama düşünme fırsatı azalır."
+>           options={[10, 12, 15, 20]}
+>           unit="sn"
+>           value={settings.nightActionDuration ?? 12}
+>           onChange={v => updateSetting('nightActionDuration', v)}
+>         />
+>
+>         <SettingRow
+>           label="Sesli Yönlendirme"
+>           tooltip="Host'un telefonu hoparlörle gece aksiyonlarını sesli okur. Aynı odadaki herkes duyar. Kapatırsan yalnızca ekran animasyonu olur."
+>           options={['on', 'off']}
+>           labels={['Açık', 'Kapalı']}
+>           value={settings.ttsEnabled !== false ? 'on' : 'off'}
+>           onChange={v => updateSetting('ttsEnabled', v === 'on')}
+>         />
+>
+>         <Divider />
+>
+>         {/* Rol Paketi — özel UI */}
+>         <View style={styles.settingRow}>
+>           <View style={styles.settingLabelRow}>
+>             <Text style={styles.settingLabel}>Rol Paketi</Text>
+>             <TouchableOpacity
+>               style={styles.tooltipBtn}
+>               onPress={() => setShowRoleTip(v => !v)}
+>             >
+>               <Text style={styles.tooltipBtnText}>?</Text>
+>             </TouchableOpacity>
+>           </View>
+>           {showRoleTip && (
+>             <View style={styles.tooltipBox}>
+>               <Text style={styles.tooltipText}>
+>                 Oyunda hangi roller havuzuna dahil olsun?{'\n'}
+>                 Standart: Yeni oyuncular için 3 temel rol.{'\n'}
+>                 Gelişmiş: Tüm mahalle rolleri + 2 kaos.{'\n'}
+>                 Tümü: 19 rolün tamamı, tam kaos.
+>               </Text>
+>             </View>
+>           )}
+>           {['standard', 'advanced', 'all'].map((pkg, i) => {
+>             const pkgLabels = ['Standart', 'Gelişmiş', 'Tümü'];
+>             const pkgDescs = [
+>               'Bekçi, Şifacı, Kapıcı — Yeni oyuncular için ideal.',
+>               'Tüm mahalle rolleri + Kırık Kalp, Dedikoducu.',
+>               'Kumarbaz, Anonim, Kahraman Dede dahil 19 rol. Kaotik!'
+>             ];
+>             const isActive = (settings.rolePackage ?? 'all') === pkg;
+>             return (
+>               <TouchableOpacity
+>                 key={pkg}
+>                 style={[styles.rolePackageBtn, isActive && styles.rolePackageBtnActive]}
+>                 onPress={() => updateSetting('rolePackage', pkg)}
+>               >
+>                 <Text style={[styles.rolePackageBtnText, isActive && styles.rolePackageBtnTextActive]}>
+>                   {pkgLabels[i]}
+>                 </Text>
+>                 <Text style={styles.rolePackageDesc}>{pkgDescs[i]}</Text>
+>               </TouchableOpacity>
+>             );
+>           })}
+>         </View>
+>
+>         <Divider />
+>
+>         {/* Aktif Özel Roller — toggle listesi */}
+>         <View style={styles.settingRow}>
+>           <View style={styles.settingLabelRow}>
+>             <Text style={styles.settingLabel}>Aktif Özel Roller</Text>
+>             <TouchableOpacity
+>               style={styles.tooltipBtn}
+>               onPress={() => setShowRoleToggleTip(v => !v)}
+>             >
+>               <Text style={styles.tooltipBtnText}>?</Text>
+>             </TouchableOpacity>
+>           </View>
+>           {showRoleToggleTip && (
+>             <View style={styles.tooltipBox}>
+>               <Text style={styles.tooltipText}>
+>                 Seçili rolleri havuzdan çıkarabilirsin. Yeşil = aktif, gri = devre dışı. Devre dışı roller hiç kimseye atanmaz.
+>               </Text>
+>             </View>
+>           )}
+>
+>           {/* Roller gruplar halinde gösterilsin */}
+>           <Text style={styles.roleGroupLabel}>🟡 Mahalle</Text>
+>           <View style={styles.roleToggleGrid}>
+>             {MAHALLE_SPECIAL_ROLES.map(role => (
+>               <RoleToggle
+>                 key={role.id}
+>                 role={role}
+>                 active={!settings.disabledRoles?.includes(role.id)}
+>                 onToggle={() => toggleRole(role.id)}
+>               />
+>             ))}
+>           </View>
+>
+>           <Text style={styles.roleGroupLabel}>🔴 Çete</Text>
+>           <View style={styles.roleToggleGrid}>
+>             {CETE_OPTIONAL_ROLES.map(role => (
+>               <RoleToggle key={role.id} role={role}
+>                 active={!settings.disabledRoles?.includes(role.id)}
+>                 onToggle={() => toggleRole(role.id)}
+>               />
+>             ))}
+>           </View>
+>
+>           <Text style={styles.roleGroupLabel}>🩵 Kargaşacılar</Text>
+>           <View style={styles.roleToggleGrid}>
+>             {KAOS_ROLES.map(role => (
+>               <RoleToggle key={role.id} role={role}
+>                 active={!settings.disabledRoles?.includes(role.id)}
+>                 onToggle={() => toggleRole(role.id)}
+>               />
+>             ))}
+>           </View>
+>
+>           <Text style={styles.roleGroupLabel}>🟣 Yalnız Kurtlar</Text>
+>           <View style={styles.roleToggleGrid}>
+>             {TARAFSIZ_ROLES.map(role => (
+>               <RoleToggle key={role.id} role={role}
+>                 active={!settings.disabledRoles?.includes(role.id)}
+>                 onToggle={() => toggleRole(role.id)}
+>               />
+>             ))}
+>           </View>
+>         </View>
+>
+>       </View>
+>     )}
+>   </View>
+> )}
+>
+> {/* Misafirler ayarları göremez, kısa mesaj görür */}
+> {!amHost && (
+>   <View style={styles.guestSettingsNote}>
+>     <Text style={styles.guestSettingsNoteText}>
+>       ⚙️ Oyun ayarlarını yalnızca host görebilir
+>     </Text>
+>   </View>
+> )}
+> ```
+>
+> ---
+>
+> **RoleToggle bileşeni:**
+>
+> ```tsx
+> function RoleToggle({ role, active, onToggle }) {
+>   return (
+>     <TouchableOpacity
+>       style={[styles.roleToggle, active ? styles.roleToggleOn : styles.roleToggleOff]}
+>       onPress={onToggle}
+>     >
+>       <Text style={styles.roleToggleEmoji}>{role.emoji}</Text>
+>       <Text style={[
+>         styles.roleToggleName,
+>         !active && styles.roleToggleNameOff
+>       ]}>
+>         {role.name}
+>       </Text>
+>       <Text style={styles.roleToggleStatus}>{active ? '✓' : '○'}</Text>
+>     </TouchableOpacity>
+>   );
+> }
+> ```
+>
+> ---
+>
+> **FOOTER — Başlatma butonu:**
+>
+> ```tsx
+> <View style={styles.footer}>
+>   {amHost ? (
+>     <TouchableOpacity
+>       style={[styles.startBtn, !canStart && styles.startBtnDisabled]}
+>       disabled={!canStart}
+>       onPress={handleStart}
+>     >
+>       <Text style={styles.startBtnText}>
+>         {canStart
+>           ? '🚀 Oyunu Başlat'
+>           : `Başlamak için ${Math.max(0, 4 - connectedCount)} kişi daha`
+>         }
+>       </Text>
+>     </TouchableOpacity>
+>   ) : (
+>     <View style={styles.waitingBox}>
+>       <Text style={styles.waitingText}>
+>         ⏳ Host oyunu başlatmasını bekliyorsunuz...
+>       </Text>
+>     </View>
+>   )}
+> </View>
+> ```
+>
+> ---
+>
+> **STİL REHBERİ:**
+>
+> ```typescript
+> // Renkler — mevcut tema
+> colors = {
+>   bg: '#0A0614',
+>   surface: '#1A0A3E',
+>   card: '#2A1060',
+>   elevated: '#3B1F8C',
+>   gold: '#F5C842',
+>   red: '#C8102E',
+>   teal: '#1ECBE1',
+>   lavender: '#9B7FD4',
+>   textPrimary: '#E8DEFF',
+>   textSecondary: '#9B7FD4',
+>   textMuted: '#4A2E7A',
+> }
+>
+> // Section header
+> sectionTitle: { fontSize: 13, fontWeight: '700', color: '#9B7FD4',
+>                 letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 10 }
+>
+> // Tooltip butonu
+> tooltipBtn: { width: 20, height: 20, borderRadius: 10,
+>               borderWidth: 1, borderColor: '#4A2E7A',
+>               alignItems: 'center', justifyContent: 'center', marginLeft: 8 }
+> tooltipBtnText: { fontSize: 11, color: '#9B7FD4', fontWeight: '700' }
+>
+> // Tooltip kutusu
+> tooltipBox: { backgroundColor: '#2A1060', borderRadius: 8,
+>               padding: 10, marginTop: 4, marginBottom: 8,
+>               borderLeftWidth: 3, borderLeftColor: '#F5C842' }
+> tooltipText: { fontSize: 12, color: '#9B7FD4', lineHeight: 18 }
+>
+> // Option buton — seçili değil
+> optionBtn: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8,
+>              borderWidth: 1, borderColor: '#3B1F8C',
+>              backgroundColor: '#1A0A3E', marginRight: 8 }
+> optionBtnText: { fontSize: 13, color: '#9B7FD4' }
+>
+> // Option buton — seçili
+> optionBtnActive: { backgroundColor: '#F5C842', borderColor: '#F5C842' }
+> optionBtnTextActive: { color: '#0A0614', fontWeight: '700' }
+>
+> // Rol toggle — aktif
+> roleToggleOn: { backgroundColor: '#1A0A3E', borderColor: '#F5C842',
+>                 borderWidth: 1, borderRadius: 8, padding: 8,
+>                 flexDirection: 'row', alignItems: 'center', gap: 6 }
+>
+> // Rol toggle — pasif
+> roleToggleOff: { backgroundColor: '#0A0614', borderColor: '#2A1060',
+>                  borderWidth: 1, borderRadius: 8, padding: 8,
+>                  flexDirection: 'row', alignItems: 'center', gap: 6,
+>                  opacity: 0.5 }
+>
+> // Rol paketi butonu — tam genişlik, dikey
+> rolePackageBtn: { borderWidth: 1, borderColor: '#3B1F8C', borderRadius: 10,
+>                   padding: 12, marginBottom: 8, backgroundColor: '#1A0A3E' }
+> rolePackageBtnActive: { borderColor: '#F5C842', backgroundColor: '#2A1060' }
+> rolePackageDesc: { fontSize: 11, color: '#4A2E7A', marginTop: 3, fontStyle: 'italic' }
+>
+> // Footer başlat butonu
+> startBtn: { backgroundColor: '#F5C842', borderRadius: 12,
+>             padding: 16, alignItems: 'center', marginHorizontal: 16 }
+> startBtnText: { fontSize: 16, fontWeight: '800', color: '#0A0614', letterSpacing: 1 }
+> startBtnDisabled: { backgroundColor: '#2A1060', borderWidth: 1,
+>                     borderColor: '#3B1F8C' }
+> ```
+>
+> ---
+>
+> **EK NOTLAR:**
+>
+> - Ayarlar paneli varsayılan olarak KAPALI gelir (settingsOpen: false). Host açmak isterse başlığa basar.
+> - Misafir oyuncular ayarlar panelini görmez — yalnızca "⚙️ Oyun ayarlarını yalnızca host görebilir" notu görünür.
+> - QR kodu varsayılan KAPALI, toggle ile açılır — lobi ekranı ilk açıldığında temiz görünür.
+> - `disabledRoles` alanını `RoomSettings` interface'e ekle (`string[]`, default `[]`). `buildRolePool()` içinde bu listedeki rolleri havuzdan çıkar.
+> - Rol toggle grid'i: `flexWrap: 'wrap', flexDirection: 'row', gap: 8`.
+> - Her section arasında `marginBottom: 24` boşluk bırak.
+> - Tüm değişikliklerden sonra `pnpm test` çalıştır — 46 test geçmeli.

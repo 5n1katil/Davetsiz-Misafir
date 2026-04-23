@@ -6,7 +6,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
 import {
   AccessibilityInfo,
-  Alert,
   Animated,
   Dimensions,
   Image,
@@ -50,6 +49,8 @@ export default function LobbyScreen() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<"create" | "join">("create");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const errorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [statsVisible, setStatsVisible] = useState(false);
   const [helpVisible, setHelpVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
@@ -111,32 +112,40 @@ export default function LobbyScreen() {
     }
   }
 
+  function showError(msg: string) {
+    setErrorMsg(msg);
+    if (errorTimer.current) clearTimeout(errorTimer.current);
+    errorTimer.current = setTimeout(() => setErrorMsg(null), 4000);
+  }
+
   async function handleCreate() {
     if (!(myNickname ?? "").trim()) {
-      Alert.alert("Adını yaz", "Önce mahalleli adını girmelisin.");
+      showError("Önce mahalleli adını girmelisin.");
       return;
     }
+    setErrorMsg(null);
     setBusy(true);
     haptic(Haptics.ImpactFeedbackStyle.Medium);
     const res = await createRoom((myNickname ?? "").trim());
     setBusy(false);
-    if (!res.ok) Alert.alert("Hata", res.error ?? "Bilinmeyen hata");
+    if (!res.ok) showError(res.error ?? "Bilinmeyen hata");
   }
 
   async function handleJoin() {
     if (!(myNickname ?? "").trim()) {
-      Alert.alert("Adını yaz", "Önce mahalleli adını girmelisin.");
+      showError("Önce mahalleli adını girmelisin.");
       return;
     }
     if (code.trim().length < 3) {
-      Alert.alert("Kod yok", "Geçerli bir oda kodu gir.");
+      showError("Geçerli bir oda kodu gir.");
       return;
     }
+    setErrorMsg(null);
     setBusy(true);
     haptic(Haptics.ImpactFeedbackStyle.Medium);
     const res = await joinRoom(code.trim(), (myNickname ?? "").trim());
     setBusy(false);
-    if (!res.ok) Alert.alert("Hata", res.error ?? "Bilinmeyen hata");
+    if (!res.ok) showError(res.error ?? "Oda bulunamadı. Kodu kontrol et.");
   }
 
   const inRoom = !!state;
@@ -298,6 +307,14 @@ export default function LobbyScreen() {
                   <Btn label="Katıl" loading={busy} onPress={handleJoin} />
                 </>
               ) : null}
+
+              {/* Inline error — works on web and native (replaces Alert.alert) */}
+              {errorMsg ? (
+                <View style={styles.errorBox}>
+                  <Feather name="alert-circle" size={13} color="#FF6B6B" />
+                  <Text style={styles.errorText}>{errorMsg}</Text>
+                </View>
+              ) : null}
             </Animated.View>
 
             {/* Bottom tagline */}
@@ -399,8 +416,28 @@ export default function LobbyScreen() {
   );
 }
 
+const SETTING_TIPS: Record<string, string> = {
+  dayDuration:
+    "Oyuncuların tartışıp birbirini suçladığı süre. 3 dk hızlı oyunlar için, 5 dk daha derin tartışmalar için.",
+  ceteCount:
+    "Mahallede kaç Davetsiz Misafir çete üyesi olsun. Az oyuncu → 1, çok oyuncu → 2-3. Yüksek sayı oyunu zorlaştırır.",
+  specialRoles:
+    "Bu roller oyun havuzuna girer; kapalıysa yerine sıradan Köylü gelir. Her rolün detayını 'Nasıl Oynanır?' bölümünde görebilirsin.",
+  nightDuration:
+    "Her rolün gece aksiyonunu tamamlaması için verilen süre. Kısa = hız, uzun = daha az baskı.",
+  voteDuration:
+    "Gündüz linç oylamasının süresi. Kısa = baskı altında karar, uzun = daha fazla düşünme zamanı.",
+  rolePackage:
+    "Standart: 3 temel mahalle rolü — yeni oyuncular için ideal. Gelişmiş: +4 rol +2 kaos. Tümü: tam 19 rol, deneyimliler için.",
+};
+
 function HostSettings({ c, state, emit }: any) {
   const deepLink = `mahalle://join?code=${state.code}`;
+  const [openTip, setOpenTip] = useState<string | null>(null);
+
+  function toggleTip(id: string) {
+    setOpenTip((prev) => (prev === id ? null : id));
+  }
 
   const opt = (label: string, active: boolean, onPress: () => void) => (
     <Pressable
@@ -450,7 +487,13 @@ function HostSettings({ c, state, emit }: any) {
       <Text style={[styles.sectionTitle, { color: c.foreground }]}>Ayarlar</Text>
       <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border, gap: 16 }]}>
         <View>
-          <Text style={[styles.label, { color: c.mutedForeground }]}>Gündüz süresi</Text>
+          <Pressable style={styles.labelRow} onPress={() => toggleTip("dayDuration")} hitSlop={8}>
+            <Text style={[styles.label, { color: c.mutedForeground }]}>Gündüz süresi</Text>
+            <Feather name="info" size={13} color={openTip === "dayDuration" ? "#9B7FD4" : c.mutedForeground} />
+          </Pressable>
+          {openTip === "dayDuration" && (
+            <Text style={styles.tipText}>{SETTING_TIPS.dayDuration}</Text>
+          )}
           <View style={styles.rowGap}>
             {opt("3 dk", state.settings.dayDurationSec === 180, () =>
               emit("updateSettings", { patch: { dayDurationSec: 180 } }),
@@ -461,7 +504,13 @@ function HostSettings({ c, state, emit }: any) {
           </View>
         </View>
         <View>
-          <Text style={[styles.label, { color: c.mutedForeground }]}>Çete sayısı</Text>
+          <Pressable style={styles.labelRow} onPress={() => toggleTip("ceteCount")} hitSlop={8}>
+            <Text style={[styles.label, { color: c.mutedForeground }]}>Çete sayısı</Text>
+            <Feather name="info" size={13} color={openTip === "ceteCount" ? "#9B7FD4" : c.mutedForeground} />
+          </Pressable>
+          {openTip === "ceteCount" && (
+            <Text style={styles.tipText}>{SETTING_TIPS.ceteCount}</Text>
+          )}
           <View style={styles.rowGap}>
             {[1, 2, 3].map((n) =>
               opt(`${n}`, state.settings.ceteCount === n, () =>
@@ -471,7 +520,13 @@ function HostSettings({ c, state, emit }: any) {
           </View>
         </View>
         <View>
-          <Text style={[styles.label, { color: c.mutedForeground }]}>Aktif özel roller</Text>
+          <Pressable style={styles.labelRow} onPress={() => toggleTip("specialRoles")} hitSlop={8}>
+            <Text style={[styles.label, { color: c.mutedForeground }]}>Aktif özel roller</Text>
+            <Feather name="info" size={13} color={openTip === "specialRoles" ? "#9B7FD4" : c.mutedForeground} />
+          </Pressable>
+          {openTip === "specialRoles" && (
+            <Text style={styles.tipText}>{SETTING_TIPS.specialRoles}</Text>
+          )}
           <View style={styles.rowGap}>
             {[
               { id: "muhtar", label: "🎖️ Muhtar" },
@@ -482,7 +537,13 @@ function HostSettings({ c, state, emit }: any) {
           </View>
         </View>
         <View>
-          <Text style={[styles.label, { color: c.mutedForeground }]}>Gece aksiyon süresi</Text>
+          <Pressable style={styles.labelRow} onPress={() => toggleTip("nightDuration")} hitSlop={8}>
+            <Text style={[styles.label, { color: c.mutedForeground }]}>Gece aksiyon süresi</Text>
+            <Feather name="info" size={13} color={openTip === "nightDuration" ? "#9B7FD4" : c.mutedForeground} />
+          </Pressable>
+          {openTip === "nightDuration" && (
+            <Text style={styles.tipText}>{SETTING_TIPS.nightDuration}</Text>
+          )}
           <View style={styles.rowGap}>
             {opt("10 sn", state.settings.nightActionDurationSec === 10, () =>
               emit("updateSettings", { patch: { nightActionDurationSec: 10 } }),
@@ -493,7 +554,13 @@ function HostSettings({ c, state, emit }: any) {
           </View>
         </View>
         <View>
-          <Text style={[styles.label, { color: c.mutedForeground }]}>Oylama süresi</Text>
+          <Pressable style={styles.labelRow} onPress={() => toggleTip("voteDuration")} hitSlop={8}>
+            <Text style={[styles.label, { color: c.mutedForeground }]}>Oylama süresi</Text>
+            <Feather name="info" size={13} color={openTip === "voteDuration" ? "#9B7FD4" : c.mutedForeground} />
+          </Pressable>
+          {openTip === "voteDuration" && (
+            <Text style={styles.tipText}>{SETTING_TIPS.voteDuration}</Text>
+          )}
           <View style={styles.rowGap}>
             {opt("30 sn", (state.settings.voteDurationSec ?? 30) === 30, () =>
               emit("updateSettings", { patch: { voteDurationSec: 30 } }),
@@ -507,7 +574,13 @@ function HostSettings({ c, state, emit }: any) {
           </View>
         </View>
         <View>
-          <Text style={[styles.label, { color: c.mutedForeground }]}>Rol paketi</Text>
+          <Pressable style={styles.labelRow} onPress={() => toggleTip("rolePackage")} hitSlop={8}>
+            <Text style={[styles.label, { color: c.mutedForeground }]}>Rol paketi</Text>
+            <Feather name="info" size={13} color={openTip === "rolePackage" ? "#9B7FD4" : c.mutedForeground} />
+          </Pressable>
+          {openTip === "rolePackage" && (
+            <Text style={styles.tipText}>{SETTING_TIPS.rolePackage}</Text>
+          )}
           <View style={styles.rowGap}>
             {opt("Standart", (state.settings.rolePackage ?? "all") === "standard", () =>
               emit("updateSettings", { patch: { rolePackage: "standard" } }),
@@ -715,4 +788,38 @@ const styles = StyleSheet.create({
   rowGap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
   settingRow: { flexDirection: "row", alignItems: "center", paddingVertical: 4 },
   waitCard: { padding: 22, borderRadius: 16, borderWidth: 1, alignItems: "center" },
+  // ── Error message (replaces Alert.alert on web) ─────────────────────────────
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#FF6B6B18",
+    borderWidth: 1,
+    borderColor: "#FF6B6B55",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 4,
+  },
+  errorText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    color: "#FF6B6B",
+    flex: 1,
+  },
+  // ── Setting tooltip ──────────────────────────────────────────────────────────
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  tipText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: "#9B7FD4",
+    lineHeight: 18,
+    marginTop: 4,
+    marginBottom: 4,
+    paddingHorizontal: 2,
+  },
 });
