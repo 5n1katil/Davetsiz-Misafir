@@ -30,7 +30,7 @@ import SettingsScreen from "@/screens/SettingsScreen";
 import StatsScreen from "@/screens/StatsScreen";
 
 const SCREEN_W = Dimensions.get("window").width;
-const LOGO_SIZE = Math.min(SCREEN_W * 0.60, 230);
+const LOGO_SIZE = Math.min(SCREEN_W * 0.64, 248);
 
 // Home screen always uses dark noir palette regardless of system theme
 const HOME_BG = "#070410";
@@ -851,8 +851,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: "center",
     paddingHorizontal: 18,
-    gap: 16,
-    paddingTop: 24,
+    gap: 14,
+    paddingTop: 8,
   },
 
   // ── Legacy (heroWrap kullanılmıyor artık ama diğer kod referans edebilir) ────
@@ -887,11 +887,16 @@ const styles = StyleSheet.create({
   logoWrap: {
     width: LOGO_SIZE,
     height: LOGO_SIZE,
-    borderRadius: LOGO_SIZE / 2,
+    borderRadius: 20,
     overflow: "hidden",
-    marginBottom: 16,
-    borderWidth: 3,
-    borderColor: "#F5C84255",
+    marginBottom: 18,
+    borderWidth: 2,
+    borderColor: "#F5C84288",
+    shadowColor: "#F5C842",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
   },
   logoImg: { width: "100%", height: "100%" },
   logoFade: {
@@ -899,7 +904,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: LOGO_SIZE * 0.35,
+    height: LOGO_SIZE * 0.28,
   },
   logoGlow: {
     position: "absolute",
@@ -907,9 +912,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: LOGO_SIZE / 2,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: "#F5C84233",
+    borderColor: "#F5C84244",
   },
   brand: {
     fontFamily: "Cinzel_900Black",
