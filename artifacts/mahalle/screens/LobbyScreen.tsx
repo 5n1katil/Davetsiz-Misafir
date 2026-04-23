@@ -46,6 +46,8 @@ export default function LobbyScreen() {
     state,
     myPlayerId,
     emit,
+    toggleVibrations,
+    vibrationsEnabled,
   } = useGame();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -190,6 +192,7 @@ export default function LobbyScreen() {
                   onPress={() => setStatsVisible(true)}
                   hitSlop={12}
                   style={styles.iconBtn}
+                  accessibilityLabel="İstatistikler"
                 >
                   <Feather name="bar-chart-2" size={17} color="#9B7FD4" />
                 </Pressable>
@@ -197,8 +200,29 @@ export default function LobbyScreen() {
                   onPress={() => setHelpVisible(true)}
                   hitSlop={12}
                   style={styles.iconBtn}
+                  accessibilityLabel="Nasıl oynanır"
                 >
                   <Feather name="help-circle" size={17} color="#9B7FD4" />
+                </Pressable>
+                <Pressable
+                  onPress={toggleVibrations}
+                  hitSlop={12}
+                  style={styles.iconBtn}
+                  accessibilityLabel={vibrationsEnabled ? "Titreşimi kapat" : "Titreşimi aç"}
+                >
+                  <Feather
+                    name={vibrationsEnabled ? "smartphone" : "slash"}
+                    size={17}
+                    color={vibrationsEnabled ? "#9B7FD4" : "#4A3570"}
+                  />
+                </Pressable>
+                <Pressable
+                  onPress={() => setSettingsVisible(true)}
+                  hitSlop={12}
+                  style={styles.iconBtn}
+                  accessibilityLabel="Ayarlar"
+                >
+                  <Feather name="settings" size={17} color="#9B7FD4" />
                 </Pressable>
               </View>
 
