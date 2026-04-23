@@ -173,9 +173,6 @@ export default function LobbyScreen() {
             <Pressable onPress={() => setHelpVisible(true)} hitSlop={12} style={styles.topBarBtn} accessibilityLabel="Nasıl oynanır">
               <Feather name="help-circle" size={18} color="#9B7FD4" />
             </Pressable>
-            <Pressable onPress={toggleVibrations} hitSlop={12} style={styles.topBarBtn} accessibilityLabel={vibrationsEnabled ? "Titreşimi kapat" : "Titreşimi aç"}>
-              <Feather name={vibrationsEnabled ? "smartphone" : "slash"} size={18} color={vibrationsEnabled ? "#9B7FD4" : "#4A3570"} />
-            </Pressable>
             <Pressable onPress={() => setSettingsVisible(true)} hitSlop={12} style={styles.topBarBtn} accessibilityLabel="Ayarlar">
               <Feather name="settings" size={18} color="#9B7FD4" />
             </Pressable>
@@ -327,6 +324,7 @@ export default function LobbyScreen() {
 
         <StatsScreen visible={statsVisible} onClose={() => setStatsVisible(false)} />
         <HowToPlayScreen visible={helpVisible} onClose={() => setHelpVisible(false)} />
+        <SettingsScreen visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
       </>
     );
   }
