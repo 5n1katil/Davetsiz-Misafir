@@ -163,14 +163,16 @@ export default function LobbyScreen() {
       <>
         <KeyboardAvoidingView
           style={{ flex: 1, backgroundColor: HOME_BG }}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          keyboardVerticalOffset={0}
         >
           <ScrollView
             contentContainerStyle={[
               styles.scroll,
-              { paddingTop: insets.top + 4, paddingBottom: insets.bottom + 48 },
+              { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 48 },
             ]}
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             showsVerticalScrollIndicator={false}
             style={{ backgroundColor: HOME_BG }}
           >
@@ -251,6 +253,8 @@ export default function LobbyScreen() {
                     placeholder="Ör: Selim Abi"
                     placeholderTextColor="#4A3570"
                     maxLength={20}
+                    returnKeyType="done"
+                    blurOnSubmit
                     style={styles.entryInput}
                   />
                 </Animated.View>
@@ -305,11 +309,12 @@ export default function LobbyScreen() {
                   <TextInput
                     value={code}
                     onChangeText={(t) => setCode(t.toUpperCase())}
-                    placeholder="ODA KODU (ör. KAHVE47)"
+                    placeholder="ör. KAHVE47"
                     placeholderTextColor="#4A3570"
                     maxLength={10}
                     autoCapitalize="characters"
-                    autoFocus
+                    returnKeyType="go"
+                    onSubmitEditing={handleJoin}
                     style={[styles.entryInput, styles.codeInput]}
                   />
                   <Btn label="Katıl" loading={busy} onPress={handleJoin} />
@@ -935,9 +940,9 @@ const styles = StyleSheet.create({
   },
   codeInput: {
     textAlign: "center",
-    letterSpacing: 5,
+    letterSpacing: 4,
     fontFamily: "Inter_700Bold",
-    fontSize: 18,
+    fontSize: 16,
     color: "#F5C842",
   },
   actionRow: { flexDirection: "row", gap: 10 },

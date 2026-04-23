@@ -73,8 +73,8 @@ export default function Index() {
   }
 
   return (
-    <View style={[styles.root, { backgroundColor: c.background, paddingTop: insets.top }]}>
-      <HeaderBar title={phaseTitle} subtitle={phaseSub} onOpenSettings={() => setSettingsVisible(true)} />
+    <View style={[styles.root, { backgroundColor: state ? c.background : "#070410", paddingTop: state ? insets.top : 0 }]}>
+      {state && <HeaderBar title={phaseTitle} subtitle={phaseSub} onOpenSettings={() => setSettingsVisible(true)} />}
       <View style={{ flex: 1 }}>
         {body}
         {isPaused && (
