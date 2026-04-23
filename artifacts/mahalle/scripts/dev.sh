@@ -1,6 +1,7 @@
 #!/bin/bash
 # Expo dev server with automatic bundle pre-warming for Expo Go
 
+export CI=1
 export EXPO_PACKAGER_PROXY_URL="https://$REPLIT_EXPO_DEV_DOMAIN"
 export EXPO_PUBLIC_DOMAIN="$REPLIT_DEV_DOMAIN"
 export EXPO_PUBLIC_REPL_ID="$REPL_ID"
