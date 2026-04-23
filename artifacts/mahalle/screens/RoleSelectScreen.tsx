@@ -125,7 +125,6 @@ function PlayerRow({
   const isMe = player.id === myId;
   const isDone = player.roleSelectStatus === "done";
   const isPicking = player.roleSelectStatus === "picking";
-  const isWaiting = player.roleSelectStatus === "waiting";
   const isNarrow = panelWidth < 160;
 
   const role = isDone && player.selectedRoleId ? ROLE_DEFS[player.selectedRoleId] : null;
@@ -395,9 +394,9 @@ function RoleCard({
       <Pressable
         style={[
           styles.roleCard,
-          { height: cardHeight, borderColor: isSelected ? teamColor : "#2A1060" },
+          { height: cardHeight, borderColor: isSelected ? "#F5C842" : "#2A1060" },
           isSelected && styles.roleCardSelected,
-          isSelected && { shadowColor: teamColor },
+          isSelected && { shadowColor: "#F5C842" },
         ]}
         onPress={onPress}
       >
@@ -411,7 +410,7 @@ function RoleCard({
         <Text
           style={[
             styles.cardName,
-            { fontSize: nameSize, color: isSelected ? teamColor : "#E8DEFF" },
+            { fontSize: nameSize, color: isSelected ? "#F5C842" : "#E8DEFF" },
           ]}
           numberOfLines={2}
           adjustsFontSizeToFit
