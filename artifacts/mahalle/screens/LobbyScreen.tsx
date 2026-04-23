@@ -23,6 +23,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Btn } from "@/components/Btn";
 import { useGame } from "@/contexts/GameContext";
+import { toUpperTR } from "@/lib/utils";
 import { useColors } from "@/hooks/useColors";
 import HowToPlayScreen from "@/screens/HowToPlayScreen";
 import SettingsScreen from "@/screens/SettingsScreen";
@@ -381,7 +382,7 @@ export default function LobbyScreen() {
         {state.players.map((p: any) => (
           <View key={p.id} testID="player-list" style={styles.inPlayerRow}>
             <View style={[styles.inAvatar, p.isHost && styles.inAvatarHost]}>
-              <Text style={styles.inAvatarText}>{p.nickname[0]?.toUpperCase()}</Text>
+              <Text style={styles.inAvatarText}>{toUpperTR(p.nickname[0] ?? "")}</Text>
             </View>
             <Text style={styles.inPlayerName}>
               {p.nickname}
@@ -461,6 +462,42 @@ const TARAFSIZ_ROLES = [
   { id: "kahraman_dede", name: "Kahraman Dede", emoji: "🪬" },
 ];
 
+// Paket içerikleri — paket değişince disabledRoles otomatik hesaplanır
+const PACKAGE_ROLES = {
+  standard: {
+    mahalle: ["bekci", "otaci", "kapici"],
+    cete: [] as string[],
+    kaos: [] as string[],
+    tarafsiz: [] as string[],
+  },
+  advanced: {
+    mahalle: ["bekci", "otaci", "kapici", "falci", "muhtar", "muhabir", "hoca"],
+    cete: ["sahte_dernek", "icten_pazarlikli"],
+    kaos: ["kirik_kalp", "dedikoducu"],
+    tarafsiz: [] as string[],
+  },
+  all: {
+    mahalle: ["bekci", "otaci", "kapici", "falci", "muhtar", "muhabir", "hoca", "tiyatrocu"],
+    cete: ["sahte_dernek", "icten_pazarlikli"],
+    kaos: ["kumarbaz", "kiskanc_komsu", "kirik_kalp", "dedikoducu"],
+    tarafsiz: ["anonim", "kahraman_dede"],
+  },
+} as const;
+
+const ALL_SPECIAL_ROLE_IDS = [
+  ...PACKAGE_ROLES.all.mahalle,
+  ...PACKAGE_ROLES.all.cete,
+  ...PACKAGE_ROLES.all.kaos,
+  ...PACKAGE_ROLES.all.tarafsiz,
+];
+
+const ROLE_LOOKUP: Record<string, { id: string; name: string; emoji: string }> =
+  Object.fromEntries(
+    [...MAHALLE_SPECIAL_ROLES, ...CETE_OPTIONAL_ROLES, ...KAOS_ROLES, ...TARAFSIZ_ROLES].map(
+      (r) => [r.id, r]
+    )
+  );
+
 // ── SettingRow — yeniden kullanılabilir ayar satırı ───────────────────────────
 function SettingRow({
   label,
@@ -537,9 +574,11 @@ function HostSettings({ state, emit }: any) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showRoleTip, setShowRoleTip] = useState(false);
   const [showRoleToggleTip, setShowRoleToggleTip] = useState(false);
+  const [rolesAccordionOpen, setRolesAccordionOpen] = useState(false);
 
   const settings = state.settings;
   const disabledRoles: string[] = settings.disabledRoles ?? [];
+  const pkg: "standard" | "advanced" | "all" = settings.rolePackage ?? "all";
 
   const update = (key: string, value: unknown) =>
     emit("updateSettings", { patch: { [key]: value } });
@@ -551,18 +590,37 @@ function HostSettings({ state, emit }: any) {
     update("disabledRoles", next);
   };
 
+  const handlePackageChange = (newPkg: "standard" | "advanced" | "all") => {
+    const allowed = PACKAGE_ROLES[newPkg];
+    const allAllowed = [
+      ...allowed.mahalle,
+      ...allowed.cete,
+      ...allowed.kaos,
+      ...allowed.tarafsiz,
+    ];
+    const newDisabled = ALL_SPECIAL_ROLE_IDS.filter((id) => !allAllowed.includes(id));
+    emit("updateSettings", { patch: { rolePackage: newPkg, disabledRoles: newDisabled } });
+  };
+
+  const pkgInfo = {
+    standard: { label: "Standart", desc: "Bekçi, Şifacı, Kapıcı — Yeni oyuncular için ideal.", tag: "YENİ OYUNCULAR" },
+    advanced: { label: "Gelişmiş", desc: "Tüm mahalle rolleri + Kırık Kalp, Dedikoducu.", tag: "ÖNERİLEN" },
+    all: { label: "Tümü", desc: "Kumarbaz, Anonim, Kahraman Dede dahil 19 rol.", tag: "KAOTİK" },
+  };
+
   return (
     <View style={styles.inSection}>
       <Pressable
         style={styles.hsHeader}
         onPress={() => setSettingsOpen((v) => !v)}
       >
-        <Text style={styles.inSectionHeading}>⚙️ Oyun Ayarları</Text>
+        <Text style={styles.inSectionHeading}>⚙️ {toUpperTR("oyun ayarları")}</Text>
         <Text style={styles.hsChevron}>{settingsOpen ? "▲" : "▼"}</Text>
       </Pressable>
 
       {settingsOpen && (
         <View style={styles.hsBody}>
+          {/* Zamanlama ayarları */}
           <SettingRow
             label="Gündüz Süresi"
             tooltip="Her turda tartışma için ne kadar süren olsun? 3 dk hızlı oyunlar için, 5 dk daha sakin tartışmalar için idealdir."
@@ -610,10 +668,45 @@ function HostSettings({ state, emit }: any) {
 
           <View style={styles.hsDivider} />
 
-          {/* Rol Paketi */}
+          {/* Rol Dağıtım Modu */}
+          <SettingRow
+            label="Rol Dağıtım Modu"
+            tooltip="Rastgele: Herkes oyun başında otomatik rol alır, seçim ekranı açılmaz. Sıralı Seçim: Oyuncular sırayla 3 kart arasından kendi rolünü seçer, kim seçtiği gizli kalır."
+            options={["random", "pick"]}
+            labels={["Rastgele Dağıt", "Sıralı Seçim"]}
+            value={settings.roleDistribution ?? "pick"}
+            onChange={(v) => update("roleDistribution", v)}
+          />
+          <View style={styles.distributionInfoCard}>
+            {(settings.roleDistribution ?? "pick") === "random" ? (
+              <>
+                <Text style={styles.distributionInfoIcon}>🎲</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.distributionInfoTitle}>Rastgele Dağıtım</Text>
+                  <Text style={styles.distributionInfoDesc}>
+                    Oyun başlar başlamaz herkes rolünü anında öğrenir. Hızlı oyunlar için ideal.
+                  </Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <Text style={styles.distributionInfoIcon}>🎴</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.distributionInfoTitle}>Sıralı Seçim</Text>
+                  <Text style={styles.distributionInfoDesc}>
+                    Oyuncular sırayla 3 kart arasından seçim yapar. Kim seçiyor, gizli kalır.
+                  </Text>
+                </View>
+              </>
+            )}
+          </View>
+
+          <View style={styles.hsDivider} />
+
+          {/* Rol Paketi — kart tasarımı */}
           <View style={styles.srRow}>
             <View style={styles.srLabelRow}>
-              <Text style={styles.srLabel}>Rol Paketi</Text>
+              <Text style={styles.srLabel}>{toUpperTR("rol paketi")}</Text>
               <Pressable style={styles.srTipBtn} onPress={() => setShowRoleTip((v) => !v)} hitSlop={8}>
                 <Text style={styles.srTipBtnText}>?</Text>
               </Pressable>
@@ -621,28 +714,35 @@ function HostSettings({ state, emit }: any) {
             {showRoleTip && (
               <View style={styles.srTipBox}>
                 <Text style={styles.srTipText}>
-                  {"Oyunda hangi roller havuzuna dahil olsun?\nStandart: Yeni oyuncular için 3 temel rol.\nGelişmiş: Tüm mahalle rolleri + 2 kaos.\nTümü: 19 rolün tamamı, tam kaos."}
+                  Oyunda hangi roller havuzuna dahil olsun? Paketi seçince roller otomatik ayarlanır. İstersen aşağıdan tek tek özelleştirebilirsin.
                 </Text>
               </View>
             )}
-            {(["standard", "advanced", "all"] as const).map((pkg, i) => {
-              const pkgLabels = ["Standart", "Gelişmiş", "Tümü"];
-              const pkgDescs = [
-                "Bekçi, Şifacı, Kapıcı — Yeni oyuncular için ideal.",
-                "Tüm mahalle rolleri + Kırık Kalp, Dedikoducu.",
-                "Kumarbaz, Anonim, Kahraman Dede dahil 19 rol. Kaotik!",
-              ];
-              const isActive = (settings.rolePackage ?? "all") === pkg;
+            {(["standard", "advanced", "all"] as const).map((p) => {
+              const isActive = pkg === p;
+              const info = pkgInfo[p];
               return (
                 <Pressable
-                  key={pkg}
-                  style={[styles.hsRolePkgBtn, isActive && styles.hsRolePkgBtnActive]}
-                  onPress={() => update("rolePackage", pkg)}
+                  key={p}
+                  style={[styles.packageCard, isActive && styles.packageCardActive]}
+                  onPress={() => handlePackageChange(p)}
                 >
-                  <Text style={[styles.hsRolePkgBtnText, isActive && styles.hsRolePkgBtnTextActive]}>
-                    {pkgLabels[i]}
-                  </Text>
-                  <Text style={styles.hsRolePkgDesc}>{pkgDescs[i]}</Text>
+                  <View style={styles.packageCardLeft}>
+                    <View style={styles.packageCardRadio}>
+                      {isActive && <View style={styles.packageCardRadioDot} />}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.packageCardLabel, isActive && styles.packageCardLabelActive]}>
+                        {info.label}
+                      </Text>
+                      <Text style={styles.packageCardDesc}>{info.desc}</Text>
+                    </View>
+                  </View>
+                  <View style={[styles.packageCardTag, isActive && styles.packageCardTagActive]}>
+                    <Text style={[styles.packageCardTagText, isActive && styles.packageCardTagTextActive]}>
+                      {info.tag}
+                    </Text>
+                  </View>
                 </Pressable>
               );
             })}
@@ -650,65 +750,73 @@ function HostSettings({ state, emit }: any) {
 
           <View style={styles.hsDivider} />
 
-          {/* Aktif Özel Roller */}
+          {/* Aktif Özel Roller — accordion */}
           <View style={styles.srRow}>
-            <View style={styles.srLabelRow}>
-              <Text style={styles.srLabel}>Aktif Özel Roller</Text>
-              <Pressable style={styles.srTipBtn} onPress={() => setShowRoleToggleTip((v) => !v)} hitSlop={8}>
-                <Text style={styles.srTipBtnText}>?</Text>
-              </Pressable>
-            </View>
+            <Pressable
+              style={styles.accordionHeader}
+              onPress={() => setRolesAccordionOpen((v) => !v)}
+            >
+              <View style={styles.srLabelRow}>
+                <Text style={styles.srLabel}>{toUpperTR("aktif özel roller")}</Text>
+                <Pressable style={styles.srTipBtn} onPress={() => setShowRoleToggleTip((v) => !v)} hitSlop={8}>
+                  <Text style={styles.srTipBtnText}>?</Text>
+                </Pressable>
+              </View>
+              <Text style={styles.accordionChevron}>{rolesAccordionOpen ? "▲" : "▼"}</Text>
+            </Pressable>
             {showRoleToggleTip && (
               <View style={styles.srTipBox}>
                 <Text style={styles.srTipText}>
-                  Seçili rolleri havuzdan çıkarabilirsin. Yeşil = aktif, gri = devre dışı. Devre dışı roller hiç kimseye atanmaz.
+                  Seçili paketteki rolleri tek tek açıp kapatabilirsin. Kapatılan roller hiç kimseye atanmaz.
                 </Text>
               </View>
             )}
-            <Text style={styles.hsRoleGroupLabel}>🟡 Mahalle</Text>
-            <View style={styles.hsRoleGrid}>
-              {MAHALLE_SPECIAL_ROLES.map((role) => (
-                <RoleToggle
-                  key={role.id}
-                  role={role}
-                  active={!disabledRoles.includes(role.id)}
-                  onToggle={() => toggleRole(role.id)}
-                />
-              ))}
-            </View>
-            <Text style={styles.hsRoleGroupLabel}>🔴 Çete</Text>
-            <View style={styles.hsRoleGrid}>
-              {CETE_OPTIONAL_ROLES.map((role) => (
-                <RoleToggle
-                  key={role.id}
-                  role={role}
-                  active={!disabledRoles.includes(role.id)}
-                  onToggle={() => toggleRole(role.id)}
-                />
-              ))}
-            </View>
-            <Text style={styles.hsRoleGroupLabel}>🩵 Kargaşacılar</Text>
-            <View style={styles.hsRoleGrid}>
-              {KAOS_ROLES.map((role) => (
-                <RoleToggle
-                  key={role.id}
-                  role={role}
-                  active={!disabledRoles.includes(role.id)}
-                  onToggle={() => toggleRole(role.id)}
-                />
-              ))}
-            </View>
-            <Text style={styles.hsRoleGroupLabel}>🟣 Yalnız Kurtlar</Text>
-            <View style={styles.hsRoleGrid}>
-              {TARAFSIZ_ROLES.map((role) => (
-                <RoleToggle
-                  key={role.id}
-                  role={role}
-                  active={!disabledRoles.includes(role.id)}
-                  onToggle={() => toggleRole(role.id)}
-                />
-              ))}
-            </View>
+
+            {rolesAccordionOpen && (
+              <View style={styles.accordionBody}>
+                {[
+                  { group: "mahalle" as const, label: "Mahalle", color: "#F5C842", dot: "🟡" },
+                  { group: "cete" as const, label: "Çete", color: "#C8102E", dot: "🔴" },
+                  { group: "kaos" as const, label: "Kargaşacılar", color: "#1ECBE1", dot: "🩵" },
+                  { group: "tarafsiz" as const, label: "Yalnız Kurtlar", color: "#9B7FD4", dot: "🟣" },
+                ].map(({ group, label, color, dot }) => {
+                  const groupRoles = PACKAGE_ROLES[pkg][group];
+                  if (groupRoles.length === 0) return null;
+                  return (
+                    <View key={group} style={styles.roleGroup}>
+                      <Text style={[styles.roleGroupLabel, { color }]}>{dot} {label}</Text>
+                      <View style={styles.roleToggleGrid}>
+                        {groupRoles.map((roleId) => {
+                          const roleDef = ROLE_LOOKUP[roleId];
+                          if (!roleDef) return null;
+                          const isEnabled = !disabledRoles.includes(roleId);
+                          return (
+                            <Pressable
+                              key={roleId}
+                              style={[
+                                styles.roleToggleChip,
+                                isEnabled
+                                  ? { borderColor: color, backgroundColor: color + "15" }
+                                  : styles.roleToggleChipOff,
+                              ]}
+                              onPress={() => toggleRole(roleId)}
+                            >
+                              <Text style={styles.roleToggleEmoji}>{roleDef.emoji}</Text>
+                              <Text style={[styles.roleToggleName, !isEnabled && styles.roleToggleNameOff]}>
+                                {roleDef.name}
+                              </Text>
+                              <Text style={[styles.roleToggleCheck, { color: isEnabled ? color : "#4A2E7A" }]}>
+                                {isEnabled ? "✓" : "○"}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
           </View>
         </View>
       )}
@@ -1205,7 +1313,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
   },
 
-  // ── RoleToggle ──────────────────────────────────────────────────────────────
+  // ── RoleToggle (legacy — kept for compatibility) ─────────────────────────────
   rtToggle: {
     flexDirection: "row",
     alignItems: "center",
@@ -1234,6 +1342,154 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     fontSize: 11,
     color: "#F5C842",
+    marginLeft: 2,
+  },
+
+  // ── Rol Dağıtım Modu bilgi kartı ────────────────────────────────────────────
+  distributionInfoCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    backgroundColor: "#1A0A3E",
+    borderRadius: 10,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: "#F5C842",
+    marginTop: 8,
+  },
+  distributionInfoIcon: { fontSize: 24 },
+  distributionInfoTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 13,
+    color: "#E8DEFF",
+    marginBottom: 2,
+  },
+  distributionInfoDesc: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: "#9B7FD4",
+    lineHeight: 16,
+  },
+
+  // ── Paket kartları ──────────────────────────────────────────────────────────
+  packageCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#1A0A3E",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#2A1060",
+    padding: 14,
+    marginBottom: 8,
+  },
+  packageCardActive: {
+    borderColor: "#F5C842",
+    backgroundColor: "#2A1060",
+  },
+  packageCardLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    flex: 1,
+  },
+  packageCardRadio: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.5,
+    borderColor: "#4A2E7A",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  packageCardRadioDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: "#F5C842",
+  },
+  packageCardLabel: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+    color: "#9B7FD4",
+  },
+  packageCardLabelActive: { color: "#F5C842" },
+  packageCardDesc: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: "#4A2E7A",
+    marginTop: 2,
+  },
+  packageCardTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 99,
+    backgroundColor: "#0A0614",
+    borderWidth: 1,
+    borderColor: "#2A1060",
+  },
+  packageCardTagActive: {
+    borderColor: "#F5C842",
+    backgroundColor: "#2A1060",
+  },
+  packageCardTagText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 9,
+    color: "#4A2E7A",
+    letterSpacing: 1,
+  },
+  packageCardTagTextActive: { color: "#F5C842" },
+
+  // ── Rol toggle accordion ────────────────────────────────────────────────────
+  accordionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+  },
+  accordionChevron: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+    color: "#4A2E7A",
+  },
+  accordionBody: { paddingTop: 8 },
+  roleGroup: { marginBottom: 12 },
+  roleGroupLabel: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 11,
+    marginBottom: 6,
+    letterSpacing: 0.5,
+  },
+  roleToggleGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    marginBottom: 8,
+  },
+  roleToggleChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    margin: 3,
+  },
+  roleToggleChipOff: {
+    borderColor: "#2A1060",
+    backgroundColor: "#0A0614",
+    opacity: 0.5,
+  },
+  roleToggleEmoji: { fontSize: 14 },
+  roleToggleName: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+    color: "#E8DEFF",
+  },
+  roleToggleNameOff: { color: "#4A2E7A" },
+  roleToggleCheck: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 11,
     marginLeft: 2,
   },
 });

@@ -62,6 +62,7 @@ export interface GameState {
     rolePackage: "standard" | "advanced" | "all";
     disabledRoles: string[];
     roleSelectShowNames: "hidden" | "visible";
+    roleDistribution: "random" | "pick";
   };
   phaseDeadline: number | null;
   roleSelectDeadline: number | null;

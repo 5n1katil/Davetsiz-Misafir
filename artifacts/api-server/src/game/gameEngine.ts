@@ -33,6 +33,7 @@ export interface RoomSettings {
   rolePackage: "standard" | "advanced" | "all";
   disabledRoles: string[];
   roleSelectShowNames: "hidden" | "visible";
+  roleDistribution: "random" | "pick";
 }
 
 export interface RoleChoice {
@@ -180,6 +181,7 @@ export function createRoom(socketId: string, nickname: string): Room {
       rolePackage: "all",
       disabledRoles: [],
       roleSelectShowNames: "hidden",
+      roleDistribution: "pick",
     },
     rolePool: [],
     roleSelectQueue: [],
@@ -379,9 +381,6 @@ export function startGame(
   if (connectedCount < 4) return { error: "En az 4 bağlı oyuncu gerek" };
 
   room.rolePool = shuffle(buildRolePool(room.players.length, room.settings));
-  room.roleSelectQueue = shuffle(room.players).map((p) => p.id);
-  room.roleSelectIndex = 0;
-  room.phase = "ROLE_SELECT";
 
   // Reset 18-rol state
   room.hocaUsed = false;
@@ -405,9 +404,27 @@ export function startGame(
     emoji: "🎬",
   }];
 
-  // Tiyatrocu'nun sahte rollerini şimdi ata (rol seçilmeden önce)
-  // Kırık Kalp bağı oyun başladıktan sonra (roller dağıtılınca) atanacak
-  startNextRoleChoice(room);
+  // Rol dağıtım moduna göre farklı akış
+  if (room.settings.roleDistribution === "random") {
+    // Havuzu karıştır ve direkt ata — ROLE_SELECT fazını atla
+    const shuffledPool = shuffle([...room.rolePool]);
+    room.players.forEach((p, i) => {
+      p.roleId = shuffledPool[i] ?? shuffledPool[0];
+      p.hasSelectedRole = true;
+    });
+    room.rolePool = [];
+    room.roleSelectQueue = [];
+    room.roleSelectIndex = 0;
+    room.currentChoice = null;
+    room.phase = "ROLE_REVEAL";
+    room.phaseDeadline = Date.now() + 60_000;
+  } else {
+    // Mevcut sıralı seçim akışı
+    room.roleSelectQueue = shuffle(room.players).map((p) => p.id);
+    room.roleSelectIndex = 0;
+    room.phase = "ROLE_SELECT";
+    startNextRoleChoice(room);
+  }
   return room;
 }
 
