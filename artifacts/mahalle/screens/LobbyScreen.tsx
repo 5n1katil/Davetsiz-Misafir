@@ -68,6 +68,12 @@ export default function LobbyScreen() {
   }, []);
 
   useEffect(() => {
+    return () => {
+      if (errorTimer.current) clearTimeout(errorTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 900, useNativeDriver: false }),
       Animated.spring(slideAnim, { toValue: 0, tension: 60, friction: 10, useNativeDriver: false }),
