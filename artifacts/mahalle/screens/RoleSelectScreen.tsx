@@ -34,7 +34,8 @@ export default function RoleSelectScreen() {
   const { state, myPlayerId, emit } = useGame();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
-  const panelWidth = isMobile ? 152 : 200;
+  // Narrow screens get a slimmer panel to give cards more breathing room
+  const panelWidth = width < 360 ? 120 : isMobile ? 148 : 200;
   const remaining = useCountdown(state?.roleSelectDeadline ?? null);
 
   if (!state) return null;
@@ -231,81 +232,90 @@ function PickingArea({
   const [selected, setSelected] = useState<string | null>(null);
   const urgentTime = timeLeft <= 5;
 
-  // Card sizing: fit 3 cards + 1 random horizontally, never wrap
+  // 3 role cards side by side — random is a separate button below
   const hPad = isMobile ? 10 : 20;
   const cardGap = isMobile ? 6 : 10;
-  const numCards = Math.min(choices.length, 3) + 1; // +1 for random
-  const cardWidth = Math.max(
-    60,
-    (mainWidth - hPad * 2 - cardGap * (numCards - 1)) / numCards
-  );
-  const cardHeight = isMobile ? 110 : 140;
+  const numRoleCards = Math.min(choices.length, 3);
+  const cardWidth =
+    (mainWidth - hPad * 2 - cardGap * (numRoleCards - 1)) / numRoleCards;
+  const cardHeight = isMobile ? 106 : 140;
 
   return (
+    // Flex column: scrollable content area + fixed bottom actions
     <View style={styles.pickingRoot}>
-      {/* Header */}
-      <View style={[styles.pickingHeader, isMobile && styles.pickingHeaderMobile]}>
+      {/* Scrollable top content */}
+      <ScrollView
+        style={styles.pickingScroll}
+        contentContainerStyle={[
+          styles.pickingScrollContent,
+          { paddingHorizontal: hPad },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
         <Text style={styles.pickingTitle}>ROL SEÇ!</Text>
         <Text style={[styles.pickingSubtitle, isMobile && styles.pickingSubtitleMobile]}>
           Kaderini belirle
         </Text>
-      </View>
 
-      {/* Timer */}
-      <View style={[styles.timerRow, isMobile && styles.timerRowMobile]}>
-        <Text style={[styles.timerNum, urgentTime && styles.timerUrgent]}>
-          {timeLeft}
-        </Text>
-        <Text style={styles.timerLabel}>sn</Text>
-      </View>
-      <View style={[styles.timerBarBg, { marginHorizontal: hPad }]}>
-        <View
-          style={[
-            styles.timerBarFill,
-            { width: `${Math.max(0, (timeLeft / 25) * 100)}%` as any },
-            urgentTime && styles.timerBarUrgent,
-          ]}
-        />
-      </View>
-
-      {/* Role cards + Random — always horizontal row */}
-      <View style={[styles.cardsRow, { paddingHorizontal: hPad, gap: cardGap }]}>
-        {choices.slice(0, 3).map((roleId, idx) => (
-          <RoleCard
-            key={roleId}
-            roleId={roleId}
-            isSelected={selected === roleId}
-            cardWidth={cardWidth}
-            cardHeight={cardHeight}
-            delay={idx * 80}
-            isMobile={isMobile}
-            onPress={() => {
-              haptic(Haptics.ImpactFeedbackStyle.Light);
-              setSelected((prev) => (prev === roleId ? null : roleId));
-            }}
-          />
-        ))}
-
-        {/* Random card — same style */}
-        <RandomCard
-          cardWidth={cardWidth}
-          cardHeight={cardHeight}
-          isMobile={isMobile}
-          onPress={() => onSelect(null)}
-        />
-      </View>
-
-      {/* Selected description */}
-      {selected && ROLE_DEFS[selected] && (
-        <View style={[styles.descBox, { marginHorizontal: hPad }]}>
-          <Text style={styles.descText} numberOfLines={2}>
-            {ROLE_DEFS[selected].shortDesc ?? ROLE_DEFS[selected].description}
+        {/* Timer */}
+        <View style={styles.timerRow}>
+          <Text style={[styles.timerNum, urgentTime && styles.timerUrgent]}>
+            {timeLeft}
           </Text>
+          <Text style={styles.timerLabel}>sn</Text>
         </View>
-      )}
+        <View style={styles.timerBarBg}>
+          <View
+            style={[
+              styles.timerBarFill,
+              { width: `${Math.max(0, (timeLeft / 25) * 100)}%` as any },
+              urgentTime && styles.timerBarUrgent,
+            ]}
+          />
+        </View>
 
-      {/* Confirm button */}
-      <View style={[styles.confirmWrap, { paddingHorizontal: hPad }]}>
+        {/* Role cards — always horizontal, 3 equal-width slots */}
+        <View style={[styles.cardsRow, { gap: cardGap, marginTop: 10 }]}>
+          {choices.slice(0, 3).map((roleId, idx) => (
+            <RoleCard
+              key={roleId}
+              roleId={roleId}
+              isSelected={selected === roleId}
+              cardWidth={cardWidth}
+              cardHeight={cardHeight}
+              delay={idx * 80}
+              isMobile={isMobile}
+              onPress={() => {
+                haptic(Haptics.ImpactFeedbackStyle.Light);
+                setSelected((prev) => (prev === roleId ? null : roleId));
+              }}
+            />
+          ))}
+        </View>
+      </ScrollView>
+
+      {/* ── Fixed bottom actions ── */}
+      <View style={[styles.pickingBottom, { paddingHorizontal: hPad }]}>
+        {/* Selected role description */}
+        {selected && ROLE_DEFS[selected] && (
+          <View style={styles.descBox}>
+            <Text style={styles.descText} numberOfLines={2}>
+              {ROLE_DEFS[selected].shortDesc ?? ROLE_DEFS[selected].description}
+            </Text>
+          </View>
+        )}
+
+        {/* Random button — full width, separate from cards */}
+        <Pressable
+          style={styles.randomBtn}
+          onPress={() => onSelect(null)}
+        >
+          <Text style={styles.randomBtnEmoji}>🎲</Text>
+          <Text style={styles.randomBtnText}>RASTGELE SEÇ — kadere bırak</Text>
+        </Pressable>
+
+        {/* Confirm button — full width, gold, pinned to bottom */}
         <Pressable
           style={[styles.confirmBtn, !selected && styles.confirmBtnDisabled]}
           onPress={() => {
@@ -423,70 +433,6 @@ function RoleCard({
   );
 }
 
-// ── RandomCard ────────────────────────────────────────────────────────────────
-function RandomCard({
-  cardWidth,
-  cardHeight,
-  isMobile,
-  onPress,
-}: {
-  cardWidth: number;
-  cardHeight: number;
-  isMobile: boolean;
-  onPress: () => void;
-}) {
-  const nameSize = isMobile ? (cardWidth < 70 ? 8 : 10) : 12;
-  const emojiSize = isMobile ? (cardWidth < 70 ? 20 : 26) : 32;
-
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(20)).current;
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 280,
-        delay: 3 * 80,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 280,
-        delay: 3 * 80,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  return (
-    <Animated.View
-      style={{
-        opacity: fadeAnim,
-        transform: [{ translateY: slideAnim }],
-        width: cardWidth,
-      }}
-    >
-      <Pressable
-        style={[styles.roleCard, styles.randomCard, { height: cardHeight }]}
-        onPress={onPress}
-      >
-        <Text style={{ fontSize: emojiSize }}>🎲</Text>
-        <Text
-          style={[styles.cardName, { fontSize: nameSize, color: "#9B7FD4" }]}
-          numberOfLines={2}
-          adjustsFontSizeToFit
-        >
-          RASTGELE
-        </Text>
-        <View style={[styles.cardTeamBadge, styles.randomBadge]}>
-          <Text style={[styles.cardTeamText, { color: "#9B7FD4", fontSize: isMobile ? 6 : 8 }]}>
-            ŞANS
-          </Text>
-        </View>
-      </Pressable>
-    </Animated.View>
-  );
-}
 
 // ── WaitingArea ───────────────────────────────────────────────────────────────
 function WaitingArea({
@@ -674,21 +620,29 @@ const styles = StyleSheet.create({
     overflow: "hidden",
   },
 
-  // ── Picking root ──
+  // ── Picking root: flex column, scroll top + fixed bottom ──
   pickingRoot: {
     flex: 1,
-    justifyContent: "center",
-    gap: 10,
-    paddingVertical: 12,
+    flexDirection: "column",
+  },
+  pickingScroll: {
+    flex: 1,
+  },
+  pickingScrollContent: {
+    paddingTop: 14,
+    paddingBottom: 10,
+    gap: 8,
+    alignItems: "stretch",
+  },
+  pickingBottom: {
+    gap: 8,
+    paddingTop: 8,
+    paddingBottom: 14,
+    borderTopWidth: 1,
+    borderTopColor: "#1A0A3E",
+    backgroundColor: "#0A0614",
   },
 
-  pickingHeader: {
-    paddingHorizontal: 20,
-    gap: 2,
-  },
-  pickingHeaderMobile: {
-    paddingHorizontal: 10,
-  },
   pickingTitle: {
     fontFamily: "Cinzel_700Bold",
     fontSize: 20,
@@ -706,6 +660,25 @@ const styles = StyleSheet.create({
     fontSize: 10,
   },
 
+  // Random button (full-width, below cards)
+  randomBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#1A0A3E",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#3B1F8C",
+    paddingVertical: 10,
+  },
+  randomBtnEmoji: { fontSize: 18 },
+  randomBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 12,
+    color: "#9B7FD4",
+  },
+
   // Timer
   timerRow: {
     flexDirection: "row",
@@ -713,7 +686,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     gap: 4,
   },
-  timerRowMobile: {},
   timerNum: {
     fontFamily: "Inter_700Bold",
     fontSize: 44,
@@ -797,15 +769,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  randomCard: {
-    borderColor: "#2A1060",
-    borderStyle: "dashed",
-  },
-  randomBadge: {
-    backgroundColor: "#1A0A3E",
-    borderColor: "#3B1F8C",
-  },
-
   // Description box
   descBox: {
     backgroundColor: "#130830",
@@ -824,7 +787,6 @@ const styles = StyleSheet.create({
   },
 
   // Confirm button
-  confirmWrap: {},
   confirmBtn: {
     backgroundColor: "#F5C842",
     borderRadius: 12,
