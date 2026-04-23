@@ -40,4 +40,4 @@ warm_bundles() {
 
 warm_bundles &
 
-pnpm exec expo start --localhost --port "$METRO_PORT"
+pnpm exec expo start --offline --port "$METRO_PORT"
