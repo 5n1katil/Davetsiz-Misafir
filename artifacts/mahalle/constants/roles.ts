@@ -10,6 +10,7 @@ export interface RoleDef {
   tips: string[];
   voteWeight: number;
   nightActionDescription?: string;
+  shortDesc?: string;
 }
 
 export const ROLE_DEFS: Record<string, RoleDef> = {
@@ -32,6 +33,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ],
     voteWeight: 1.5,
     nightActionDescription: "Bu gece yapacak bir eylemin yok. Oyun açık: herkes senin 1.5 oy ağırlığını biliyor.",
+    shortDesc: "Oylamalarda 1.5 oy hakkı var, gücü herkese açık.",
   },
   bekci: {
     id: "bekci",
@@ -51,6 +53,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ],
     voteWeight: 1,
     nightActionDescription: "Seçtiğin kişinin Mahalle mi, Çete mi olduğunu öğrenirsin.",
+    shortDesc: "Gece bir kişinin iyi mi kötü mü olduğunu öğrenir.",
   },
   otaci: {
     id: "otaci",
@@ -70,6 +73,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ],
     voteWeight: 1,
     nightActionDescription: "Seçtiğin kişiyi bu gece çete saldırısından korursun.",
+    shortDesc: "Her gece bir kişiyi çete saldırısından korur.",
   },
   falci: {
     id: "falci",
@@ -89,6 +93,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ],
     voteWeight: 1,
     nightActionDescription: "Seçtiğin kişinin tam rolünü öğrenirsin (bazen yanıltıcı olabilir).",
+    shortDesc: "Bir kişinin tam rolünü öğrenir, ama bazen yanılır.",
   },
   kapici: {
     id: "kapici",
@@ -108,6 +113,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ],
     voteWeight: 1,
     nightActionDescription: "Seçtiğin kişinin evini kilitlersin — bu gece kimse giremez.",
+    shortDesc: "Bir evi kilitler, o gece kimse giremez.",
   },
   muhabir: {
     id: "muhabir",
@@ -127,6 +133,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ],
     voteWeight: 1,
     nightActionDescription: "Bu gece yapacak bir eylemin yok. Uyku modundasın — ama ölürsen tüm bildiklerin herkese açılır.",
+    shortDesc: "Ölünce tüm topladığı bilgiler herkese açılır.",
   },
   tiyatrocu: {
     id: "tiyatrocu",
@@ -146,6 +153,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ],
     voteWeight: 1,
     nightActionDescription: "Bu gece yapacak bir eylemin yok. Ama unutma: öldüğünde gerçek rolün değil, sahte rolün açıklanır.",
+    shortDesc: "Ölünce gerçek rolü değil sahte rolü görünür.",
   },
   hoca: {
     id: "hoca",
@@ -165,6 +173,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ],
     voteWeight: 1,
     nightActionDescription: "Tek kullanımlık güçlü korumanı bu gece kime kullanacaksın?",
+    shortDesc: "Bir kez, hiçbir engeli aşan güçlü koruma kullanır.",
   },
   koylu: {
     id: "koylu",
@@ -184,6 +193,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ],
     voteWeight: 1,
     nightActionDescription: "Bu gece yapacak bir eylemin yok. Gündüz tartışması ve oylaması senin en güçlü silahın.",
+    shortDesc: "Özel yeteneği yok ama oylaması hayat kurtarır.",
   },
 
   // ── DAVETSİZ MİSAFİR ÇETESİ ───────────────────────────────────────────────
@@ -206,6 +216,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ],
     voteWeight: 1,
     nightActionDescription: "Çete odasında hedefini seç. Çoğunluk kararı bu geceyi belirler.",
+    shortDesc: "Çetenin lideri, her gece hedef belirler.",
   },
   tahsildar: {
     id: "tahsildar",
@@ -224,6 +235,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ],
     voteWeight: 1,
     nightActionDescription: "Çete odasında oy kullan. Davetsiz Misafir düşerse sen liderliği devralırsın.",
+    shortDesc: "Çete oylamasına katılır, lider düşerse devralır.",
   },
   sahte_dernek: {
     id: "sahte_dernek",
@@ -243,6 +255,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ],
     voteWeight: 1,
     nightActionDescription: "Çete odasında oy kullan. Ama asıl görevin hayatta kalmak — linç edilirsen çete kaybeder.",
+    shortDesc: "Linç edilirse çete ANINDA kazanır — tehlikeli!",
   },
   icten_pazarlikli: {
     id: "icten_pazarlikli",
@@ -261,6 +274,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ],
     voteWeight: 1,
     nightActionDescription: "Bu gece yapacak bir eylemin yok. Sistem otomatik olarak bir kişinin bilgisini çeteye sızdırıyor.",
+    shortDesc: "Bekçiye iyi görünür, çeteye her gece bilgi sızdırır.",
   },
 
   // ── KARGAŞACILAR ──────────────────────────────────────────────────────────
@@ -282,6 +296,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ],
     voteWeight: 1,
     nightActionDescription: "İki kişi seç — bu iki kişinin rolleri kalıcı olarak yer değiştirir.",
+    shortDesc: "İki kişinin rolünü kalıcı takas eder — kim ne oldu bilinmez.",
   },
   kiskanc_komsu: {
     id: "kiskanc_komsu",
@@ -301,6 +316,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ],
     voteWeight: 1,
     nightActionDescription: "Bir kişiyi seç — o kişinin bu geceki eylemini kopyalarsın.",
+    shortDesc: "Seçtiği kişinin gece eylemini kopyalar.",
   },
   kirik_kalp: {
     id: "kirik_kalp",
@@ -320,6 +336,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ],
     voteWeight: 1,
     nightActionDescription: "Bu gece yapacak bir eylemin yok. Aşığının güvende olduğunu umuyorsun.",
+    shortDesc: "Aşığı ölürse o da ölür. İkisi hayatta kalırsa kazanır.",
   },
   dedikoducu: {
     id: "dedikoducu",
@@ -339,6 +356,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ],
     voteWeight: 1,
     nightActionDescription: "Bu gece yapacak bir eylemin yok. Ama bu gece ölürsen, yarınki linç oylaması tersine dönecek.",
+    shortDesc: "Ölünce bir sonraki linç oylaması tersine döner.",
   },
 
   // ── YALNIZ KURTLAR ────────────────────────────────────────────────────────
@@ -360,6 +378,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ],
     voteWeight: 1,
     nightActionDescription: "Bir kişiyi işaretle. 3 işaretlediğin kişi linç edilirse kazanırsın.",
+    shortDesc: "İşaretlediği 3 kişi linç edilirse tek başına kazanır.",
   },
   kahraman_dede: {
     id: "kahraman_dede",
@@ -379,6 +398,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ],
     voteWeight: 1,
     nightActionDescription: "Bu gece kimi mahalleden uzaklaştıracaksın?",
+    shortDesc: "Her gece bağımsız öldürür. Tek kalırsa kazanır.",
   },
 };
 

@@ -36,6 +36,8 @@ export interface PlayerView {
   isReady: boolean;
   hasSelectedRole: boolean;
   selectedRoleId: string | null;
+  roleSelectPosition: number | null;
+  roleSelectStatus: "waiting" | "picking" | "done";
 }
 
 export interface GameState {

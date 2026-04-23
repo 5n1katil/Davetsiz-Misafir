@@ -2105,16 +2105,27 @@ export function publicView(room: Room, viewerPlayerId: string | null) {
     phaseDeadline: room.phaseDeadline,
     roleSelectDeadline: room.roleSelectDeadline,
     paused: room.paused,
-    players: room.players.map((p) => ({
-      id: p.id,
-      nickname: p.nickname,
-      isHost: p.isHost,
-      isAlive: p.isAlive,
-      isConnected: p.isConnected,
-      isReady: p.isReady,
-      hasSelectedRole: p.hasSelectedRole,
-      selectedRoleId: p.hasSelectedRole ? p.roleId : null,
-    })),
+    players: room.players.map((p) => {
+      const queuePos = room.roleSelectQueue.indexOf(p.id);
+      const roleSelectPosition = queuePos >= 0 ? queuePos + 1 : null;
+      const roleSelectStatus: "waiting" | "picking" | "done" = p.hasSelectedRole
+        ? "done"
+        : room.currentChoice?.playerId === p.id
+        ? "picking"
+        : "waiting";
+      return {
+        id: p.id,
+        nickname: p.nickname,
+        isHost: p.isHost,
+        isAlive: p.isAlive,
+        isConnected: p.isConnected,
+        isReady: p.isReady,
+        hasSelectedRole: p.hasSelectedRole,
+        selectedRoleId: p.hasSelectedRole ? p.roleId : null,
+        roleSelectPosition,
+        roleSelectStatus,
+      };
+    }),
     currentChoice:
       room.currentChoice && room.currentChoice.playerId === viewerPlayerId
         ? room.currentChoice

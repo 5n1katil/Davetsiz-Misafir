@@ -11,10 +11,22 @@ import {
   View,
 } from "react-native";
 
-import { ROLE_DEFS, ROLE_TEAM_COLOR, ROLE_TEAM_LABEL } from "@/constants/roles";
-import roleImages from "@/constants/roleImages";
+import { ROLE_DEFS } from "@/constants/roles";
 import { useGame } from "@/contexts/GameContext";
 import { useCountdown } from "@/hooks/useCountdown";
+
+const TEAM_COLOR: Record<string, string> = {
+  iyi: "#F5C842",
+  kotu: "#C8102E",
+  kaos: "#1ECBE1",
+  tarafsiz: "#9B7FD4",
+};
+const TEAM_LABEL: Record<string, string> = {
+  iyi: "MAHALLE",
+  kotu: "ÇETE",
+  kaos: "KARGAŞACI",
+  tarafsiz: "YALNIZ KURT",
+};
 
 export default function RoleSelectScreen() {
   const { state, myPlayerId, emit } = useGame();
@@ -24,248 +36,338 @@ export default function RoleSelectScreen() {
 
   if (!state) return null;
 
+  const sortedPlayers = [...state.players].sort(
+    (a, b) => (a.roleSelectPosition ?? 0) - (b.roleSelectPosition ?? 0)
+  );
+
   const isMyTurn =
     !!(state.currentChoice && state.currentChoice.playerId === myPlayerId);
   const choices = isMyTurn ? state.currentChoice!.options : [];
-  const selectedCount = state.players.filter((p: any) => p.hasSelectedRole).length;
-  const totalCount = state.players.length;
-  const showNames = state.settings?.roleSelectShowNames === "visible";
+  const selectedCount = sortedPlayers.filter((p) => p.hasSelectedRole).length;
+  const totalCount = sortedPlayers.length;
+
+  const handleSelect = (roleId: string | null) => {
+    haptic(Haptics.ImpactFeedbackStyle.Medium);
+    emit("chooseRole", { roleId: roleId ?? "__random__" });
+  };
 
   return (
     <View style={[styles.root, { flexDirection: isMobile ? "column" : "row" }]}>
-      {/* ── SOL PANEL — Oyuncu listesi ── */}
-      <View
-        style={[
-          styles.leftPanel,
-          isMobile && { width: "100%", height: 80, flexDirection: "row" },
-        ]}
-      >
-        {!isMobile && (
-          <Text style={styles.leftTitle}>OYUNCULAR</Text>
-        )}
-        <ScrollView
-          horizontal={isMobile}
-          showsHorizontalScrollIndicator={false}
-          showsVerticalScrollIndicator={false}
-        >
-          {state.players.map((p: any, index: number) => {
-            const isPicking =
-              state.currentChoice?.playerId === p.id && !p.hasSelectedRole;
-            const isDone = p.hasSelectedRole;
-            const isMe = p.id === myPlayerId;
-            const roleDef = isDone ? ROLE_DEFS[p.selectedRoleId] : null;
+      {isMobile ? (
+        <MobilePlayerPanel players={sortedPlayers} myId={myPlayerId} />
+      ) : (
+        <DesktopPlayerPanel players={sortedPlayers} myId={myPlayerId} />
+      )}
 
-            return (
-              <View
-                key={p.id}
-                style={[
-                  styles.playerRow,
-                  isPicking && styles.playerRowActive,
-                  isDone && styles.playerRowDone,
-                  !isPicking && !isDone && styles.playerRowWaiting,
-                  isMobile && styles.playerRowMobile,
-                ]}
-              >
-                <View style={[styles.playerAvatar, isPicking && styles.playerAvatarActive]}>
-                  <Text style={[styles.playerAvatarText, isPicking && styles.playerAvatarTextActive]}>
-                    {String(index + 1).padStart(2, "0")}
-                  </Text>
-                </View>
-
-                {!isMobile && (
-                  <View style={styles.playerInfo}>
-                    {isDone && roleDef ? (
-                      <>
-                        <Text style={styles.playerRoleEmoji}>{roleDef.emoji}</Text>
-                        <Text style={styles.playerRoleName} numberOfLines={1}>
-                          {roleDef.name}
-                        </Text>
-                      </>
-                    ) : isPicking ? (
-                      <Text style={styles.pickingLabel}>seçiyor…</Text>
-                    ) : (
-                      <Text style={styles.waitingLabelSmall}>bekliyor</Text>
-                    )}
-                    {isMe && !isDone && (
-                      <Text style={styles.meLabel}>SEN</Text>
-                    )}
-                  </View>
-                )}
-                {isMobile && isDone && roleDef && (
-                  <Text style={styles.mobileRoleEmoji}>{roleDef.emoji}</Text>
-                )}
-              </View>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* ── SAĞ PANEL — Seçim alanı ── */}
-      <View style={styles.rightPanel}>
+      <View style={styles.mainArea}>
         {isMyTurn ? (
-          <MyTurnPanel
+          <PickingArea
             choices={choices}
-            remaining={remaining}
-            onSelect={(roleId) => {
-              haptic(Haptics.ImpactFeedbackStyle.Medium);
-              emit("chooseRole", { roleId: roleId ?? "__random__" });
-            }}
+            timeLeft={remaining}
+            onSelect={handleSelect}
+            isMobile={isMobile}
           />
         ) : (
-          <WaitingPanel selectedCount={selectedCount} totalCount={totalCount} />
+          <WaitingArea
+            selectedCount={selectedCount}
+            totalCount={totalCount}
+          />
         )}
       </View>
     </View>
   );
 }
 
-// ── MyTurnPanel ───────────────────────────────────────────────────────────────
-function MyTurnPanel({
-  choices,
-  remaining,
-  onSelect,
+// ── DesktopPlayerPanel ────────────────────────────────────────────────────────
+function DesktopPlayerPanel({ players, myId }: { players: any[]; myId: string | null }) {
+  return (
+    <View style={styles.desktopPanel}>
+      <Text style={styles.panelTitle}>OYUNCULAR</Text>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {players.map((p) => (
+          <PlayerRow key={p.id} player={p} myId={myId} layout="vertical" />
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+// ── MobilePlayerPanel ─────────────────────────────────────────────────────────
+function MobilePlayerPanel({ players, myId }: { players: any[]; myId: string | null }) {
+  return (
+    <View style={styles.mobilePanel}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.mobilePanelScroll}
+      >
+        {players.map((p) => (
+          <PlayerRow key={p.id} player={p} myId={myId} layout="horizontal" />
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
+// ── PlayerRow ─────────────────────────────────────────────────────────────────
+function PlayerRow({
+  player,
+  myId,
+  layout,
 }: {
-  choices: string[];
-  remaining: number;
-  onSelect: (roleId: string | null) => void;
+  player: any;
+  myId: string | null;
+  layout: "vertical" | "horizontal";
 }) {
-  const [selected, setSelected] = useState<string | null>(null);
-  const urgent = remaining <= 5;
-  const { width } = useWindowDimensions();
-  const isMobile = width < 768;
+  const isMe = player.id === myId;
+  const isDone = player.roleSelectStatus === "done";
+  const isPicking = player.roleSelectStatus === "picking";
+
+  const role = isDone && player.selectedRoleId ? ROLE_DEFS[player.selectedRoleId] : null;
+  const teamColor = role ? (TEAM_COLOR[role.team] ?? "#4A2E7A") : "#4A2E7A";
+
+  if (layout === "horizontal") {
+    return (
+      <View
+        style={[
+          styles.mobilePlayerCard,
+          isPicking && styles.mobilePlayerCardPicking,
+          isDone && { borderColor: teamColor },
+          isMe && styles.mobilePlayerCardMe,
+        ]}
+      >
+        <View style={[styles.positionBadge, isPicking && styles.positionBadgePicking]}>
+          <Text style={[styles.positionText, isPicking && styles.positionTextPicking]}>
+            {String(player.roleSelectPosition ?? "?").padStart(2, "0")}
+          </Text>
+        </View>
+
+        {isDone && role ? (
+          <>
+            <Text style={styles.mobileRoleEmoji}>{role.emoji}</Text>
+            <Text style={[styles.mobileRoleName, { color: teamColor }]} numberOfLines={2}>
+              {role.name}
+            </Text>
+            <View style={styles.doneTick}>
+              <Text style={[styles.doneTickText, { color: teamColor }]}>✓</Text>
+            </View>
+          </>
+        ) : isPicking ? (
+          <>
+            <Text style={styles.pickingDots}>···</Text>
+            <Text style={styles.pickingLabel}>seçiyor</Text>
+          </>
+        ) : (
+          <Text style={styles.waitingLabel}>bekliyor</Text>
+        )}
+
+        {isMe && <Text style={styles.meMark}>sen</Text>}
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.myTurnContainer}>
-      <Text style={styles.myTurnTitle}>ROL SEÇ</Text>
-      <Text style={styles.myTurnSubtitle}>Kaderini koy ortaya</Text>
-
-      {/* Timer */}
-      <View style={styles.timerRow}>
-        <Text style={[styles.timerText, urgent && styles.timerTextUrgent]}>
-          {remaining}s
+    <View
+      style={[
+        styles.desktopPlayerRow,
+        isPicking && styles.desktopPlayerRowPicking,
+        isDone && { borderLeftColor: teamColor, borderLeftWidth: 3 },
+        isMe && styles.desktopPlayerRowMe,
+      ]}
+    >
+      <View style={[styles.positionBadge, isPicking && styles.positionBadgePicking]}>
+        <Text style={[styles.positionText, isPicking && styles.positionTextPicking]}>
+          {String(player.roleSelectPosition ?? "?").padStart(2, "0")}
         </Text>
+      </View>
+
+      <View style={styles.desktopPlayerInfo}>
+        {isDone && role ? (
+          <>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <Text style={{ fontSize: 16 }}>{role.emoji}</Text>
+              <Text style={[styles.desktopRoleName, { color: teamColor }]} numberOfLines={1}>
+                {role.name}
+              </Text>
+            </View>
+            <View
+              style={[
+                styles.teamBadge,
+                { backgroundColor: teamColor + "22", borderColor: teamColor },
+              ]}
+            >
+              <Text style={[styles.teamBadgeText, { color: teamColor }]}>
+                {TEAM_LABEL[role.team] ?? role.team}
+              </Text>
+            </View>
+          </>
+        ) : isPicking ? (
+          <Text style={styles.pickingLabel}>seçiyor...</Text>
+        ) : (
+          <Text style={styles.waitingLabelText}>bekliyor</Text>
+        )}
+      </View>
+
+      {isMe && <Text style={styles.meMarkDesktop}>sen</Text>}
+    </View>
+  );
+}
+
+// ── PickingArea ───────────────────────────────────────────────────────────────
+function PickingArea({
+  choices,
+  timeLeft,
+  onSelect,
+  isMobile,
+}: {
+  choices: string[];
+  timeLeft: number;
+  onSelect: (roleId: string | null) => void;
+  isMobile: boolean;
+}) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const urgentTime = timeLeft <= 5;
+
+  return (
+    <ScrollView
+      contentContainerStyle={[
+        styles.pickingContainer,
+        isMobile && styles.pickingContainerMobile,
+      ]}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={styles.pickingTitle}>ROL SEÇ</Text>
+      <Text style={styles.pickingSubtitle}>Kaderini koy ortaya</Text>
+
+      <View style={styles.timerContainer}>
+        <Text style={[styles.timerNumber, urgentTime && styles.timerUrgent]}>
+          {timeLeft}
+        </Text>
+        <Text style={styles.timerUnit}>saniye</Text>
       </View>
       <View style={styles.timerBarBg}>
         <View
           style={[
             styles.timerBarFill,
-            { width: `${Math.max(0, (remaining / 25) * 100)}%` as any },
-            urgent && styles.timerBarUrgent,
+            { width: `${Math.max(0, (timeLeft / 25) * 100)}%` as any },
+            urgentTime && styles.timerBarUrgent,
           ]}
         />
       </View>
 
-      {/* Kartlar */}
-      <ScrollView
-        contentContainerStyle={[
-          styles.cardsRow,
-          isMobile && styles.cardsRowMobile,
-          choices.length === 1 && styles.cardsRowSingle,
-          choices.length === 2 && styles.cardsRowDouble,
+      <View
+        style={[
+          styles.cardsGrid,
+          choices.length === 1 && styles.cardsGrid1,
+          choices.length === 2 && styles.cardsGrid2,
+          isMobile && styles.cardsGridMobile,
         ]}
-        horizontal={!isMobile}
-        showsHorizontalScrollIndicator={false}
-        style={{ marginTop: 20 }}
       >
-        {choices.map((rid) => (
+        {choices.map((roleId) => (
           <RoleCard
-            key={rid}
-            roleId={rid}
-            selected={selected === rid}
-            onPress={() => setSelected((prev) => (prev === rid ? null : rid))}
+            key={roleId}
+            roleId={roleId}
+            isSelected={selected === roleId}
+            onPress={() => setSelected((prev) => (prev === roleId ? null : roleId))}
+            isMobile={isMobile}
           />
         ))}
-      </ScrollView>
+      </View>
 
-      {/* Butonlar */}
       <Pressable
         style={styles.randomBtn}
         onPress={() => onSelect(null)}
       >
-        <Text style={styles.randomBtnText}>🎲 Rastgele Seç — kaderini koy ortaya!</Text>
+        <Text style={styles.randomBtnEmoji}>🎲</Text>
+        <Text style={styles.randomBtnText}>Rastgele Seç — kaderini koy ortaya!</Text>
       </Pressable>
 
-      {selected && (
-        <Pressable
-          style={styles.confirmBtn}
-          onPress={() => onSelect(selected)}
-        >
-          <Text style={styles.confirmBtnText}>✓ Seç</Text>
-        </Pressable>
-      )}
-    </View>
+      <Pressable
+        style={[styles.confirmBtn, !selected && styles.confirmBtnDisabled]}
+        onPress={() => selected && onSelect(selected)}
+        disabled={!selected}
+      >
+        <Text style={[styles.confirmBtnText, !selected && styles.confirmBtnTextDisabled]}>
+          {selected ? `✓  ${ROLE_DEFS[selected]?.name ?? ""} — Seç` : "Bir rol seç"}
+        </Text>
+      </Pressable>
+    </ScrollView>
   );
 }
 
 // ── RoleCard ──────────────────────────────────────────────────────────────────
 function RoleCard({
   roleId,
-  selected,
+  isSelected,
   onPress,
+  isMobile,
 }: {
   roleId: string;
-  selected: boolean;
+  isSelected: boolean;
   onPress: () => void;
+  isMobile: boolean;
 }) {
   const role = ROLE_DEFS[roleId];
   if (!role) return null;
-  const teamColor = ROLE_TEAM_COLOR[role.team] ?? "#9B7FD4";
-  const img = roleImages[roleId];
 
-  const slideAnim = useRef(new Animated.Value(40)).current;
+  const teamColor = TEAM_COLOR[role.team] ?? "#9B7FD4";
+  const teamLabel = TEAM_LABEL[role.team] ?? role.team;
+
+  const slideAnim = useRef(new Animated.Value(30)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     Animated.parallel([
-      Animated.timing(slideAnim, { toValue: 0, duration: 350, useNativeDriver: true }),
-      Animated.timing(fadeAnim, { toValue: 1, duration: 350, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
     ]).start();
   }, []);
 
   return (
-    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+    <Animated.View
+      style={[
+        styles.roleCardWrap,
+        isMobile && styles.roleCardWrapMobile,
+        { opacity: fadeAnim, transform: [{ translateY: slideAnim }] },
+      ]}
+    >
       <Pressable
-        onPress={onPress}
         style={[
           styles.roleCard,
-          selected && styles.roleCardSelected,
-          selected && { borderColor: teamColor },
+          isSelected && styles.roleCardSelected,
+          isSelected && { borderColor: teamColor },
         ]}
+        onPress={onPress}
       >
-        {/* Emoji / görsel */}
-        <View style={styles.roleCardImageArea}>
-          {img ? (
-            <View style={[styles.roleCardImgCircle, { borderColor: teamColor + "88" }]}>
-              <Animated.Image source={img} style={styles.roleCardImg} />
-            </View>
-          ) : (
-            <Text style={styles.roleCardEmoji}>{role.emoji}</Text>
-          )}
-        </View>
-
-        <Text style={styles.roleCardName}>{role.name}</Text>
-
-        <View style={[styles.roleCardTeamBadge, { backgroundColor: teamColor + "22", borderColor: teamColor }]}>
-          <Text style={[styles.roleCardTeamText, { color: teamColor }]}>
-            {ROLE_TEAM_LABEL[role.team]}
-          </Text>
-        </View>
-
-        <Text style={styles.roleCardDesc} numberOfLines={3}>
-          {role.description}
-        </Text>
-
-        {selected && (
-          <View style={[styles.roleCardSelectedBadge, { backgroundColor: teamColor }]}>
-            <Text style={styles.roleCardSelectedText}>✓</Text>
+        {isSelected && (
+          <View style={[styles.selectedBadge, { backgroundColor: teamColor }]}>
+            <Text style={styles.selectedBadgeText}>✓</Text>
           </View>
         )}
+
+        <Text style={styles.roleCardEmoji}>{role.emoji}</Text>
+        <Text style={[styles.roleCardName, isSelected && { color: teamColor }]}>
+          {role.name}
+        </Text>
+
+        <View
+          style={[
+            styles.roleCardTeamBadge,
+            { backgroundColor: teamColor + "20", borderColor: teamColor + "60" },
+          ]}
+        >
+          <Text style={[styles.roleCardTeamText, { color: teamColor }]}>{teamLabel}</Text>
+        </View>
+
+        <Text style={styles.roleCardAbility} numberOfLines={3}>
+          {role.shortDesc ?? role.description}
+        </Text>
       </Pressable>
     </Animated.View>
   );
 }
 
-// ── WaitingPanel ──────────────────────────────────────────────────────────────
-function WaitingPanel({
+// ── WaitingArea ───────────────────────────────────────────────────────────────
+function WaitingArea({
   selectedCount,
   totalCount,
 }: {
@@ -276,259 +378,258 @@ function WaitingPanel({
   return (
     <View style={styles.waitingContainer}>
       <Text style={styles.waitingTitle}>ROL DAĞITIMI</Text>
-      <Text style={styles.waitingProgress}>{selectedCount}/{totalCount}</Text>
-      <Text style={styles.waitingProgressLabel}>seçimini yaptı</Text>
+      <Text style={styles.waitingFraction}>
+        {selectedCount}
+        <Text style={styles.waitingFractionTotal}>/{totalCount}</Text>
+      </Text>
+      <Text style={styles.waitingSubtitle}>seçimini yaptı</Text>
 
       <View style={styles.waitingBarBg}>
         <View style={[styles.waitingBarFill, { width: `${pct}%` as any }]} />
       </View>
 
-      <Text style={styles.waitingHint}>Sıranı bekle…</Text>
-      <Text style={styles.waitingDecor}>? ? ?</Text>
+      <Text style={styles.waitingHint}>Sıranı bekle...</Text>
+
+      <View style={styles.questionMarks}>
+        {["?", "?", "?"].map((q, i) => (
+          <Text key={i} style={[styles.questionMark, { opacity: 0.2 + i * 0.2 }]}>
+            {q}
+          </Text>
+        ))}
+      </View>
     </View>
   );
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: "#0A0614",
+  root: { flex: 1, backgroundColor: "#0A0614" },
+
+  // ── Desktop panel ──
+  desktopPanel: {
+    width: 220,
+    backgroundColor: "#0D0820",
+    borderRightWidth: 1,
+    borderRightColor: "#1A0A3E",
+    paddingTop: 20,
+  },
+  panelTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 10,
+    color: "#4A2E7A",
+    letterSpacing: 2,
+    textAlign: "center",
+    marginBottom: 16,
   },
 
-  // Left panel
-  leftPanel: {
-    width: 200,
+  // ── Mobile panel ──
+  mobilePanel: {
+    height: 110,
+    backgroundColor: "#0D0820",
+    borderBottomWidth: 1,
+    borderBottomColor: "#1A0A3E",
+  },
+  mobilePanelScroll: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+    alignItems: "center",
+  },
+
+  // ── Mobile player card ──
+  mobilePlayerCard: {
+    width: 80,
+    height: 90,
+    borderRadius: 12,
     backgroundColor: "#1A0A3E",
-    borderRightWidth: 1,
-    borderRightColor: "#2A1060",
-    paddingTop: 16,
+    borderWidth: 2,
+    borderColor: "#2A1060",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 6,
+    position: "relative",
+    gap: 2,
   },
-  leftTitle: {
+  mobilePlayerCardPicking: { borderColor: "#F5C842", backgroundColor: "#2A1060" },
+  mobilePlayerCardMe: { borderStyle: "dashed" },
+  mobileRoleEmoji: { fontSize: 22, marginBottom: 1 },
+  mobileRoleName: {
     fontFamily: "Inter_700Bold",
-    fontSize: 11,
-    letterSpacing: 2,
-    color: "#4A2E7A",
+    fontSize: 9,
     textAlign: "center",
-    marginBottom: 12,
-    textTransform: "uppercase",
+    lineHeight: 12,
   },
-  playerRow: {
+
+  // ── Desktop player row ──
+  desktopPlayerRow: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 10,
-    marginHorizontal: 8,
-    marginBottom: 4,
-    borderRadius: 8,
-    backgroundColor: "#0A0614",
-    gap: 8,
-    borderWidth: 1,
-    borderColor: "transparent",
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#1A0A3E",
+    borderLeftWidth: 3,
+    borderLeftColor: "transparent",
   },
-  playerRowMobile: {
-    marginHorizontal: 4,
-    marginBottom: 0,
-    marginRight: 0,
-    flexDirection: "column",
-    padding: 8,
-    width: 60,
-    alignItems: "center",
-  },
-  playerRowActive: {
-    backgroundColor: "#2A1060",
-    borderColor: "#F5C842",
-  },
-  playerRowDone: {
-    backgroundColor: "#0A1A14",
-    borderColor: "#1ECBE188",
-  },
-  playerRowWaiting: {
-    opacity: 0.5,
-  },
-  playerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  desktopPlayerRowPicking: { backgroundColor: "#1A0A3E" },
+  desktopPlayerRowMe: { backgroundColor: "#0F0625" },
+  desktopPlayerInfo: { flex: 1, gap: 4 },
+  desktopRoleName: { fontFamily: "Inter_700Bold", fontSize: 12 },
+
+  // ── Position badge ──
+  positionBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: "#2A1060",
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
-  playerAvatarActive: {
-    backgroundColor: "#F5C842",
-  },
-  playerAvatarText: {
+  positionBadgePicking: { backgroundColor: "#F5C842" },
+  positionText: {
     fontFamily: "Inter_700Bold",
-    fontSize: 11,
+    fontSize: 10,
     color: "#E8DEFF",
   },
-  playerAvatarTextActive: {
-    color: "#0A0614",
-  },
-  playerInfo: {
-    flex: 1,
-    gap: 2,
-  },
-  playerRoleEmoji: {
-    fontSize: 16,
-  },
-  playerRoleName: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 11,
-    color: "#1ECBE1",
-  },
-  pickingLabel: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 11,
-    color: "#F5C842",
-    fontStyle: "italic",
-  },
-  waitingLabelSmall: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 11,
-    color: "#4A2E7A",
-  },
-  meLabel: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 9,
-    color: "#9B7FD4",
-    letterSpacing: 1,
+  positionTextPicking: { color: "#0A0614" },
+
+  // ── Team badge ──
+  teamBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 99,
+    borderWidth: 1,
     marginTop: 2,
   },
-  mobileRoleEmoji: { fontSize: 14, marginTop: 2 },
+  teamBadgeText: { fontFamily: "Inter_700Bold", fontSize: 8, letterSpacing: 0.5 },
 
-  // Right panel
-  rightPanel: {
-    flex: 1,
-    padding: 24,
-    justifyContent: "center",
-  },
-
-  // MyTurnPanel
-  myTurnContainer: {
-    flex: 1,
-    justifyContent: "center",
-    maxWidth: 700,
-    alignSelf: "center",
-    width: "100%",
-  },
-  myTurnTitle: {
+  // ── Status indicators ──
+  doneTick: { position: "absolute", top: 4, right: 4 },
+  doneTickText: { fontFamily: "Inter_700Bold", fontSize: 10 },
+  meMark: {
+    position: "absolute",
+    bottom: 3,
     fontFamily: "Inter_700Bold",
-    fontSize: 11,
+    fontSize: 8,
+    color: "#F5C842",
+  },
+  meMarkDesktop: { fontFamily: "Inter_700Bold", fontSize: 9, color: "#F5C842" },
+  pickingLabel: { fontFamily: "Inter_600SemiBold", fontSize: 10, color: "#F5C842" },
+  pickingDots: { fontSize: 18, color: "#F5C842", letterSpacing: 2 },
+  waitingLabel: { fontFamily: "Inter_400Regular", fontSize: 9, color: "#4A2E7A" },
+  waitingLabelText: { fontFamily: "Inter_400Regular", fontSize: 11, color: "#4A2E7A" },
+
+  // ── Main area ──
+  mainArea: { flex: 1 },
+
+  // ── Picking container ──
+  pickingContainer: {
+    padding: 32,
+    alignItems: "center",
+    gap: 16,
+    paddingBottom: 48,
+  },
+  pickingContainerMobile: { padding: 16, gap: 12 },
+  pickingTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 12,
     letterSpacing: 3,
     color: "#4A2E7A",
     textAlign: "center",
-    textTransform: "uppercase",
   },
-  myTurnSubtitle: {
+  pickingSubtitle: {
     fontFamily: "Cinzel_700Bold",
-    fontSize: 20,
-    letterSpacing: 2,
+    fontSize: 22,
     color: "#E8DEFF",
     textAlign: "center",
-    marginTop: 6,
   },
-  timerRow: {
-    alignItems: "center",
-    marginTop: 12,
-  },
-  timerText: {
+
+  // ── Timer ──
+  timerContainer: { flexDirection: "row", alignItems: "baseline", gap: 6 },
+  timerNumber: {
     fontFamily: "Inter_700Bold",
-    fontSize: 40,
+    fontSize: 56,
     color: "#F5C842",
     fontVariant: ["tabular-nums"],
   },
-  timerTextUrgent: { color: "#C8102E" },
+  timerUnit: { fontFamily: "Inter_400Regular", fontSize: 14, color: "#9B7FD4" },
+  timerUrgent: { color: "#C8102E" },
   timerBarBg: {
-    height: 4,
+    height: 3,
     backgroundColor: "#2A1060",
     borderRadius: 2,
-    marginHorizontal: 16,
-    marginTop: 6,
+    width: "100%",
+    maxWidth: 400,
   },
-  timerBarFill: {
-    height: 4,
-    backgroundColor: "#F5C842",
-    borderRadius: 2,
-  },
+  timerBarFill: { height: 3, backgroundColor: "#F5C842", borderRadius: 2 },
   timerBarUrgent: { backgroundColor: "#C8102E" },
 
-  cardsRow: {
+  // ── Cards grid ──
+  cardsGrid: {
     flexDirection: "row",
-    justifyContent: "center",
     gap: 12,
-    paddingHorizontal: 8,
+    justifyContent: "center",
+    width: "100%",
+    maxWidth: 700,
   },
-  cardsRowMobile: {
-    flexDirection: "column",
-    alignItems: "stretch",
+  cardsGrid1: { justifyContent: "center" },
+  cardsGrid2: { justifyContent: "center" },
+  cardsGridMobile: { flexDirection: "column", alignItems: "stretch" },
+
+  roleCardWrap: {
+    flex: 1,
+    maxWidth: 200,
+    minWidth: 120,
   },
-  cardsRowSingle: {
-    paddingHorizontal: 80,
-  },
-  cardsRowDouble: {
-    paddingHorizontal: 40,
+  roleCardWrapMobile: {
+    flex: 0,
+    maxWidth: "100%",
+    minWidth: 0,
+    width: "100%",
   },
 
-  // RoleCard
+  // ── Role card ──
   roleCard: {
+    flex: 1,
+    aspectRatio: 0.75,
     backgroundColor: "#1A0A3E",
     borderRadius: 16,
     borderWidth: 2,
     borderColor: "#2A1060",
-    padding: 16,
     alignItems: "center",
-    flex: 1,
-    minWidth: 160,
-    maxWidth: 220,
+    justifyContent: "center",
+    padding: 16,
+    position: "relative",
     gap: 6,
   },
-  roleCardSelected: {
-    borderWidth: 3,
-  },
-  roleCardImageArea: {
-    marginBottom: 4,
-  },
-  roleCardImgCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    overflow: "hidden",
-    borderWidth: 2,
-  },
-  roleCardImg: {
-    width: "100%",
-    height: "100%",
-  },
-  roleCardEmoji: {
-    fontSize: 48,
-  },
+  roleCardSelected: { borderWidth: 3, backgroundColor: "#2A1060" },
+  roleCardEmoji: { fontSize: 52, marginBottom: 6 },
   roleCardName: {
     fontFamily: "Inter_700Bold",
-    fontSize: 15,
+    fontSize: 16,
     color: "#E8DEFF",
     textAlign: "center",
   },
   roleCardTeamBadge: {
-    borderRadius: 20,
-    borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 3,
+    borderRadius: 99,
+    borderWidth: 1,
   },
-  roleCardTeamText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 10,
-    letterSpacing: 1.5,
-  },
-  roleCardDesc: {
+  roleCardTeamText: { fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1 },
+  roleCardAbility: {
     fontFamily: "Inter_400Regular",
     fontSize: 11,
     color: "#9B7FD4",
     textAlign: "center",
     lineHeight: 16,
-    marginTop: 4,
   },
-  roleCardSelectedBadge: {
+
+  // ── Selected badge ──
+  selectedBadge: {
     position: "absolute",
     top: 8,
     right: 8,
@@ -538,47 +639,43 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  roleCardSelectedText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 12,
-    color: "#0A0614",
-  },
+  selectedBadgeText: { fontFamily: "Inter_700Bold", fontSize: 12, color: "#0A0614" },
 
-  // Random / Confirm buttons
+  // ── Buttons ──
   randomBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
     borderWidth: 1,
     borderColor: "#3B1F8C",
-    borderRadius: 10,
-    padding: 12,
-    marginTop: 16,
-    alignSelf: "stretch",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    width: "100%",
+    maxWidth: 400,
   },
-  randomBtnText: {
-    fontFamily: "Inter_500Medium",
-    fontSize: 13,
-    color: "#9B7FD4",
-    textAlign: "center",
-  },
+  randomBtnEmoji: { fontSize: 20 },
+  randomBtnText: { fontFamily: "Inter_500Medium", fontSize: 13, color: "#9B7FD4", flex: 1 },
   confirmBtn: {
     backgroundColor: "#F5C842",
     borderRadius: 12,
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 40,
-    marginTop: 12,
-    alignSelf: "center",
+    width: "100%",
+    maxWidth: 400,
+    alignItems: "center",
   },
-  confirmBtnText: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 16,
-    color: "#0A0614",
-  },
+  confirmBtnDisabled: { backgroundColor: "#2A1060" },
+  confirmBtnText: { fontFamily: "Inter_700Bold", fontSize: 15, color: "#0A0614" },
+  confirmBtnTextDisabled: { color: "#4A2E7A" },
 
-  // WaitingPanel
+  // ── Waiting area ──
   waitingContainer: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    flex: 1,
-    gap: 8,
+    padding: 32,
+    gap: 12,
   },
   waitingTitle: {
     fontFamily: "Inter_700Bold",
@@ -586,46 +683,41 @@ const styles = StyleSheet.create({
     letterSpacing: 3,
     color: "#4A2E7A",
     textAlign: "center",
-    textTransform: "uppercase",
   },
-  waitingProgress: {
+  waitingFraction: {
     fontFamily: "Inter_700Bold",
-    fontSize: 64,
+    fontSize: 80,
     color: "#F5C842",
-    textAlign: "center",
+    lineHeight: 90,
     fontVariant: ["tabular-nums"],
   },
-  waitingProgressLabel: {
-    fontFamily: "Inter_400Regular",
-    fontSize: 14,
+  waitingFractionTotal: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 40,
     color: "#9B7FD4",
-    textAlign: "center",
+  },
+  waitingSubtitle: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 16,
+    color: "#9B7FD4",
   },
   waitingBarBg: {
-    height: 4,
+    height: 3,
     backgroundColor: "#2A1060",
     borderRadius: 2,
     width: 200,
-    marginTop: 12,
   },
-  waitingBarFill: {
-    height: 4,
-    backgroundColor: "#9B7FD4",
-    borderRadius: 2,
-  },
+  waitingBarFill: { height: 3, backgroundColor: "#F5C842", borderRadius: 2 },
   waitingHint: {
     fontFamily: "Inter_400Regular",
     fontSize: 13,
     color: "#4A2E7A",
-    textAlign: "center",
-    marginTop: 24,
-  },
-  waitingDecor: {
-    fontFamily: "Inter_700Bold",
-    fontSize: 32,
-    color: "#2A1060",
-    textAlign: "center",
     marginTop: 8,
-    letterSpacing: 16,
+  },
+  questionMarks: { flexDirection: "row", gap: 20, marginTop: 12 },
+  questionMark: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 36,
+    color: "#3B1F8C",
   },
 });
