@@ -31,6 +31,7 @@ export interface RoomSettings {
   nightActionDurationSec: number;
   voteDurationSec: number;
   rolePackage: "standard" | "advanced" | "all";
+  disabledRoles: string[];
 }
 
 export interface RoleChoice {
@@ -176,6 +177,7 @@ export function createRoom(socketId: string, nickname: string): Room {
       nightActionDurationSec: 15,
       voteDurationSec: 30,
       rolePackage: "all",
+      disabledRoles: [],
     },
     rolePool: [],
     roleSelectQueue: [],

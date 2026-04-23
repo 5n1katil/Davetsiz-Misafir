@@ -54,6 +54,7 @@ export default function LobbyScreen() {
   const [statsVisible, setStatsVisible] = useState(false);
   const [helpVisible, setHelpVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
+  const [showQR, setShowQR] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -336,84 +337,96 @@ export default function LobbyScreen() {
     );
   }
 
-  const isHost = state && myPlayerId === state.hostId;
+  const isHost = !!(state && myPlayerId === state.hostId);
+  const connectedCount = state ? state.players.filter((p: any) => p.isConnected).length : 0;
+  const canStart = connectedCount >= 4;
 
   return (
     <>
     <ScrollView
-      contentContainerStyle={[
-        styles.scroll,
-        { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 },
-      ]}
+      contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 24 }]}
+      showsVerticalScrollIndicator={false}
     >
-      <View testID="room-code" style={[styles.codeCard, { backgroundColor: c.card, borderColor: c.border }]}>
-        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 12 }}>
-          ODA KODU
-        </Text>
-        <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: 30, letterSpacing: 8, marginTop: 6, fontVariant: ["tabular-nums"] }}>
-          {state.code}
-        </Text>
-        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13, marginTop: 4 }}>
-          Bu kodu arkadaşlarına paylaş
-        </Text>
+      {/* ── SECTION 1: Oda Kodu ── */}
+      <View style={styles.inSection}>
+        <Text style={styles.inSectionLabel}>ODA KODU</Text>
+        <Text testID="room-code" style={styles.inCodeText}>{state.code}</Text>
+        <Text style={styles.inCodeHint}>Bu kodu arkadaşlarına söyle veya QR kodu tarat</Text>
+        <Pressable style={styles.qrToggleBtn} onPress={() => setShowQR((v) => !v)}>
+          <Text style={styles.qrToggleText}>{showQR ? "▲ QR Kodu Gizle" : "▼ QR Kodu Göster"}</Text>
+        </Pressable>
+        {showQR && (
+          <View style={styles.qrWrapper}>
+            <QRCode
+              value={`mahalle://join?code=${state.code}`}
+              size={160}
+              backgroundColor="#1A0A3E"
+              color="#F5C842"
+            />
+          </View>
+        )}
       </View>
 
-      <Text style={[styles.sectionTitle, { color: c.foreground }]}>
-        Mahalleli ({state.players.length}/30)
-      </Text>
-      <View testID="player-list" style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
-        {state.players.map((p) => (
-          <View key={p.id} style={styles.playerRow}>
-            <View
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 16,
-                backgroundColor: c.secondary,
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold" }}>
-                {p.nickname[0]?.toUpperCase()}
-              </Text>
+      {/* ── SECTION 2: Oyuncu Listesi ── */}
+      <View style={styles.inSection}>
+        <View style={styles.inSectionHeaderRow}>
+          <Text style={styles.inSectionHeading}>Mahalleli</Text>
+          <Text style={styles.inPlayerCount}>
+            {connectedCount}/30
+            {connectedCount < 4 && (
+              <Text style={styles.inPlayerCountWarn}> — en az 4 kişi</Text>
+            )}
+          </Text>
+        </View>
+        {state.players.map((p: any) => (
+          <View key={p.id} testID="player-list" style={styles.inPlayerRow}>
+            <View style={[styles.inAvatar, p.isHost && styles.inAvatarHost]}>
+              <Text style={styles.inAvatarText}>{p.nickname[0]?.toUpperCase()}</Text>
             </View>
-            <Text style={{ color: c.foreground, fontFamily: "Inter_500Medium", flex: 1 }}>
+            <Text style={styles.inPlayerName}>
               {p.nickname}
-              {p.id === myPlayerId ? "  •  sen" : ""}
+              {p.id === myPlayerId && <Text style={styles.inYouLabel}> • sen</Text>}
             </Text>
-            {p.isHost ? (
-              <View testID="host-badge" style={{ paddingHorizontal: 8, paddingVertical: 2, backgroundColor: c.primary, borderRadius: 6 }}>
-                <Text style={{ color: c.primaryForeground, fontFamily: "Inter_600SemiBold", fontSize: 11 }}>
-                  HOST
-                </Text>
-              </View>
-            ) : null}
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: p.isConnected ? "#1ECBE1" : "#4A2E7A" }} />
+            <View style={styles.inPlayerMeta}>
+              {p.isHost && (
+                <View testID="host-badge" style={styles.inHostBadge}>
+                  <Text style={styles.inHostBadgeText}>HOST</Text>
+                </View>
+              )}
+              <View style={[styles.inConnDot, p.isConnected ? styles.inConnDotGreen : styles.inConnDotGray]} />
+              {isHost && p.id !== myPlayerId && (
+                <Pressable onPress={() => emit("kickPlayer", { targetId: p.id })} hitSlop={8}>
+                  <Text style={styles.inKickBtn}>✕</Text>
+                </Pressable>
+              )}
+            </View>
           </View>
         ))}
       </View>
 
-      <Text style={[styles.sectionTitle, { color: c.foreground }]}>Cihaz Ayarları</Text>
-      <Pressable
-        onPress={() => setSettingsVisible(true)}
-        style={[styles.card, { backgroundColor: c.card, borderColor: c.border, gap: 0 }]}
-      >
-        <View style={[styles.settingRow, { paddingVertical: 14 }]}>
-          <Feather name="settings" size={18} color={c.primary} style={{ marginRight: 10 }} />
-          <Text style={[styles.label, { color: c.foreground, marginBottom: 0, flex: 1 }]}>Ses ve Titreşim Ayarları</Text>
-          <Feather name="chevron-right" size={18} color={c.mutedForeground} />
-        </View>
-      </Pressable>
-
+      {/* ── SECTION 3: Oyun Ayarları ── */}
       {isHost ? (
-        <HostSettings c={c} state={state} emit={emit} />
+        <HostSettings state={state} emit={emit} />
       ) : (
-        <View style={[styles.waitCard, { backgroundColor: c.card, borderColor: c.border }]}>
-          <Feather name="clock" size={22} color={c.primary} />
-          <Text style={{ color: c.foreground, fontFamily: "Inter_500Medium", marginTop: 8, textAlign: "center" }}>
-            Host'un oyunu başlatması bekleniyor...
+        <View style={styles.inGuestNote}>
+          <Text style={styles.inGuestNoteText}>⚙️ Oyun ayarlarını yalnızca host görebilir</Text>
+        </View>
+      )}
+
+      {/* ── FOOTER ── */}
+      {isHost ? (
+        <Pressable
+          style={[styles.inStartBtn, !canStart && styles.inStartBtnDisabled]}
+          disabled={!canStart}
+          onPress={() => { haptic(Haptics.ImpactFeedbackStyle.Medium); emit("startGame"); }}
+        >
+          <Text style={styles.inStartBtnText}>
+            {canStart ? "🚀 Oyunu Başlat" : `Başlamak için ${Math.max(0, 4 - connectedCount)} kişi daha`}
           </Text>
+        </Pressable>
+      ) : (
+        <View style={styles.inWaitingBox}>
+          <Text style={styles.inWaitingText}>⏳ Host oyunu başlatmasını bekliyorsunuz...</Text>
         </View>
       )}
     </ScrollView>
@@ -422,200 +435,275 @@ export default function LobbyScreen() {
   );
 }
 
-const SETTING_TIPS: Record<string, string> = {
-  dayDuration:
-    "Oyuncuların tartışıp birbirini suçladığı süre. 3 dk hızlı oyunlar için, 5 dk daha derin tartışmalar için.",
-  ceteCount:
-    "Mahallede kaç Davetsiz Misafir çete üyesi olsun. Az oyuncu → 1, çok oyuncu → 2-3. Yüksek sayı oyunu zorlaştırır.",
-  specialRoles:
-    "Bu roller oyun havuzuna girer; kapalıysa yerine sıradan Köylü gelir. Her rolün detayını 'Nasıl Oynanır?' bölümünde görebilirsin.",
-  nightDuration:
-    "Her rolün gece aksiyonunu tamamlaması için verilen süre. Kısa = hız, uzun = daha az baskı.",
-  voteDuration:
-    "Gündüz linç oylamasının süresi. Kısa = baskı altında karar, uzun = daha fazla düşünme zamanı.",
-  rolePackage:
-    "Standart: 3 temel mahalle rolü — yeni oyuncular için ideal. Gelişmiş: +4 rol +2 kaos. Tümü: tam 19 rol, deneyimliler için.",
-};
+// ── Rol Grupları ─────────────────────────────────────────────────────────────
+const MAHALLE_SPECIAL_ROLES = [
+  { id: "muhtar", name: "Muhtar", emoji: "🎖️" },
+  { id: "bekci", name: "Bekçi", emoji: "🔦" },
+  { id: "otaci", name: "Şifacı Teyze", emoji: "🌿" },
+  { id: "falci", name: "Falcı", emoji: "🔮" },
+  { id: "kapici", name: "Kapıcı", emoji: "🧹" },
+  { id: "muhabir", name: "Muhabir", emoji: "📰" },
+  { id: "tiyatrocu", name: "Tiyatrocu", emoji: "🎭" },
+  { id: "hoca", name: "Hoca", emoji: "📿" },
+];
+const CETE_OPTIONAL_ROLES = [
+  { id: "sahte_dernek", name: "Politikacı", emoji: "😇" },
+  { id: "icten_pazarlikli", name: "İçten Pazarlıklı", emoji: "🐍" },
+];
+const KAOS_ROLES = [
+  { id: "kumarbaz", name: "Kumarbaz", emoji: "🎰" },
+  { id: "kiskanc_komsu", name: "Kıskanç Komşu", emoji: "🧂" },
+  { id: "kirik_kalp", name: "Kırık Kalp", emoji: "💔" },
+  { id: "dedikoducu", name: "Dedikoducu", emoji: "🗣️" },
+];
+const TARAFSIZ_ROLES = [
+  { id: "anonim", name: "Anonim", emoji: "🎭" },
+  { id: "kahraman_dede", name: "Kahraman Dede", emoji: "🪬" },
+];
 
-function HostSettings({ c, state, emit }: any) {
-  const deepLink = `mahalle://join?code=${state.code}`;
-  const [openTip, setOpenTip] = useState<string | null>(null);
+// ── SettingRow — yeniden kullanılabilir ayar satırı ───────────────────────────
+function SettingRow({
+  label,
+  tooltip,
+  options,
+  labels,
+  value,
+  unit,
+  onChange,
+}: {
+  label: string;
+  tooltip: string;
+  options: (string | number)[];
+  labels?: string[];
+  value: string | number;
+  unit?: string;
+  onChange: (v: string | number) => void;
+}) {
+  const [showTip, setShowTip] = useState(false);
+  return (
+    <View style={styles.srRow}>
+      <View style={styles.srLabelRow}>
+        <Text style={styles.srLabel}>{label}</Text>
+        <Pressable style={styles.srTipBtn} onPress={() => setShowTip((v) => !v)} hitSlop={8}>
+          <Text style={styles.srTipBtnText}>?</Text>
+        </Pressable>
+      </View>
+      {showTip && (
+        <View style={styles.srTipBox}>
+          <Text style={styles.srTipText}>{tooltip}</Text>
+        </View>
+      )}
+      <View style={styles.srOptionRow}>
+        {options.map((opt, i) => (
+          <Pressable
+            key={String(opt)}
+            style={[styles.srOptionBtn, value === opt && styles.srOptionBtnActive]}
+            onPress={() => onChange(opt)}
+          >
+            <Text style={[styles.srOptionBtnText, value === opt && styles.srOptionBtnTextActive]}>
+              {labels?.[i] ?? `${opt}${unit ?? ""}`}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+}
 
-  function toggleTip(id: string) {
-    setOpenTip((prev) => (prev === id ? null : id));
-  }
-
-  const opt = (label: string, active: boolean, onPress: () => void) => (
+// ── RoleToggle — rol açma/kapama butonu ───────────────────────────────────────
+function RoleToggle({
+  role,
+  active,
+  onToggle,
+}: {
+  role: { id: string; name: string; emoji: string };
+  active: boolean;
+  onToggle: () => void;
+}) {
+  return (
     <Pressable
-      onPress={onPress}
-      style={{
-        paddingVertical: 8,
-        paddingHorizontal: 14,
-        borderRadius: 999,
-        backgroundColor: active ? c.primary : c.background,
-        borderWidth: 1,
-        borderColor: active ? c.primary : c.border,
-      }}
+      style={[styles.rtToggle, active ? styles.rtToggleOn : styles.rtToggleOff]}
+      onPress={onToggle}
     >
-      <Text style={{ color: active ? c.primaryForeground : c.foreground, fontFamily: "Inter_500Medium" }}>
-        {label}
-      </Text>
+      <Text style={styles.rtEmoji}>{role.emoji}</Text>
+      <Text style={[styles.rtName, !active && styles.rtNameOff]}>{role.name}</Text>
+      <Text style={styles.rtStatus}>{active ? "✓" : "○"}</Text>
     </Pressable>
   );
+}
 
-  const toggleSpecial = (id: string) => {
-    const list: string[] = state.settings.activeSpecialRoles;
-    const next = list.includes(id) ? list.filter((x: string) => x !== id) : [...list, id];
-    emit("updateSettings", { patch: { activeSpecialRoles: next } });
+// ── HostSettings — accordion ayarlar paneli ───────────────────────────────────
+function HostSettings({ state, emit }: any) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [showRoleTip, setShowRoleTip] = useState(false);
+  const [showRoleToggleTip, setShowRoleToggleTip] = useState(false);
+
+  const settings = state.settings;
+  const disabledRoles: string[] = settings.disabledRoles ?? [];
+
+  const update = (key: string, value: unknown) =>
+    emit("updateSettings", { patch: { [key]: value } });
+
+  const toggleRole = (id: string) => {
+    const next = disabledRoles.includes(id)
+      ? disabledRoles.filter((r: string) => r !== id)
+      : [...disabledRoles, id];
+    update("disabledRoles", next);
   };
 
-  const connectedCount: number = state.players.filter((p: any) => p.isConnected).length;
-  const canStart: boolean = connectedCount >= 4;
-
   return (
-    <>
-      <View style={[styles.qrCard, { backgroundColor: c.card, borderColor: c.border }]}>
-        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 12, marginBottom: 12 }}>
-          OYUNCULAR QR İLE KATILABİLİR
-        </Text>
-        <View style={styles.qrWrap}>
-          <QRCode
-            value={deepLink}
-            size={160}
-            color="#E9B342"
-            backgroundColor="transparent"
+    <View style={styles.inSection}>
+      <Pressable
+        style={styles.hsHeader}
+        onPress={() => setSettingsOpen((v) => !v)}
+      >
+        <Text style={styles.inSectionHeading}>⚙️ Oyun Ayarları</Text>
+        <Text style={styles.hsChevron}>{settingsOpen ? "▲" : "▼"}</Text>
+      </Pressable>
+
+      {settingsOpen && (
+        <View style={styles.hsBody}>
+          <SettingRow
+            label="Gündüz Süresi"
+            tooltip="Her turda tartışma için ne kadar süren olsun? 3 dk hızlı oyunlar için, 5 dk daha sakin tartışmalar için idealdir."
+            options={[180, 300]}
+            labels={["3 dakika", "5 dakika"]}
+            value={settings.dayDurationSec}
+            onChange={(v) => update("dayDurationSec", v)}
           />
-        </View>
-        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 10 }}>
-          {deepLink}
-        </Text>
-      </View>
-      <Text style={[styles.sectionTitle, { color: c.foreground }]}>Ayarlar</Text>
-      <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border, gap: 16 }]}>
-        <View>
-          <Pressable style={styles.labelRow} onPress={() => toggleTip("dayDuration")} hitSlop={8}>
-            <Text style={[styles.label, { color: c.mutedForeground }]}>Gündüz süresi</Text>
-            <Feather name="info" size={13} color={openTip === "dayDuration" ? "#9B7FD4" : c.mutedForeground} />
-          </Pressable>
-          {openTip === "dayDuration" && (
-            <Text style={styles.tipText}>{SETTING_TIPS.dayDuration}</Text>
-          )}
-          <View style={styles.rowGap}>
-            {opt("3 dk", state.settings.dayDurationSec === 180, () =>
-              emit("updateSettings", { patch: { dayDurationSec: 180 } }),
+
+          <SettingRow
+            label="Oylama Süresi"
+            tooltip="Linç oylaması için her oyuncunun ne kadar süresi var? Süre dolunca oy kullanmayanlar sayılmaz."
+            options={[30, 45, 60]}
+            unit="sn"
+            value={settings.voteDurationSec ?? 30}
+            onChange={(v) => update("voteDurationSec", v)}
+          />
+
+          <SettingRow
+            label="Gece Aksiyon Süresi"
+            tooltip="Her rolün gece eylemini seçmesi için verilen süre. Az süre oyunu hızlandırır ama düşünme fırsatı azalır."
+            options={[10, 12, 15, 20]}
+            unit="sn"
+            value={settings.nightActionDurationSec ?? 12}
+            onChange={(v) => update("nightActionDurationSec", v)}
+          />
+
+          <SettingRow
+            label="Sesli Yönlendirme"
+            tooltip="Host'un telefonu hoparlörle gece aksiyonlarını sesli okur. Aynı odadaki herkes duyar. Kapatırsan yalnızca ekran animasyonu olur."
+            options={["on", "off"]}
+            labels={["Açık", "Kapalı"]}
+            value={settings.voiceEnabled !== false ? "on" : "off"}
+            onChange={(v) => update("voiceEnabled", v === "on")}
+          />
+
+          <View style={styles.hsDivider} />
+
+          {/* Rol Paketi */}
+          <View style={styles.srRow}>
+            <View style={styles.srLabelRow}>
+              <Text style={styles.srLabel}>Rol Paketi</Text>
+              <Pressable style={styles.srTipBtn} onPress={() => setShowRoleTip((v) => !v)} hitSlop={8}>
+                <Text style={styles.srTipBtnText}>?</Text>
+              </Pressable>
+            </View>
+            {showRoleTip && (
+              <View style={styles.srTipBox}>
+                <Text style={styles.srTipText}>
+                  {"Oyunda hangi roller havuzuna dahil olsun?\nStandart: Yeni oyuncular için 3 temel rol.\nGelişmiş: Tüm mahalle rolleri + 2 kaos.\nTümü: 19 rolün tamamı, tam kaos."}
+                </Text>
+              </View>
             )}
-            {opt("5 dk", state.settings.dayDurationSec === 300, () =>
-              emit("updateSettings", { patch: { dayDurationSec: 300 } }),
+            {(["standard", "advanced", "all"] as const).map((pkg, i) => {
+              const pkgLabels = ["Standart", "Gelişmiş", "Tümü"];
+              const pkgDescs = [
+                "Bekçi, Şifacı, Kapıcı — Yeni oyuncular için ideal.",
+                "Tüm mahalle rolleri + Kırık Kalp, Dedikoducu.",
+                "Kumarbaz, Anonim, Kahraman Dede dahil 19 rol. Kaotik!",
+              ];
+              const isActive = (settings.rolePackage ?? "all") === pkg;
+              return (
+                <Pressable
+                  key={pkg}
+                  style={[styles.hsRolePkgBtn, isActive && styles.hsRolePkgBtnActive]}
+                  onPress={() => update("rolePackage", pkg)}
+                >
+                  <Text style={[styles.hsRolePkgBtnText, isActive && styles.hsRolePkgBtnTextActive]}>
+                    {pkgLabels[i]}
+                  </Text>
+                  <Text style={styles.hsRolePkgDesc}>{pkgDescs[i]}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.hsDivider} />
+
+          {/* Aktif Özel Roller */}
+          <View style={styles.srRow}>
+            <View style={styles.srLabelRow}>
+              <Text style={styles.srLabel}>Aktif Özel Roller</Text>
+              <Pressable style={styles.srTipBtn} onPress={() => setShowRoleToggleTip((v) => !v)} hitSlop={8}>
+                <Text style={styles.srTipBtnText}>?</Text>
+              </Pressable>
+            </View>
+            {showRoleToggleTip && (
+              <View style={styles.srTipBox}>
+                <Text style={styles.srTipText}>
+                  Seçili rolleri havuzdan çıkarabilirsin. Yeşil = aktif, gri = devre dışı. Devre dışı roller hiç kimseye atanmaz.
+                </Text>
+              </View>
             )}
+            <Text style={styles.hsRoleGroupLabel}>🟡 Mahalle</Text>
+            <View style={styles.hsRoleGrid}>
+              {MAHALLE_SPECIAL_ROLES.map((role) => (
+                <RoleToggle
+                  key={role.id}
+                  role={role}
+                  active={!disabledRoles.includes(role.id)}
+                  onToggle={() => toggleRole(role.id)}
+                />
+              ))}
+            </View>
+            <Text style={styles.hsRoleGroupLabel}>🔴 Çete</Text>
+            <View style={styles.hsRoleGrid}>
+              {CETE_OPTIONAL_ROLES.map((role) => (
+                <RoleToggle
+                  key={role.id}
+                  role={role}
+                  active={!disabledRoles.includes(role.id)}
+                  onToggle={() => toggleRole(role.id)}
+                />
+              ))}
+            </View>
+            <Text style={styles.hsRoleGroupLabel}>🩵 Kargaşacılar</Text>
+            <View style={styles.hsRoleGrid}>
+              {KAOS_ROLES.map((role) => (
+                <RoleToggle
+                  key={role.id}
+                  role={role}
+                  active={!disabledRoles.includes(role.id)}
+                  onToggle={() => toggleRole(role.id)}
+                />
+              ))}
+            </View>
+            <Text style={styles.hsRoleGroupLabel}>🟣 Yalnız Kurtlar</Text>
+            <View style={styles.hsRoleGrid}>
+              {TARAFSIZ_ROLES.map((role) => (
+                <RoleToggle
+                  key={role.id}
+                  role={role}
+                  active={!disabledRoles.includes(role.id)}
+                  onToggle={() => toggleRole(role.id)}
+                />
+              ))}
+            </View>
           </View>
         </View>
-        <View>
-          <Pressable style={styles.labelRow} onPress={() => toggleTip("ceteCount")} hitSlop={8}>
-            <Text style={[styles.label, { color: c.mutedForeground }]}>Çete sayısı</Text>
-            <Feather name="info" size={13} color={openTip === "ceteCount" ? "#9B7FD4" : c.mutedForeground} />
-          </Pressable>
-          {openTip === "ceteCount" && (
-            <Text style={styles.tipText}>{SETTING_TIPS.ceteCount}</Text>
-          )}
-          <View style={styles.rowGap}>
-            {[1, 2, 3].map((n) =>
-              opt(`${n}`, state.settings.ceteCount === n, () =>
-                emit("updateSettings", { patch: { ceteCount: n } }),
-              ),
-            )}
-          </View>
-        </View>
-        <View>
-          <Pressable style={styles.labelRow} onPress={() => toggleTip("specialRoles")} hitSlop={8}>
-            <Text style={[styles.label, { color: c.mutedForeground }]}>Aktif özel roller</Text>
-            <Feather name="info" size={13} color={openTip === "specialRoles" ? "#9B7FD4" : c.mutedForeground} />
-          </Pressable>
-          {openTip === "specialRoles" && (
-            <Text style={styles.tipText}>{SETTING_TIPS.specialRoles}</Text>
-          )}
-          <View style={styles.rowGap}>
-            {[
-              { id: "muhtar", label: "🎖️ Muhtar" },
-              { id: "bekci", label: "🔦 Bekçi" },
-              { id: "otaci", label: "🌿 Otacı" },
-              { id: "falci", label: "🔮 Falcı" },
-            ].map((r) => opt(r.label, state.settings.activeSpecialRoles.includes(r.id), () => toggleSpecial(r.id)))}
-          </View>
-        </View>
-        <View>
-          <Pressable style={styles.labelRow} onPress={() => toggleTip("nightDuration")} hitSlop={8}>
-            <Text style={[styles.label, { color: c.mutedForeground }]}>Gece aksiyon süresi</Text>
-            <Feather name="info" size={13} color={openTip === "nightDuration" ? "#9B7FD4" : c.mutedForeground} />
-          </Pressable>
-          {openTip === "nightDuration" && (
-            <Text style={styles.tipText}>{SETTING_TIPS.nightDuration}</Text>
-          )}
-          <View style={styles.rowGap}>
-            {opt("10 sn", state.settings.nightActionDurationSec === 10, () =>
-              emit("updateSettings", { patch: { nightActionDurationSec: 10 } }),
-            )}
-            {opt("15 sn", state.settings.nightActionDurationSec === 15, () =>
-              emit("updateSettings", { patch: { nightActionDurationSec: 15 } }),
-            )}
-          </View>
-        </View>
-        <View>
-          <Pressable style={styles.labelRow} onPress={() => toggleTip("voteDuration")} hitSlop={8}>
-            <Text style={[styles.label, { color: c.mutedForeground }]}>Oylama süresi</Text>
-            <Feather name="info" size={13} color={openTip === "voteDuration" ? "#9B7FD4" : c.mutedForeground} />
-          </Pressable>
-          {openTip === "voteDuration" && (
-            <Text style={styles.tipText}>{SETTING_TIPS.voteDuration}</Text>
-          )}
-          <View style={styles.rowGap}>
-            {opt("30 sn", (state.settings.voteDurationSec ?? 30) === 30, () =>
-              emit("updateSettings", { patch: { voteDurationSec: 30 } }),
-            )}
-            {opt("45 sn", (state.settings.voteDurationSec ?? 30) === 45, () =>
-              emit("updateSettings", { patch: { voteDurationSec: 45 } }),
-            )}
-            {opt("60 sn", (state.settings.voteDurationSec ?? 30) === 60, () =>
-              emit("updateSettings", { patch: { voteDurationSec: 60 } }),
-            )}
-          </View>
-        </View>
-        <View>
-          <Pressable style={styles.labelRow} onPress={() => toggleTip("rolePackage")} hitSlop={8}>
-            <Text style={[styles.label, { color: c.mutedForeground }]}>Rol paketi</Text>
-            <Feather name="info" size={13} color={openTip === "rolePackage" ? "#9B7FD4" : c.mutedForeground} />
-          </Pressable>
-          {openTip === "rolePackage" && (
-            <Text style={styles.tipText}>{SETTING_TIPS.rolePackage}</Text>
-          )}
-          <View style={styles.rowGap}>
-            {opt("Standart", (state.settings.rolePackage ?? "all") === "standard", () =>
-              emit("updateSettings", { patch: { rolePackage: "standard" } }),
-            )}
-            {opt("Gelişmiş", (state.settings.rolePackage ?? "all") === "advanced", () =>
-              emit("updateSettings", { patch: { rolePackage: "advanced" } }),
-            )}
-            {opt("Tümü", (state.settings.rolePackage ?? "all") === "all", () =>
-              emit("updateSettings", { patch: { rolePackage: "all" } }),
-            )}
-          </View>
-          <Text style={styles.packageDesc}>
-            {(state.settings.rolePackage ?? "all") === "standard"
-              ? "Bekçi, Şifacı, Kapıcı — Yeni oyuncular için ideal."
-              : (state.settings.rolePackage ?? "all") === "advanced"
-              ? "Tüm mahalle rolleri + Kırık Kalp, Dedikoducu."
-              : "Kumarbaz, Anonim, Kahraman Dede dahil tam 19 rol. Kaotik!"}
-          </Text>
-        </View>
-      </View>
-      <Btn
-        label={canStart
-          ? "Oyunu Başlat"
-          : `Başlamak için ${4 - connectedCount} kişi daha`}
-        disabled={!canStart}
-        onPress={() => emit("startGame")}
-        style={{ marginTop: 18 }}
-      />
-    </>
+      )}
+    </View>
   );
 }
 
@@ -769,32 +857,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // ── In-room / lobby (uses c.* theme tokens) ────────────────────────────────
-  card: { borderRadius: 16, borderWidth: 1, padding: 16, gap: 12 },
-  label: { fontFamily: "Inter_500Medium", fontSize: 12, letterSpacing: 0.5, textTransform: "uppercase" },
-  packageDesc: { fontFamily: "Inter_400Regular", fontSize: 11, color: "#4A2E7A", fontStyle: "italic", marginTop: 4 },
-  input: {
-    borderRadius: 10,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    fontFamily: "Inter_500Medium",
-    fontSize: 16,
-  },
-  codeCard: { padding: 18, borderRadius: 16, borderWidth: 1, alignItems: "center" },
-  qrCard: { padding: 18, borderRadius: 16, borderWidth: 1, alignItems: "center" },
-  qrWrap: { padding: 12, borderRadius: 12, backgroundColor: "#0B0F1F" },
-  sectionTitle: { fontFamily: "Inter_700Bold", fontSize: 15, marginTop: 6 },
-  playerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    paddingVertical: 8,
-  },
-  rowGap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
-  settingRow: { flexDirection: "row", alignItems: "center", paddingVertical: 4 },
-  waitCard: { padding: 22, borderRadius: 16, borderWidth: 1, alignItems: "center" },
-  // ── Error message (replaces Alert.alert on web) ─────────────────────────────
+  // ── Legacy (kept for home screen error UI) ──────────────────────────────────
   errorBox: {
     flexDirection: "row",
     alignItems: "center",
@@ -813,19 +876,355 @@ const styles = StyleSheet.create({
     color: "#FF6B6B",
     flex: 1,
   },
-  // ── Setting tooltip ──────────────────────────────────────────────────────────
-  labelRow: {
+  input: {
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    fontFamily: "Inter_500Medium",
+    fontSize: 16,
+  },
+
+  // ── In-room sections ──────────────────────────────────────────────────────────
+  inSection: {
+    backgroundColor: "#1A0A3E",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#2A1060",
+    padding: 16,
+    marginBottom: 8,
+  },
+  inSectionLabel: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 11,
+    letterSpacing: 2,
+    color: "#9B7FD4",
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  inCodeText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 36,
+    letterSpacing: 10,
+    color: "#F5C842",
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  inCodeHint: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: "#9B7FD4",
+    marginBottom: 10,
+  },
+  qrToggleBtn: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#3B1F8C",
+    backgroundColor: "#0A0614",
+    marginBottom: 4,
+  },
+  qrToggleText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    color: "#9B7FD4",
+  },
+  qrWrapper: { alignItems: "center", marginTop: 12 },
+
+  // Player list
+  inSectionHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  inSectionHeading: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 13,
+    letterSpacing: 1.5,
+    color: "#9B7FD4",
+    textTransform: "uppercase",
+  },
+  inPlayerCount: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    color: "#9B7FD4",
+  },
+  inPlayerCountWarn: {
+    color: "#F5A842",
+  },
+  inPlayerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#2A1060",
+  },
+  inAvatar: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#2A1060",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#3B1F8C",
+  },
+  inAvatarHost: {
+    borderColor: "#F5C842",
+    backgroundColor: "#3B1F18",
+  },
+  inAvatarText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 15,
+    color: "#E8DEFF",
+  },
+  inPlayerName: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    color: "#E8DEFF",
+    flex: 1,
+  },
+  inYouLabel: {
+    color: "#9B7FD4",
+    fontFamily: "Inter_400Regular",
+  },
+  inPlayerMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  inHostBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    backgroundColor: "#F5C842",
+    borderRadius: 5,
+  },
+  inHostBadgeText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 10,
+    color: "#0A0614",
+    letterSpacing: 0.5,
+  },
+  inConnDot: { width: 8, height: 8, borderRadius: 4 },
+  inConnDotGreen: { backgroundColor: "#1ECBE1" },
+  inConnDotGray: { backgroundColor: "#3B1F8C" },
+  inKickBtn: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 13,
+    color: "#C8102E",
+    paddingHorizontal: 4,
+  },
+
+  // Guest note
+  inGuestNote: {
+    backgroundColor: "#1A0A3E",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#2A1060",
+    padding: 14,
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  inGuestNoteText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    color: "#4A2E7A",
+  },
+
+  // Start / wait footer
+  inStartBtn: {
+    backgroundColor: "#F5C842",
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: "center",
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  inStartBtnDisabled: {
+    backgroundColor: "#2A1060",
+    borderWidth: 1,
+    borderColor: "#3B1F8C",
+  },
+  inStartBtnText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 15,
+    color: "#0A0614",
+    letterSpacing: 1,
+  },
+  inWaitingBox: {
+    backgroundColor: "#1A0A3E",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#2A1060",
+    padding: 18,
+    alignItems: "center",
+    marginTop: 4,
+    marginBottom: 8,
+  },
+  inWaitingText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    color: "#9B7FD4",
+  },
+
+  // ── HostSettings accordion ──────────────────────────────────────────────────
+  hsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  hsChevron: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 14,
+    color: "#9B7FD4",
+  },
+  hsBody: { marginTop: 16, gap: 16 },
+  hsDivider: {
+    height: 1,
+    backgroundColor: "#2A1060",
+    marginVertical: 4,
+  },
+  hsRolePkgBtn: {
+    borderWidth: 1,
+    borderColor: "#3B1F8C",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 6,
+    backgroundColor: "#0A0614",
+  },
+  hsRolePkgBtnActive: {
+    borderColor: "#F5C842",
+    backgroundColor: "#2A1060",
+  },
+  hsRolePkgBtnText: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 14,
+    color: "#9B7FD4",
+  },
+  hsRolePkgBtnTextActive: { color: "#F5C842" },
+  hsRolePkgDesc: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: "#4A2E7A",
+    marginTop: 3,
+    fontStyle: "italic",
+  },
+  hsRoleGroupLabel: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 12,
+    color: "#9B7FD4",
+    marginTop: 10,
+    marginBottom: 6,
+    letterSpacing: 0.5,
+  },
+  hsRoleGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+
+  // ── SettingRow ──────────────────────────────────────────────────────────────
+  srRow: { gap: 4 },
+  srLabelRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    marginBottom: 2,
   },
-  tipText: {
+  srLabel: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 13,
+    color: "#E8DEFF",
+  },
+  srTipBtn: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#4A2E7A",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  srTipBtnText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 11,
+    color: "#9B7FD4",
+  },
+  srTipBox: {
+    backgroundColor: "#2A1060",
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: "#F5C842",
+  },
+  srTipText: {
     fontFamily: "Inter_400Regular",
     fontSize: 12,
     color: "#9B7FD4",
     lineHeight: 18,
-    marginTop: 4,
-    marginBottom: 4,
-    paddingHorizontal: 2,
+  },
+  srOptionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 6,
+  },
+  srOptionBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#3B1F8C",
+    backgroundColor: "#0A0614",
+  },
+  srOptionBtnActive: {
+    backgroundColor: "#F5C842",
+    borderColor: "#F5C842",
+  },
+  srOptionBtnText: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 13,
+    color: "#9B7FD4",
+  },
+  srOptionBtnTextActive: {
+    color: "#0A0614",
+    fontFamily: "Inter_700Bold",
+  },
+
+  // ── RoleToggle ──────────────────────────────────────────────────────────────
+  rtToggle: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    borderRadius: 8,
+    padding: 8,
+    borderWidth: 1,
+  },
+  rtToggleOn: {
+    backgroundColor: "#1A0A3E",
+    borderColor: "#F5C842",
+  },
+  rtToggleOff: {
+    backgroundColor: "#0A0614",
+    borderColor: "#2A1060",
+    opacity: 0.5,
+  },
+  rtEmoji: { fontSize: 14 },
+  rtName: {
+    fontFamily: "Inter_500Medium",
+    fontSize: 12,
+    color: "#E8DEFF",
+  },
+  rtNameOff: { color: "#4A2E7A" },
+  rtStatus: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 11,
+    color: "#F5C842",
+    marginLeft: 2,
   },
 });

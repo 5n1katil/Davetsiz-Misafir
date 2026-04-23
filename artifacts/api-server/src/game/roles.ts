@@ -395,6 +395,7 @@ function getDistribution(playerCount: number): Distribution {
 
 export interface RolePoolOptions {
   rolePackage?: "standard" | "advanced" | "all";
+  disabledRoles?: string[];
 }
 
 const SPECIAL_BY_PACKAGE: Record<string, string[]> = {
@@ -420,31 +421,34 @@ export function buildRolePool(
   options: RolePoolOptions = {},
 ): string[] {
   const pkg = options.rolePackage ?? "all";
+  const disabled = new Set(options.disabledRoles ?? []);
   const dist = getDistribution(playerCount);
   const pool: string[] = [];
 
-  // Çete
+  // Çete (zorunlu rollerden biri devre dışıysa tahsildar koyarız)
   for (let i = 0; i < dist.dm; i++) pool.push("tefeci_basi");
   for (let i = 0; i < dist.tahsildar; i++) pool.push("tahsildar");
-  if (dist.politikaci) pool.push("sahte_dernek");
-  if (dist.icten) pool.push("icten_pazarlikli");
+  if (dist.politikaci && !disabled.has("sahte_dernek")) pool.push("sahte_dernek");
+  if (dist.icten && !disabled.has("icten_pazarlikli")) pool.push("icten_pazarlikli");
 
-  // Özel Mahalle rolleri (pakete göre filtreli)
-  const specialPool = [...(SPECIAL_BY_PACKAGE[pkg] ?? SPECIAL_BY_PACKAGE.all)];
+  // Özel Mahalle rolleri (pakete + disabledRoles göre filtreli)
+  const specialPool = [...(SPECIAL_BY_PACKAGE[pkg] ?? SPECIAL_BY_PACKAGE.all)].filter(
+    (r) => !disabled.has(r),
+  );
   for (let i = 0; i < dist.specialCount && specialPool.length > 0; i++) {
     const idx = Math.floor(Math.random() * specialPool.length);
     pool.push(specialPool.splice(idx, 1)[0]);
   }
 
-  // Kaos rolleri (pakete göre filtreli)
-  const kaosPool = [...(KAOS_BY_PACKAGE[pkg] ?? [])];
+  // Kaos rolleri (pakete + disabledRoles göre filtreli)
+  const kaosPool = [...(KAOS_BY_PACKAGE[pkg] ?? [])].filter((r) => !disabled.has(r));
   for (let i = 0; i < dist.kaosCount && kaosPool.length > 0; i++) {
     const idx = Math.floor(Math.random() * kaosPool.length);
     pool.push(kaosPool.splice(idx, 1)[0]);
   }
 
-  // Yalnız Kurt rolleri (pakete göre filtreli)
-  const tarafsizPool = [...(TARAFSIZ_BY_PACKAGE[pkg] ?? [])];
+  // Yalnız Kurt rolleri (pakete + disabledRoles göre filtreli)
+  const tarafsizPool = [...(TARAFSIZ_BY_PACKAGE[pkg] ?? [])].filter((r) => !disabled.has(r));
   for (let i = 0; i < dist.tarafsizCount && tarafsizPool.length > 0; i++) {
     const idx = Math.floor(Math.random() * tarafsizPool.length);
     pool.push(tarafsizPool.splice(idx, 1)[0]);
