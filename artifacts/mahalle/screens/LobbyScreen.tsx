@@ -450,7 +450,7 @@ const KAOS_ROLES = [
 ];
 const TARAFSIZ_ROLES = [
   { id: "anonim", name: "Anonim", emoji: "🎭" },
-  { id: "kahraman_dede", name: "Kahraman Dede", emoji: "🪬" },
+  { id: "kahraman_dede", name: "Savaş Gazisi Dede", emoji: "🪬" },
 ];
 
 // Paket içerikleri — paket değişince disabledRoles otomatik hesaplanır
@@ -631,7 +631,7 @@ function HostSettings({ state, emit }: any) {
   const pkgInfo = {
     standard: { label: "Standart", desc: "Bekçi, Şifacı, Kapıcı — Yeni oyuncular için ideal.", tag: "YENİ OYUNCULAR" },
     advanced: { label: "Gelişmiş", desc: "Tüm mahalle rolleri + Kırık Kalp, Dedikoducu.", tag: "ÖNERİLEN" },
-    all: { label: "Tümü", desc: "Kumarbaz, Anonim, Kahraman Dede dahil 19 rol.", tag: "KAOTİK" },
+    all: { label: "Tümü", desc: "Kumarbaz, Anonim, Savaş Gazisi Dede dahil 19 rol.", tag: "KAOTİK" },
   };
 
   return (

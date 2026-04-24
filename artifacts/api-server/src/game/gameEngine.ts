@@ -887,7 +887,7 @@ function startNight(room: Room) {
   );
 
   // Gece kuyruğu: nightOrder'a göre sıralı (Kumarbaz:1, Kıskanç:2, Çete:3, Kapıcı:4,
-  // Şifacı:5, Bekçi:6, Falcı:7, Hoca:8, Kahraman Dede:9, Anonim:10)
+  // Şifacı:5, Bekçi:6, Falcı:7, Hoca:8, Savaş Gazisi Dede:9, Anonim:10)
   const queue: { roleId: string; actorIds: string[] }[] = [];
 
   // 1: Kumarbaz
@@ -940,7 +940,7 @@ function startNight(room: Room) {
     if (actors.length > 0) queue.push({ roleId: "hoca", actorIds: actors.map((a) => a.id) });
   }
 
-  // 9: Kahraman Dede
+  // 9: Savaş Gazisi Dede
   for (const rid of ["kahraman_dede"]) {
     const actors = room.players.filter((p) => p.isAlive && p.roleId === rid);
     if (actors.length > 0) queue.push({ roleId: rid, actorIds: actors.map((a) => a.id) });
@@ -1006,7 +1006,7 @@ function executeKiskancKopya(room: Room) {
   // Kopyalanamayan eylem türleri (öldürme eylemleri ve kopyalama kendisi):
   // cete_oylama: çete oylaması — kopyalanamaz (çete üyesi değil)
   // swap: Kumarbaz takası — kopyalanamaz (karmaşıklık önlemi)
-  // bagimsiz_oldurme: Kahraman Dede öldürmesi — kopyalanamaz (kill eylem kuralı)
+  // bagimsiz_oldurme: Savaş Gazisi Dede öldürmesi — kopyalanamaz (kill eylem kuralı)
   // kopya_hedef: Kıskanç'ın kendi seçimi — döngü önlemi
   const NON_COPYABLE = new Set(["cete_oylama", "swap", "bagimsiz_oldurme", "kopya_hedef"]);
 
@@ -1457,12 +1457,12 @@ function resolveMorning(room: Room) {
     room.morningEvents.push({ kind: "calm", message: "Bu sabah mahalle sakindir." });
   }
 
-  // ── ADIM 6: Kahraman Dede bağımsız öldürme ───────────────────────────────
+  // ── ADIM 6: Savaş Gazisi Dede bağımsız öldürme ───────────────────────────────
   for (const a of room.nightActions) {
     if (a.type === "bagimsiz_oldurme") {
       const kdTarget = room.players.find((p) => p.id === a.targetId);
       if (kdTarget && kdTarget.isAlive) {
-        // Kahraman Dede Kapıcı tarafından engellenemez
+        // Savaş Gazisi Dede Kapıcı tarafından engellenemez
         if (protectedIds.has(kdTarget.id)) {
           const isKdSelfSave = room.nightActions.some(
             (pa) =>
@@ -1491,7 +1491,7 @@ function resolveMorning(room: Room) {
             }
           }
         } else {
-          killPlayer(room, kdTarget, "Kahraman Dede tarafından öldürüldü", victims);
+          killPlayer(room, kdTarget, "Savaş Gazisi Dede tarafından öldürüldü", victims);
         }
       }
     }
@@ -1812,9 +1812,9 @@ function checkWin(room: Room): boolean {
     }
   }
 
-  // ── Kahraman Dede kazanma: hayatta kalan tek kişi ──────────────────────
+  // ── Savaş Gazisi Dede kazanma: hayatta kalan tek kişi ──────────────────────
   if (aliveCount === 1 && alivePlayers[0].roleId === "kahraman_dede") {
-    endGame(room, "kahraman_dede", `Kahraman Dede kazandı! Mahallede tek kişi kaldı.`);
+    endGame(room, "kahraman_dede", `Savaş Gazisi Dede kazandı! Mahallede tek kişi kaldı.`);
     return true;
   }
 

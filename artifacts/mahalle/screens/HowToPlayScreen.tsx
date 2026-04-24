@@ -32,7 +32,7 @@ const PHASES = [
       "Çete üyeleri gizli kanalda hedef oylaması yapar.",
       "Kapıcı bir evi kilitler; Şifacı Teyze birini korur.",
       "Bekçi ekip, Falcı tam rol sorgular.",
-      "Hoca (tek kullanım), Kahraman Dede ve Anonim eylemlerini yapar.",
+      "Hoca (tek kullanım), Savaş Gazisi Dede ve Anonim eylemlerini yapar.",
       "Sabah olur — ölümler ve özel olaylar açıklanır.",
     ],
   },
@@ -68,7 +68,7 @@ const WIN_CONDITIONS = [
     color: "#1ECBE1",
     icon: "shield" as const,
     condition:
-      "Tüm Davetsiz Misafir çetesi ve tehlikeli yalnız kurtlar (Anonim, Kahraman Dede) etkisiz hale getirilirse mahalle kazanır.",
+      "Tüm Davetsiz Misafir çetesi ve tehlikeli yalnız kurtlar (Anonim, Savaş Gazisi Dede) etkisiz hale getirilirse mahalle kazanır.",
   },
   {
     team: "ÇETE",
@@ -89,7 +89,7 @@ const WIN_CONDITIONS = [
     color: "#9B7FD4",
     icon: "target" as const,
     condition:
-      "Anonim, işaretlediği 3 kişi linç edilirse tek başına kazanır. Kahraman Dede, hayatta kalan son oyuncu olursa kazanır.",
+      "Anonim, işaretlediği 3 kişi linç edilirse tek başına kazanır. Savaş Gazisi Dede, hayatta kalan son oyuncu olursa kazanır.",
   },
 ];
 

@@ -13,7 +13,7 @@ const WINNER_LABEL: Record<string, string> = {
   iyi: "MAHALLE KAZANDI",
   kotu: "DAVETSİZ MİSAFİR KAZANDI",
   kumarbaz: "KUMARBAZ KAZANDI",
-  kahraman_dede: "KAHRAMAN DEDE KAZANDI",
+  kahraman_dede: "SAVAŞ GAZİSİ DEDE KAZANDI",
   kirik_kalp: "KIRIK KALP KAZANDI",
   anonim: "ANONİM KAZANDI",
 };

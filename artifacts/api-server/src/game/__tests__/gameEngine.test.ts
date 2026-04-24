@@ -545,8 +545,8 @@ describe("Anonim win condition", () => {
   });
 });
 
-describe("Kahraman Dede", () => {
-  it("Kahraman Dede kills independently and is NOT blocked by Kapıcı lock", () => {
+describe("Savaş Gazisi Dede", () => {
+  it("Savaş Gazisi Dede kills independently and is NOT blocked by Kapıcı lock", () => {
     const { room, ids } = makeRoom([
       "kahraman_dede", "tefeci_basi", "kapici", "komsu", "komsu",
     ]);
@@ -562,7 +562,7 @@ describe("Kahraman Dede", () => {
     expect(room.players.find((p) => p.id === targetId)!.isAlive).toBe(false);
   });
 
-  it("Kahraman Dede kill IS blocked by Şifacı protection", () => {
+  it("Savaş Gazisi Dede kill IS blocked by Şifacı protection", () => {
     const { room, ids } = makeRoom([
       "kahraman_dede", "otaci", "komsu", "komsu", "tefeci_basi",
     ]);
@@ -579,7 +579,7 @@ describe("Kahraman Dede", () => {
     expect(room.morningEvents.some((e) => e.kind === "saved")).toBe(true);
   });
 
-  it("Kahraman Dede wins as the sole survivor", () => {
+  it("Savaş Gazisi Dede wins as the sole survivor", () => {
     const { room, ids } = makeRoom([
       "kahraman_dede", "komsu", "komsu", "tefeci_basi",
     ]);

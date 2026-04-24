@@ -62,7 +62,7 @@ const ROLE_INSTRUCTIONS: Record<string, string> = {
   kumarbaz: "İki kişiyi seç — rolleri kalıcı olarak takas edilecek.",
   kiskanc_komsu: "Bu gece kimin eylemini taklit edeceksin?",
   anonim: "Bu gece gizlice kimi işaretliyorsun?",
-  kahraman_dede: "Bu gece kim mahalleni bozuyor?",
+  kahraman_dede: "Bu gece kim mahalleni bozuyor, Savaş Gazisi Dede?",
 };
 
 function getRoleAccent(roleId: string): string {

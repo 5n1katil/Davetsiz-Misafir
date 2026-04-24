@@ -25,7 +25,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ability:
       "Özel bir gece eylemin yoktur. Tüm gücün gündüz tartışmasında ve oylamadadır. Söz al, soru sor, şüphelilerini öne çıkar.",
     winCondition:
-      "Tüm çete üyeleri elenirse ve tehlikeli tarafsızlar (Anonim, Kahraman Dede) temizlenirse mahalle kazanır.",
+      "Tüm çete üyeleri elenirse ve tehlikeli tarafsızlar (Anonim, Savaş Gazisi Dede) temizlenirse mahalle kazanır.",
     tips: [
       "Konuş, dinle, soru sor — sessiz kalmak şüphe çeker.",
       "Çelişkili açıklama yapan oyuncuları not al, gündüz öne çıkar.",
@@ -45,7 +45,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ability:
       "Oylama gücün 1.5'tir. Bu durum tüm oyuncular tarafından bilinir; çete seni birincil hedef alabilir. Özel bir gece eylemin yoktur.",
     winCondition:
-      "Tüm çete üyeleri ve tehlikeli tarafsızlar (Anonim, Kahraman Dede) etkisiz hale getirilmeli.",
+      "Tüm çete üyeleri ve tehlikeli tarafsızlar (Anonim, Savaş Gazisi Dede) etkisiz hale getirilmeli.",
     tips: [
       "Kimliğini hemen açıklama; çete ilk turda seni hedef alır.",
       "Oylama gücünü doğru anda, doğru kişi için kullan.",
@@ -65,7 +65,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ability:
       "Her gece bir oyuncu seçersin. Sabah o kişinin 'Mahalle' mi yoksa 'Çete' mi olduğunu öğrenirsin. İçten Pazarlıklı seni yanıltır ve 'Mahalle' sonucu döndürür. Hedefin evi kilitliyse sorgu başarısız olur.",
     winCondition:
-      "Tüm çete üyeleri elenirse ve tehlikeli tarafsızlar (Anonim, Kahraman Dede) temizlenirse mahalle kazanır.",
+      "Tüm çete üyeleri elenirse ve tehlikeli tarafsızlar (Anonim, Savaş Gazisi Dede) temizlenirse mahalle kazanır.",
     tips: [
       "Bulguları hemen açıklama; çete kimi temizleyeceğini öğrenir.",
       "Şüpheli iki oyuncudan birini sorgula, ikinci gece diğerini kontrol et.",
@@ -85,7 +85,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ability:
       "Her gece bir oyuncuyu korursun. Koruduğun kişiye çete saldırırsa hayatta kalır. Aynı kişiyi arka arkaya iki gece koruyamazsın. Oyun boyunca yalnızca bir kez kendinle koruma yapabilirsin.",
     winCondition:
-      "Tüm çete üyeleri elenirse ve tehlikeli tarafsızlar (Anonim, Kahraman Dede) temizlenirse mahalle kazanır.",
+      "Tüm çete üyeleri elenirse ve tehlikeli tarafsızlar (Anonim, Savaş Gazisi Dede) temizlenirse mahalle kazanır.",
     tips: [
       "Aktif konuşan ve iyi rolden olduğundan şüphelendiğin oyuncuları koru.",
       "Aynı kişiyi arka arkaya koruma; çete bir sonraki geceyi bekler.",
@@ -105,7 +105,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ability:
       "Her gece bir oyuncu seçersin. Sabah o kişinin tam rolünü öğrenirsin. Her sorguda %20 ihtimalle yanlış rol görünür; bu durum sana bildirilmez. Hedefin evi kilitliyse sorgu başarısız olur.",
     winCondition:
-      "Tüm çete üyeleri elenirse ve tehlikeli tarafsızlar (Anonim, Kahraman Dede) temizlenirse mahalle kazanır.",
+      "Tüm çete üyeleri elenirse ve tehlikeli tarafsızlar (Anonim, Savaş Gazisi Dede) temizlenirse mahalle kazanır.",
     tips: [
       "Önce sessiz ve şüpheli oyuncuları sorgula.",
       "Bilgini kesin kanıt değil ipucu olarak sun; %20 hata payını unutma.",
@@ -125,7 +125,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ability:
       "Her gece bir oyuncunun evini kilitlersin. Kilitlenen eve çete saldıramaz, Bekçi sorgulayamaz, Şifacı Teyze koruyamaz, Falcı bakamaz. Hoca'nın güçlü koruması kilidi aşar. Kendi evini kilitleyemezsin. Her sabah hangi rollerin o evi ziyaret etmeye çalıştığını özel olarak öğrenirsin.",
     winCondition:
-      "Tüm çete üyeleri elenirse ve tehlikeli tarafsızlar (Anonim, Kahraman Dede) temizlenirse mahalle kazanır.",
+      "Tüm çete üyeleri elenirse ve tehlikeli tarafsızlar (Anonim, Savaş Gazisi Dede) temizlenirse mahalle kazanır.",
     tips: [
       "Çetenin hedef alabileceği önemli oyuncuları kilitle.",
       "Bekçi veya Şifacı Teyze ile zımni koordinasyon kur; onlar başka birine baksın.",
@@ -145,7 +145,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ability:
       "Özel bir gece eylemin yoktur. Öldüğünde (gece saldırısı veya linç) o ana kadar oyun içinde biriktirilen tüm bilgiler otomatik olarak tüm oyunculara açıklanır. Bu durum çetenin seni susturmak istemesine neden olur.",
     winCondition:
-      "Tüm çete üyeleri elenirse ve tehlikeli tarafsızlar (Anonim, Kahraman Dede) temizlenirse mahalle kazanır.",
+      "Tüm çete üyeleri elenirse ve tehlikeli tarafsızlar (Anonim, Savaş Gazisi Dede) temizlenirse mahalle kazanır.",
     tips: [
       "Gündüz tartışmalarında ince ipuçları bırak — ölürsen mirasın değer kazanır.",
       "Çete seni erkenden susturmak ister; dikkatli ol.",
@@ -165,7 +165,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     ability:
       "Oyun başında sana rastgele bir 'sahte rol' atanır. Öldüğünde — ister gece saldırısıyla ister lincle — tüm oyunculara gerçek rolün değil bu sahte rol gösterilir. Gerçek rolünü yalnızca host görebilir.",
     winCondition:
-      "Tüm çete üyeleri elenirse ve tehlikeli tarafsızlar (Anonim, Kahraman Dede) temizlenirse mahalle kazanır.",
+      "Tüm çete üyeleri elenirse ve tehlikeli tarafsızlar (Anonim, Savaş Gazisi Dede) temizlenirse mahalle kazanır.",
     tips: [
       "Sahte rolünü aklında tut; davranışlarını o role göre şekillendir.",
       "Çete seni sahte rola göre hedef alabilir — bu seni aslında koruyabilir.",
@@ -180,12 +180,12 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     name: "Hoca",
     emoji: "📿",
     team: "iyi",
-    description: "Tek kullanımlık güçlü koruma. Kapıcı kilidini ve Kahraman Dede'yi bile geçer.",
-    story: "Bir duası vardır. Bir kez eder. Kime ettiyse o gece hiçbir tehlike dokunamaz — kilidi bile kırar, Kahraman Dede'yi bile püskürtür.",
+    description: "Tek kullanımlık güçlü koruma. Kapıcı kilidini ve Savaş Gazisi Dede'yi bile geçer.",
+    story: "Bir duası vardır. Bir kez eder. Kime ettiyse o gece hiçbir tehlike dokunamaz — kilidi bile kırar, Savaş Gazisi Dede'yi bile püskürtür.",
     ability:
-      "Oyun boyunca yalnızca bir kez bir oyuncuyu korursun. Bu koruma Kapıcı kilidini aşar ve Kahraman Dede'nin bağımsız saldırısını da engeller. Kullandıktan sonra sıradan bir mahalle sakinine dönüşürsün ve her gece 'Tamam' diyerek geçersin.",
+      "Oyun boyunca yalnızca bir kez bir oyuncuyu korursun. Bu koruma Kapıcı kilidini aşar ve Savaş Gazisi Dede'nin bağımsız saldırısını da engeller. Kullandıktan sonra sıradan bir mahalle sakinine dönüşürsün ve her gece 'Tamam' diyerek geçersin.",
     winCondition:
-      "Tüm çete üyeleri elenirse ve tehlikeli tarafsızlar (Anonim, Kahraman Dede) temizlenirse mahalle kazanır.",
+      "Tüm çete üyeleri elenirse ve tehlikeli tarafsızlar (Anonim, Savaş Gazisi Dede) temizlenirse mahalle kazanır.",
     tips: [
       "Tek kullanımlık — çarçabuk harcama, doğru anı bekle.",
       "Bekçi veya Falcı gibi kritik bilgi sahibi rolleri korumayı düşün.",
@@ -382,7 +382,7 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
   },
   kahraman_dede: {
     id: "kahraman_dede",
-    name: "Kahraman Dede",
+    name: "Savaş Gazisi Dede",
     emoji: "🪬",
     team: "tarafsiz",
     description: "Her gece bağımsız olarak bir kişiyi öldürür. İyi de, kötü de, kaos da — fark etmez.",

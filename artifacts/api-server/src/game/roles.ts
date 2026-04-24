@@ -10,7 +10,7 @@ export type NightActionType =
   | "swap"               // Kumarbaz permanent role swap (two targets)
   | "kopya_hedef"        // Kıskanç Komşu select copy target
   | "isaretle"           // Anonim mark player
-  | "bagimsiz_oldurme"   // Kahraman Dede independent kill
+  | "bagimsiz_oldurme"   // Savaş Gazisi Dede independent kill
   | null;
 
 export interface RoleDef {
@@ -350,7 +350,7 @@ export const ROLES: Record<string, RoleDef> = {
 
   kahraman_dede: {
     id: "kahraman_dede",
-    name: "Kahraman Dede",
+    name: "Savaş Gazisi Dede",
     emoji: "🪬",
     team: "tarafsiz",
     isMafia: false,
@@ -361,7 +361,7 @@ export const ROLES: Record<string, RoleDef> = {
     tips: ["Hem çeteyi hem mahalleyi öldürebilirsin.", "Son kalmak zorundasın.", "Şifacı Teyze bile seni koruyabilir."],
     nightAction: "bagimsiz_oldurme",
     nightOrder: 9,
-    voiceCallTr: "Kahraman Dede... çıkma vakti. Bu gece kim mahallemi bozuyor?",
+    voiceCallTr: "Savaş Gazisi Dede... çıkma vakti. Bu gece kim mahallemi bozuyor?",
     voteWeight: 1,
   },
 };
