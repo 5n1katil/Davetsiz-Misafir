@@ -152,7 +152,7 @@ export default function HowToPlayScreen({ visible, onClose }: Props) {
                   { color: tab === t ? "#E9B342" : c.mutedForeground },
                 ]}
               >
-                {t === "oyun" ? "🎮  OYUN AKIŞI" : "🃏  ROLLER (18)"}
+                {t === "oyun" ? "🎮  OYUN AKIŞI" : `🃏  ROLLER (${namedRoles.length})`}
               </Text>
             </Pressable>
           ))}
@@ -169,7 +169,7 @@ export default function HowToPlayScreen({ visible, onClose }: Props) {
             <>
               <View style={[s.introCard, { backgroundColor: c.card, borderColor: c.border }]}>
                 <Text style={[s.introTitle, { color: c.foreground }]}>
-                  4-30 Kişi · Tek Mekan · 18 Rol
+                  4-30 Kişi · Tek Mekan · {namedRoles.length} Rol
                 </Text>
                 <Text style={[s.introText, { color: c.mutedForeground }]}>
                   Herkesin elinde telefon, host masanın ortasında. Mahalle
