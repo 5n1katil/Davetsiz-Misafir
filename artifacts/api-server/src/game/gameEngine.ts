@@ -1,4 +1,4 @@
-import { ROLES, buildRolePool, type RoleDef } from "./roles.js";
+import { ROLES, buildRolePool, EVIL_ROLE_IDS, GOOD_ROLE_IDS, type RoleDef } from "./roles.js";
 
 export type Phase =
   | "LOBBY"
@@ -528,7 +528,7 @@ function enterDayPhase(room: Room, firstDay: boolean) {
     }
 
     // Tiyatrocu sahte rolünü ata
-    const allRoleIds = Object.keys(ROLES).filter((id) => id !== "tiyatrocu" && id !== "koylu");
+    const allRoleIds = Object.keys(ROLES).filter((id) => id !== "tiyatrocu" && id !== "komsu");
     const tiyatrocuPlayers = room.players.filter((p) => p.roleId === "tiyatrocu");
     for (const t of tiyatrocuPlayers) {
       const fakeId = allRoleIds[Math.floor(Math.random() * allRoleIds.length)];
@@ -1830,11 +1830,11 @@ function checkWin(room: Room): boolean {
     }
   }
 
-  // ── Çete kazanma: çete sayısı ≥ diğerleri ──────────────────────────────
-  const aliveMafia = alivePlayers.filter((p) => p.roleId && ROLES[p.roleId]?.isMafia).length;
-  const aliveNonMafia = aliveCount - aliveMafia;
+  // ── Çete kazanma — kaos/tarafsız bu hesaba dahil değil ────────────────
+  const aliveMafia = alivePlayers.filter((p) => p.roleId && EVIL_ROLE_IDS.has(p.roleId)).length;
+  const aliveGood  = alivePlayers.filter((p) => p.roleId && GOOD_ROLE_IDS.has(p.roleId)).length;
 
-  if (aliveMafia >= aliveNonMafia && aliveMafia > 0) {
+  if (aliveMafia > 0 && aliveMafia >= aliveGood) {
     endGame(room, "kotu", "Davetsiz Misafir kazandı — Mahalle ele geçirildi.");
     return true;
   }
@@ -1929,7 +1929,7 @@ export function simulateGame(): { log: string[]; result: string | null } {
     "otaci",        // Fatma (Şifacı Teyze)
     "falci",        // Ali
     "dedikoducu",   // Veli
-    "koylu",        // Zeynep
+    "komsu",        // Zeynep
   ];
   room.players.forEach((p, i) => { p.roleId = assignedRoles[i]; });
   say(`Roller atandı: ${room.players.map((p, i) => `${p.nickname}=${assignedRoles[i]}`).join(", ")}`);
@@ -1939,14 +1939,14 @@ export function simulateGame(): { log: string[]; result: string | null } {
   room.round = 1;
   say("--- GÜN 1 başladı ---");
 
-  // 5. VOTE — Zeynep (koylu) üzerine oy ver (8 oyuncudan masum biri)
+  // 5. VOTE — Zeynep (komsu) üzerine oy ver (8 oyuncudan masum biri)
   room.phase = "VOTE";
   room.votes = [];
-  const zeynepId = playerIds[7]; // Zeynep = koylu
+  const zeynepId = playerIds[7]; // Zeynep = komsu
   for (const pid of playerIds.slice(0, 7)) {
     room.votes.push({ voterId: pid, targetId: zeynepId });
   }
-  say(`Oylama: tüm oylar Zeynep'e (koylu) gidiyor`);
+  say(`Oylama: tüm oylar Zeynep'e (komsu) gidiyor`);
   resolveVote(room, false);
   say(`Oylama sonrası phase: ${room.phase}, winner: ${room.winner}`);
   say(`Mezarlık: ${room.graveyard.map(g => `${g.nickname}(${g.roleId})`).join(", ")}`);

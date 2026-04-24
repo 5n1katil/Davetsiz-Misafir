@@ -72,7 +72,7 @@ function triggerNight(room: Room, setup: (r: Room) => void): void {
 
 describe("Win conditions", () => {
   it("mahalle wins when all mafia are eliminated via vote", () => {
-    const { room, ids } = makeRoom(["tefeci_basi", "koylu", "koylu", "koylu"]);
+    const { room, ids } = makeRoom(["tefeci_basi", "komsu", "komsu", "komsu"]);
 
     triggerVote(room, {
       [ids[1]]: ids[0],
@@ -85,7 +85,7 @@ describe("Win conditions", () => {
   });
 
   it("çete wins when mafia kills last villager majority at night", () => {
-    const { room, ids } = makeRoom(["tefeci_basi", "tahsildar", "koylu", "koylu"]);
+    const { room, ids } = makeRoom(["tefeci_basi", "tahsildar", "komsu", "komsu"]);
 
     triggerNight(room, (r) => {
       r.ceteVotes[ids[0]] = ids[2];
@@ -97,7 +97,7 @@ describe("Win conditions", () => {
   });
 
   it("çete wins when vote leaves mafia dominant", () => {
-    const { room, ids } = makeRoom(["tefeci_basi", "koylu", "koylu", "koylu"]);
+    const { room, ids } = makeRoom(["tefeci_basi", "komsu", "komsu", "komsu"]);
     room.players[1].isAlive = false;
     room.players[2].isAlive = false;
 
@@ -111,7 +111,7 @@ describe("Win conditions", () => {
 describe("Politikacı (sahte_dernek)", () => {
   it("lynching Politikacı causes instant çete win", () => {
     const { room, ids } = makeRoom([
-      "sahte_dernek", "koylu", "koylu", "koylu", "koylu",
+      "sahte_dernek", "komsu", "komsu", "komsu", "komsu",
     ]);
     const politikaciId = ids[0];
 
@@ -128,7 +128,7 @@ describe("Politikacı (sahte_dernek)", () => {
 
   it("Politikacı killed at night does NOT trigger instant win", () => {
     const { room, ids } = makeRoom([
-      "sahte_dernek", "tefeci_basi", "koylu", "koylu", "koylu",
+      "sahte_dernek", "tefeci_basi", "komsu", "komsu", "komsu",
     ]);
     const politikaciId = ids[0];
 
@@ -144,7 +144,7 @@ describe("Politikacı (sahte_dernek)", () => {
 describe("Muhtar vote weight", () => {
   it("Muhtar 1.5 vote beats two 1-weight votes targeting a different player", () => {
     const { room, ids } = makeRoom([
-      "muhtar", "koylu", "koylu", "tefeci_basi", "koylu",
+      "muhtar", "komsu", "komsu", "tefeci_basi", "komsu",
     ]);
     const muhtarId = ids[0];
     const mafiaId = ids[3];
@@ -162,7 +162,7 @@ describe("Muhtar vote weight", () => {
 
 describe("Vote tie and runoff", () => {
   it("tied vote enters VOTE_RUNOFF phase", () => {
-    const { room, ids } = makeRoom(["koylu", "koylu", "koylu", "tefeci_basi"]);
+    const { room, ids } = makeRoom(["komsu", "komsu", "komsu", "tefeci_basi"]);
     const a = ids[0];
     const b = ids[1];
 
@@ -177,7 +177,7 @@ describe("Vote tie and runoff", () => {
   });
 
   it("second tied vote in runoff eliminates no one and proceeds to night", () => {
-    const { room, ids } = makeRoom(["koylu", "koylu", "koylu", "tefeci_basi"]);
+    const { room, ids } = makeRoom(["komsu", "komsu", "komsu", "tefeci_basi"]);
     const a = ids[0];
     const b = ids[1];
 
@@ -201,7 +201,7 @@ describe("Vote tie and runoff", () => {
 describe("Dedikoducu", () => {
   it("Dedikoducu lynched by day sets nextLynchReversed and kills Dedikoducu", () => {
     const { room, ids } = makeRoom([
-      "dedikoducu", "koylu", "koylu", "tefeci_basi", "koylu",
+      "dedikoducu", "komsu", "komsu", "tefeci_basi", "komsu",
     ]);
     const ddId = ids[0];
 
@@ -218,7 +218,7 @@ describe("Dedikoducu", () => {
 
   it("Dedikoducu killed at night sets nextLynchReversed", () => {
     const { room, ids } = makeRoom([
-      "dedikoducu", "tefeci_basi", "koylu", "koylu",
+      "dedikoducu", "tefeci_basi", "komsu", "komsu",
     ]);
     const ddId = ids[0];
 
@@ -233,7 +233,7 @@ describe("Dedikoducu", () => {
   it("reversed vote: the unique player with zero votes is eliminated", () => {
     // 6 players; votes form a cycle so exactly one player (ids[5]) receives 0 votes
     const { room, ids } = makeRoom([
-      "tefeci_basi", "koylu", "koylu", "koylu", "koylu", "koylu",
+      "tefeci_basi", "komsu", "komsu", "komsu", "komsu", "komsu",
     ]);
     room.nextLynchReversed = true;
 
@@ -254,7 +254,7 @@ describe("Dedikoducu", () => {
   it("Dedikoducu + Politikacı: reversed vote lynches Politikacı → çete wins instantly", () => {
     // 6 players; votes cycle so only Politikacı (ids[0]) receives 0 votes
     const { room, ids } = makeRoom([
-      "sahte_dernek", "koylu", "koylu", "koylu", "koylu", "koylu",
+      "sahte_dernek", "komsu", "komsu", "komsu", "komsu", "komsu",
     ]);
     room.nextLynchReversed = true;
 
@@ -276,7 +276,7 @@ describe("Dedikoducu", () => {
 describe("Şifacı Teyze (otaci) protection", () => {
   it("protects target from çete kill — target survives", () => {
     const { room, ids } = makeRoom([
-      "tefeci_basi", "otaci", "koylu", "koylu",
+      "tefeci_basi", "otaci", "komsu", "komsu",
     ]);
     const targetId = ids[2];
     const otaciId = ids[1];
@@ -293,7 +293,7 @@ describe("Şifacı Teyze (otaci) protection", () => {
   it("Kapıcı locking the Şifacı's own house prevents protection — target dies", () => {
     // When the protector's house is locked they cannot leave, so the target is unprotected
     const { room, ids } = makeRoom([
-      "tefeci_basi", "otaci", "kapici", "koylu", "koylu",
+      "tefeci_basi", "otaci", "kapici", "komsu", "komsu",
     ]);
     const targetId = ids[3];
     const otaciId = ids[1];
@@ -311,7 +311,7 @@ describe("Şifacı Teyze (otaci) protection", () => {
 
   it("Kapıcı locking the target's house blocks the çete attack (target survives, not a saved event)", () => {
     const { room, ids } = makeRoom([
-      "tefeci_basi", "kapici", "koylu", "koylu",
+      "tefeci_basi", "kapici", "komsu", "komsu",
     ]);
     const targetId = ids[2];
     const kapiciId = ids[1];
@@ -330,7 +330,7 @@ describe("Şifacı Teyze (otaci) protection", () => {
 describe("Hoca protection", () => {
   it("Hoca protects target even when target's house is locked by Kapıcı", () => {
     const { room, ids } = makeRoom([
-      "tefeci_basi", "hoca", "kapici", "koylu", "koylu",
+      "tefeci_basi", "hoca", "kapici", "komsu", "komsu",
     ]);
     const targetId = ids[3];
     const hocaId = ids[1];
@@ -348,7 +348,7 @@ describe("Hoca protection", () => {
 
   it("Hoca one-time-use: submitNightAction skips when hocaUsed=true", () => {
     const { room, ids } = makeRoom([
-      "hoca", "koylu", "koylu", "tefeci_basi",
+      "hoca", "komsu", "komsu", "tefeci_basi",
     ]);
     const hocaId = ids[0];
     const targetId = ids[1];
@@ -368,7 +368,7 @@ describe("Hoca protection", () => {
 describe("Kumarbaz role swap", () => {
   it("permanently swaps two players' roles", () => {
     const { room, ids } = makeRoom([
-      "kumarbaz", "koylu", "tefeci_basi", "koylu", "koylu",
+      "kumarbaz", "komsu", "tefeci_basi", "komsu", "komsu",
     ]);
     const villager = ids[1];
     const mafia = ids[2];
@@ -379,7 +379,7 @@ describe("Kumarbaz role swap", () => {
     });
 
     expect(room.players.find((p) => p.id === villager)!.roleId).toBe("tefeci_basi");
-    expect(room.players.find((p) => p.id === mafia)!.roleId).toBe("koylu");
+    expect(room.players.find((p) => p.id === mafia)!.roleId).toBe("komsu");
     expect(
       room.kumarbazPairs.some(
         (pair) => pair.includes(villager) && pair.includes(mafia),
@@ -388,18 +388,18 @@ describe("Kumarbaz role swap", () => {
   });
 
   it("Kumarbaz swap before Şifacı: protection is applied based on playerId, not role", () => {
-    // Şifacı protects player A; Kumarbaz swaps A (koylu) with B (mafia)
-    // After swap: A has mafia role, B has koylu role.
+    // Şifacı protects player A; Kumarbaz swaps A (komsu) with B (mafia)
+    // After swap: A has mafia role, B has komsu role.
     // Protection is on A (by playerId) → A survives despite getting a mafia role.
     const { room, ids } = makeRoom([
-      "kumarbaz", "otaci", "tefeci_basi", "koylu", "koylu",
+      "kumarbaz", "otaci", "tefeci_basi", "komsu", "komsu",
     ]);
     const playerA = ids[3]; // will be swapped, Şifacı protects this playerId
     const playerB = ids[2]; // tefeci_basi, will be swapped
     const otaciId = ids[1];
 
     triggerNight(room, (r) => {
-      // Kumarbaz swaps A (koylu) ↔ B (tefeci_basi)
+      // Kumarbaz swaps A (komsu) ↔ B (tefeci_basi)
       r.nightActions.push({ actorId: ids[0], targetId: playerA, type: "swap" });
       r.nightActions.push({ actorId: ids[0], targetId: playerB, type: "swap" });
       // Çete votes to kill playerA (who after swap will have tefeci_basi role)
@@ -408,7 +408,7 @@ describe("Kumarbaz role swap", () => {
       r.nightActions.push({ actorId: otaciId, targetId: playerA, type: "koruma" });
     });
 
-    // After swap: playerA has tefeci_basi, playerB has koylu
+    // After swap: playerA has tefeci_basi, playerB has komsu
     expect(room.players.find((p) => p.id === playerA)!.roleId).toBe("tefeci_basi");
     // Şifacı protected playerA so they should survive the çete attack
     expect(room.players.find((p) => p.id === playerA)!.isAlive).toBe(true);
@@ -417,7 +417,7 @@ describe("Kumarbaz role swap", () => {
 
   it("Kumarbaz wins when 3 or fewer players remain alive", () => {
     const { room, ids } = makeRoom([
-      "kumarbaz", "koylu", "koylu", "tefeci_basi",
+      "kumarbaz", "komsu", "komsu", "tefeci_basi",
     ]);
     room.players[2].isAlive = false;
 
@@ -433,7 +433,7 @@ describe("Kumarbaz role swap", () => {
 describe("Kırık Kalp chain death", () => {
   it("Kırık Kalp dies when their loved one is killed at night", () => {
     const { room, ids } = makeRoom([
-      "tefeci_basi", "koylu", "koylu", "kirik_kalp", "koylu",
+      "tefeci_basi", "komsu", "komsu", "kirik_kalp", "komsu",
     ]);
     const lovedId = ids[1];
     const kkId = ids[3];
@@ -453,7 +453,7 @@ describe("Kırık Kalp chain death", () => {
 
   it("Kırık Kalp dies when their loved one is lynched", () => {
     const { room, ids } = makeRoom([
-      "tefeci_basi", "koylu", "koylu", "kirik_kalp", "koylu",
+      "tefeci_basi", "komsu", "komsu", "kirik_kalp", "komsu",
     ]);
     const lovedId = ids[1];
     const kkId = ids[3];
@@ -473,7 +473,7 @@ describe("Kırık Kalp chain death", () => {
   it("Kırık Kalp wins when both are the final two survivors", () => {
     // Pre-kill all players except kirik_kalp and their loved one
     const { room, ids } = makeRoom([
-      "kirik_kalp", "koylu", "koylu", "tefeci_basi",
+      "kirik_kalp", "komsu", "komsu", "tefeci_basi",
     ]);
     const kkId = ids[0];
     const lovedId = ids[1];
@@ -494,8 +494,8 @@ describe("Kırık Kalp chain death", () => {
 describe("Anonim win condition", () => {
   it("Anonim wins when 3 marked players are lynched while alive", () => {
     const { room, ids } = makeRoom([
-      "anonim", "koylu", "koylu", "koylu", "koylu",
-      "koylu", "koylu", "tefeci_basi",
+      "anonim", "komsu", "komsu", "komsu", "komsu",
+      "komsu", "komsu", "tefeci_basi",
     ]);
     const anonimId = ids[0];
     const mark1 = ids[1];
@@ -523,8 +523,8 @@ describe("Anonim win condition", () => {
 
   it("Anonim does NOT win when dead before the 3rd mark is lynched", () => {
     const { room, ids } = makeRoom([
-      "anonim", "koylu", "koylu", "koylu", "koylu",
-      "koylu", "koylu", "tefeci_basi",
+      "anonim", "komsu", "komsu", "komsu", "komsu",
+      "komsu", "komsu", "tefeci_basi",
     ]);
     const anonimId = ids[0];
     const mark3 = ids[3];
@@ -548,7 +548,7 @@ describe("Anonim win condition", () => {
 describe("Kahraman Dede", () => {
   it("Kahraman Dede kills independently and is NOT blocked by Kapıcı lock", () => {
     const { room, ids } = makeRoom([
-      "kahraman_dede", "tefeci_basi", "kapici", "koylu", "koylu",
+      "kahraman_dede", "tefeci_basi", "kapici", "komsu", "komsu",
     ]);
     const targetId = ids[3];
     const dedeId = ids[0];
@@ -564,7 +564,7 @@ describe("Kahraman Dede", () => {
 
   it("Kahraman Dede kill IS blocked by Şifacı protection", () => {
     const { room, ids } = makeRoom([
-      "kahraman_dede", "otaci", "koylu", "koylu", "tefeci_basi",
+      "kahraman_dede", "otaci", "komsu", "komsu", "tefeci_basi",
     ]);
     const targetId = ids[2];
     const dedeId = ids[0];
@@ -581,7 +581,7 @@ describe("Kahraman Dede", () => {
 
   it("Kahraman Dede wins as the sole survivor", () => {
     const { room, ids } = makeRoom([
-      "kahraman_dede", "koylu", "koylu", "tefeci_basi",
+      "kahraman_dede", "komsu", "komsu", "tefeci_basi",
     ]);
 
     room.players[1].isAlive = false;
@@ -602,7 +602,7 @@ describe("Kahraman Dede", () => {
 
 describe("Quiet night", () => {
   it("night with no actions produces a calm morning event", () => {
-    const { room } = makeRoom(["koylu", "koylu", "koylu", "tefeci_basi"]);
+    const { room } = makeRoom(["komsu", "komsu", "komsu", "tefeci_basi"]);
 
     triggerNight(room, (_r) => {});
 
@@ -612,7 +612,7 @@ describe("Quiet night", () => {
 
 describe("14. Host transfer mechanics", () => {
   it("voice prompt re-queued when host disconnects mid-night", () => {
-    const { room, ids } = makeRoom(["koylu", "bekci", "koylu", "tefeci_basi"]);
+    const { room, ids } = makeRoom(["komsu", "bekci", "komsu", "tefeci_basi"]);
 
     room.phase = "NIGHT_ROLE";
     room.nightStepIndex = 0;
@@ -634,7 +634,7 @@ describe("14. Host transfer mechanics", () => {
   });
 
   it("originalHostId cleared after intentional transferHost()", () => {
-    const { room, ids } = makeRoom(["koylu", "koylu", "koylu", "tefeci_basi"]);
+    const { room, ids } = makeRoom(["komsu", "komsu", "komsu", "tefeci_basi"]);
     room.phase = "DAY";
     const hostId = room.hostId;
     const targetId = room.players.find((p) => !p.isHost)!.id;
@@ -650,7 +650,7 @@ describe("14. Host transfer mechanics", () => {
 
 describe("15. restartGame() full reset", () => {
   it("all extended state fields reset to initial values", () => {
-    const { room } = makeRoom(["koylu", "koylu", "koylu", "tefeci_basi"]);
+    const { room } = makeRoom(["komsu", "komsu", "komsu", "tefeci_basi"]);
     const hostId = room.hostId;
 
     // Dirty the extended state
@@ -673,7 +673,7 @@ describe("15. restartGame() full reset", () => {
 
 describe("16. Muhabir death reveals messages", () => {
   it("Muhabir killed at night produces death morningEvent", () => {
-    const { room, ids } = makeRoom(["tefeci_basi", "muhabir", "koylu", "koylu"]);
+    const { room, ids } = makeRoom(["tefeci_basi", "muhabir", "komsu", "komsu"]);
     const muhabirId = ids[1];
 
     triggerNight(room, (r) => {
@@ -689,7 +689,7 @@ describe("16. Muhabir death reveals messages", () => {
   });
 
   it("Muhabir lynched produces death morningEvent", () => {
-    const { room, ids } = makeRoom(["muhabir", "koylu", "koylu", "tefeci_basi"]);
+    const { room, ids } = makeRoom(["muhabir", "komsu", "komsu", "tefeci_basi"]);
     const muhabirId = ids[0];
 
     triggerVote(room, {
@@ -706,7 +706,7 @@ describe("16. Muhabir death reveals messages", () => {
 
 describe("17. Tiyatrocu fake role on death", () => {
   it("graveyard shows fake role on night kill", () => {
-    const { room, ids } = makeRoom(["tefeci_basi", "tiyatrocu", "koylu", "koylu"]);
+    const { room, ids } = makeRoom(["tefeci_basi", "tiyatrocu", "komsu", "komsu"]);
     const tiyatrocuId = ids[1];
     room.tiyatrocuFakeRoles[tiyatrocuId] = "falci";
 
@@ -723,7 +723,7 @@ describe("17. Tiyatrocu fake role on death", () => {
   });
 
   it("graveyard shows fake role on lynch", () => {
-    const { room, ids } = makeRoom(["tiyatrocu", "koylu", "koylu", "tefeci_basi"]);
+    const { room, ids } = makeRoom(["tiyatrocu", "komsu", "komsu", "tefeci_basi"]);
     const tiyatrocuId = ids[0];
     room.tiyatrocuFakeRoles[tiyatrocuId] = "bekci";
 
@@ -768,9 +768,61 @@ describe("18. rolePackage filtresi", () => {
   });
 });
 
-describe("19. Lobby fazında host reconnect", () => {
+describe("19. Rol dağılım dengesi", () => {
+  it("4 oyuncuda sadece 1 kötü rol var", () => {
+    const EVIL = ["tefeci_basi", "tahsildar", "sahte_dernek", "icten_pazarlikli"];
+    const pool = buildRolePool(4, { rolePackage: "all" });
+    const evil = pool.filter((r) => EVIL.includes(r));
+    expect(pool.length).toBe(4);
+    expect(evil.length).toBe(1);
+  });
+
+  it("4 oyuncuda çete iyi oyuncudan az", () => {
+    const EVIL = ["tefeci_basi", "tahsildar", "sahte_dernek", "icten_pazarlikli"];
+    const GOOD = ["bekci", "otaci", "falci", "kapici", "muhtar", "muhabir", "tiyatrocu", "hoca", "komsu"];
+    const pool = buildRolePool(4, { rolePackage: "all" });
+    const evil = pool.filter((r) => EVIL.includes(r));
+    const good = pool.filter((r) => GOOD.includes(r));
+    expect(evil.length).toBeLessThan(good.length);
+  });
+
+  it("8 oyuncuda çete iyi oyuncudan az", () => {
+    const EVIL = ["tefeci_basi", "tahsildar", "sahte_dernek", "icten_pazarlikli"];
+    const GOOD = ["bekci", "otaci", "falci", "kapici", "muhtar", "muhabir", "tiyatrocu", "hoca", "komsu"];
+    const pool = buildRolePool(8, { rolePackage: "all" });
+    const evil = pool.filter((r) => EVIL.includes(r));
+    const good = pool.filter((r) => GOOD.includes(r));
+    expect(evil.length).toBeLessThan(good.length);
+  });
+
+  it("her oyuncu sayısında pool.length === playerCount", () => {
+    [4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25, 30].forEach((n) => {
+      const pool = buildRolePool(n, { rolePackage: "all" });
+      expect(pool.length).toBe(n);
+    });
+  });
+
+  it("4 oyuncuda 'koylu' rolü artık yok, 'komsu' var", () => {
+    const pool = buildRolePool(4, { rolePackage: "all" });
+    expect(pool.includes("koylu")).toBe(false);
+    expect(pool.some((r) => r === "komsu")).toBe(true);
+  });
+
+  it("her sayıda evil < good (denge garantisi)", () => {
+    const EVIL = ["tefeci_basi", "tahsildar", "sahte_dernek", "icten_pazarlikli"];
+    const GOOD = ["bekci", "otaci", "falci", "kapici", "muhtar", "muhabir", "tiyatrocu", "hoca", "komsu"];
+    [4, 5, 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 25, 30].forEach((n) => {
+      const pool = buildRolePool(n, { rolePackage: "all" });
+      const evil = pool.filter((r) => EVIL.includes(r)).length;
+      const good = pool.filter((r) => GOOD.includes(r)).length;
+      expect(evil).toBeLessThan(good);
+    });
+  });
+});
+
+describe("20. Lobby fazında host reconnect", () => {
   it("LOBBY fazında ayrılan host geri bağlanınca host statüsü restore edilir", () => {
-    const { room, ids } = makeRoom(["koylu", "koylu", "koylu", "koylu"]);
+    const { room, ids } = makeRoom(["komsu", "komsu", "komsu", "komsu"]);
 
     // Simüle: host bağlantısını kesti, geçici host belirlendi
     const hostId = ids[0];

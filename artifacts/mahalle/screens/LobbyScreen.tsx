@@ -561,6 +561,32 @@ function RoleToggle({
 }
 
 // ── HostSettings — accordion ayarlar paneli ───────────────────────────────────
+function getDistributionPreview(playerCount: number): { evil: number; good: number } {
+  const table: Record<number, { dm: number; tahsildar: number; politikaci: boolean; icten: boolean }> = {
+    4:  { dm: 1, tahsildar: 0, politikaci: false, icten: false },
+    5:  { dm: 1, tahsildar: 0, politikaci: false, icten: false },
+    6:  { dm: 1, tahsildar: 1, politikaci: false, icten: false },
+    7:  { dm: 1, tahsildar: 1, politikaci: false, icten: false },
+    8:  { dm: 1, tahsildar: 1, politikaci: true,  icten: false },
+    9:  { dm: 1, tahsildar: 1, politikaci: true,  icten: false },
+    10: { dm: 2, tahsildar: 1, politikaci: true,  icten: false },
+    12: { dm: 2, tahsildar: 1, politikaci: true,  icten: false },
+    14: { dm: 2, tahsildar: 2, politikaci: true,  icten: false },
+    16: { dm: 3, tahsildar: 2, politikaci: true,  icten: true  },
+    18: { dm: 3, tahsildar: 2, politikaci: true,  icten: true  },
+    20: { dm: 3, tahsildar: 2, politikaci: true,  icten: true  },
+    22: { dm: 4, tahsildar: 2, politikaci: true,  icten: true  },
+    25: { dm: 4, tahsildar: 3, politikaci: true,  icten: true  },
+    28: { dm: 5, tahsildar: 3, politikaci: true,  icten: true  },
+    30: { dm: 5, tahsildar: 3, politikaci: true,  icten: true  },
+  };
+  const keys = Object.keys(table).map(Number).sort((a, b) => a - b);
+  const key = keys.find((k) => k >= playerCount) ?? keys[keys.length - 1];
+  const d = table[key];
+  const evil = d.dm + d.tahsildar + (d.politikaci ? 1 : 0) + (d.icten ? 1 : 0);
+  return { evil, good: playerCount - evil };
+}
+
 function HostSettings({ state, emit }: any) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [showRoleTip, setShowRoleTip] = useState(false);
@@ -570,6 +596,7 @@ function HostSettings({ state, emit }: any) {
   const settings = state.settings;
   const disabledRoles: string[] = settings.disabledRoles ?? [];
   const pkg: "standard" | "advanced" | "all" = settings.rolePackage ?? "all";
+  const connectedCount = (state.players as any[]).filter((p: any) => p.isConnected).length;
 
   const update = (key: string, value: unknown) =>
     emit("updateSettings", { patch: { [key]: value } });
@@ -611,6 +638,32 @@ function HostSettings({ state, emit }: any) {
 
       {settingsOpen && (
         <View style={styles.hsBody}>
+          {/* Dağılım önizlemesi */}
+          {connectedCount >= 4 && (() => {
+            const { evil, good } = getDistributionPreview(connectedCount);
+            return (
+              <View style={styles.distPreview}>
+                <Text style={styles.distPreviewTitle}>
+                  {connectedCount} kişiyle tahmini dağılım:
+                </Text>
+                <View style={styles.distPreviewRow}>
+                  <View style={styles.distChip}>
+                    <Text style={styles.distChipNum}>{good}</Text>
+                    <Text style={styles.distChipLabel}>İyi</Text>
+                  </View>
+                  <Text style={styles.distVs}>vs</Text>
+                  <View style={[styles.distChip, styles.distChipEvil]}>
+                    <Text style={[styles.distChipNum, { color: "#C8102E" }]}>{evil}</Text>
+                    <Text style={styles.distChipLabel}>Kötü</Text>
+                  </View>
+                </View>
+                <Text style={styles.distPreviewNote}>
+                  * Kaos ve Yalnız Kurt rolleri ayrı kazanma koşullarıyla oynar
+                </Text>
+              </View>
+            );
+          })()}
+
           {/* Zamanlama ayarları */}
           <SettingRow
             label="Gündüz Süresi"
@@ -1238,6 +1291,59 @@ const styles = StyleSheet.create({
     color: "#9B7FD4",
   },
   hsBody: { marginTop: 16, gap: 16 },
+
+  // ── Dağılım önizleme kartı ──────────────────────────────────────────────────
+  distPreview: {
+    backgroundColor: "#130830",
+    borderRadius: 10,
+    padding: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: "#F5C842",
+  },
+  distPreviewTitle: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: "#9B7FD4",
+    marginBottom: 8,
+  },
+  distPreviewRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  distChip: {
+    backgroundColor: "#1A0A3E",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#F5C842",
+    padding: 10,
+    alignItems: "center",
+    minWidth: 60,
+  },
+  distChipEvil: { borderColor: "#C8102E" },
+  distChipNum: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 24,
+    color: "#F5C842",
+  },
+  distChipLabel: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 10,
+    color: "#9B7FD4",
+    marginTop: 2,
+  },
+  distVs: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 14,
+    color: "#4A2E7A",
+  },
+  distPreviewNote: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 10,
+    color: "#4A2E7A",
+    marginTop: 8,
+    fontStyle: "italic",
+  },
   hsDivider: {
     height: 1,
     backgroundColor: "#2A1060",

@@ -171,17 +171,17 @@ export const ROLES: Record<string, RoleDef> = {
     isOneTimeUse: true,
   },
 
-  koylu: {
-    id: "koylu",
-    name: "Mahalle Sakini",
-    emoji: "🏘️",
+  komsu: {
+    id: "komsu",
+    name: "Komşu",
+    emoji: "🏠",
     team: "iyi",
     isMafia: false,
-    description: "Sıradan mahalle sakini. Tek silahı sezgisi ve oyu.",
+    description: "Sıradan bir komşu. Özel yeteneği yok ama oyu her zaman değerlidir.",
     story: "Sabah simit alır, akşam çay içer. Geceleri evden çıkmaz ama kulağı kirişte.",
-    ability: "Özel gece yetkisi yok. Sadece gündüz oylamada söz hakkın var.",
-    winCondition: "Tüm çete elenirse mahalle kazanır.",
-    tips: ["Konuş, dinle, soru sor.", "Suskun oyuncular dikkat çeker.", "Bekçi/Falcı'yı destekle."],
+    ability: "Gece eylemi yoktur. Gündüz tartışması ve oylaması tek silahıdır.",
+    winCondition: "Tüm çete etkisiz hale getirilmeli.",
+    tips: ["Sessiz kalmak şüphe çeker — konuş, tartış.", "Dikkatli gözlem yapan Komşu oyunun kaderini belirler.", "Kimin nasıl davrandığını takip et."],
     nightAction: null,
     nightOrder: 99,
     voiceCallTr: "",
@@ -366,31 +366,47 @@ export const ROLES: Record<string, RoleDef> = {
 };
 
 // ── ROL DAĞILIM TABLOSU ──────────────────────────────────────────────────────
+// KURAL: Çete her zaman azınlıkta başlar.
+// Formül: Math.floor(playerCount / 4) çete üyesi (min 1, max 5)
 
 interface Distribution {
-  dm: number;         // Davetsiz Misafir sayısı
-  tahsildar: number;  // Tahsildar sayısı
-  politikaci: boolean; // Politikacı (sahte_dernek) var mı
-  icten: boolean;     // İçten Pazarlıklı var mı
-  kaosCount: number;  // Kargaşacı rol sayısı
-  tarafsizCount: number; // Yalnız Kurt sayısı
-  specialCount: number; // Özel Mahalle rolü sayısı (muhtar, bekci, otaci, falci, kapici, muhabir, tiyatrocu, hoca)
+  davetsizMisafir: number;  // tefeci_basi sayısı
+  tahsildar: number;
+  politikaci: boolean;      // sahte_dernek var mı
+  icten: boolean;           // icten_pazarlikli var mı
+  kaosMax: number;          // max kaos rol sayısı
+  tarafsizMax: number;      // max tarafsız rol sayısı
+  specialMahalleMax: number; // max özel mahalle rol sayısı
 }
 
+const ROLE_DISTRIBUTION: Record<number, Distribution> = {
+  4:  { davetsizMisafir: 1, tahsildar: 0, politikaci: false, icten: false, kaosMax: 0, tarafsizMax: 0, specialMahalleMax: 1 },
+  5:  { davetsizMisafir: 1, tahsildar: 0, politikaci: false, icten: false, kaosMax: 0, tarafsizMax: 0, specialMahalleMax: 1 },
+  6:  { davetsizMisafir: 1, tahsildar: 1, politikaci: false, icten: false, kaosMax: 0, tarafsizMax: 0, specialMahalleMax: 2 },
+  7:  { davetsizMisafir: 1, tahsildar: 1, politikaci: false, icten: false, kaosMax: 1, tarafsizMax: 0, specialMahalleMax: 2 },
+  8:  { davetsizMisafir: 1, tahsildar: 1, politikaci: true,  icten: false, kaosMax: 1, tarafsizMax: 0, specialMahalleMax: 2 },
+  9:  { davetsizMisafir: 1, tahsildar: 1, politikaci: true,  icten: false, kaosMax: 1, tarafsizMax: 0, specialMahalleMax: 3 },
+  10: { davetsizMisafir: 2, tahsildar: 1, politikaci: true,  icten: false, kaosMax: 1, tarafsizMax: 0, specialMahalleMax: 3 },
+  11: { davetsizMisafir: 2, tahsildar: 1, politikaci: true,  icten: false, kaosMax: 1, tarafsizMax: 0, specialMahalleMax: 3 },
+  12: { davetsizMisafir: 2, tahsildar: 1, politikaci: true,  icten: false, kaosMax: 2, tarafsizMax: 0, specialMahalleMax: 3 },
+  13: { davetsizMisafir: 2, tahsildar: 1, politikaci: true,  icten: false, kaosMax: 2, tarafsizMax: 0, specialMahalleMax: 4 },
+  14: { davetsizMisafir: 2, tahsildar: 2, politikaci: true,  icten: false, kaosMax: 2, tarafsizMax: 1, specialMahalleMax: 4 },
+  15: { davetsizMisafir: 2, tahsildar: 2, politikaci: true,  icten: false, kaosMax: 2, tarafsizMax: 1, specialMahalleMax: 4 },
+  16: { davetsizMisafir: 3, tahsildar: 2, politikaci: true,  icten: true,  kaosMax: 2, tarafsizMax: 1, specialMahalleMax: 4 },
+  17: { davetsizMisafir: 3, tahsildar: 2, politikaci: true,  icten: true,  kaosMax: 2, tarafsizMax: 1, specialMahalleMax: 5 },
+  18: { davetsizMisafir: 3, tahsildar: 2, politikaci: true,  icten: true,  kaosMax: 3, tarafsizMax: 1, specialMahalleMax: 5 },
+  19: { davetsizMisafir: 3, tahsildar: 2, politikaci: true,  icten: true,  kaosMax: 3, tarafsizMax: 1, specialMahalleMax: 5 },
+  20: { davetsizMisafir: 3, tahsildar: 2, politikaci: true,  icten: true,  kaosMax: 3, tarafsizMax: 2, specialMahalleMax: 5 },
+  22: { davetsizMisafir: 4, tahsildar: 2, politikaci: true,  icten: true,  kaosMax: 3, tarafsizMax: 2, specialMahalleMax: 6 },
+  25: { davetsizMisafir: 4, tahsildar: 3, politikaci: true,  icten: true,  kaosMax: 4, tarafsizMax: 2, specialMahalleMax: 6 },
+  28: { davetsizMisafir: 5, tahsildar: 3, politikaci: true,  icten: true,  kaosMax: 4, tarafsizMax: 2, specialMahalleMax: 7 },
+  30: { davetsizMisafir: 5, tahsildar: 3, politikaci: true,  icten: true,  kaosMax: 4, tarafsizMax: 2, specialMahalleMax: 7 },
+};
+
 function getDistribution(playerCount: number): Distribution {
-  if (playerCount <= 6) {
-    return { dm: 1, tahsildar: 1, politikaci: false, icten: false, kaosCount: 0, tarafsizCount: 0, specialCount: 0 };
-  } else if (playerCount <= 9) {
-    return { dm: 1, tahsildar: 1, politikaci: true, icten: false, kaosCount: 0, tarafsizCount: 0, specialCount: 1 };
-  } else if (playerCount <= 13) {
-    return { dm: 2, tahsildar: 1, politikaci: true, icten: false, kaosCount: 0, tarafsizCount: 0, specialCount: 2 };
-  } else if (playerCount <= 18) {
-    return { dm: 3, tahsildar: 2, politikaci: true, icten: true, kaosCount: 0, tarafsizCount: 0, specialCount: 3 };
-  } else if (playerCount <= 24) {
-    return { dm: 4, tahsildar: 2, politikaci: true, icten: true, kaosCount: 1, tarafsizCount: 0, specialCount: 4 };
-  } else {
-    return { dm: 5, tahsildar: 3, politikaci: true, icten: true, kaosCount: 2, tarafsizCount: 2, specialCount: 5 };
-  }
+  const keys = Object.keys(ROLE_DISTRIBUTION).map(Number).sort((a, b) => a - b);
+  const key = keys.find((k) => k >= playerCount) ?? keys[keys.length - 1];
+  return ROLE_DISTRIBUTION[key];
 }
 
 export interface RolePoolOptions {
@@ -416,6 +432,11 @@ const TARAFSIZ_BY_PACKAGE: Record<string, string[]> = {
   all:      ["anonim", "kahraman_dede"],
 };
 
+const EVIL_ROLE_IDS = new Set(["tefeci_basi", "tahsildar", "sahte_dernek", "icten_pazarlikli"]);
+const GOOD_ROLE_IDS = new Set(["bekci", "otaci", "falci", "kapici", "muhtar", "muhabir", "tiyatrocu", "hoca", "komsu"]);
+
+export { EVIL_ROLE_IDS, GOOD_ROLE_IDS };
+
 export function buildRolePool(
   playerCount: number,
   options: RolePoolOptions = {},
@@ -425,40 +446,52 @@ export function buildRolePool(
   const dist = getDistribution(playerCount);
   const pool: string[] = [];
 
-  // Çete (zorunlu rollerden biri devre dışıysa tahsildar koyarız)
-  for (let i = 0; i < dist.dm; i++) pool.push("tefeci_basi");
+  // 1. Çete rolleri — zorunlu
+  for (let i = 0; i < dist.davetsizMisafir; i++) pool.push("tefeci_basi");
   for (let i = 0; i < dist.tahsildar; i++) pool.push("tahsildar");
   if (dist.politikaci && !disabled.has("sahte_dernek")) pool.push("sahte_dernek");
   if (dist.icten && !disabled.has("icten_pazarlikli")) pool.push("icten_pazarlikli");
 
-  // Özel Mahalle rolleri (pakete + disabledRoles göre filtreli)
+  // 2. Özel mahalle rolleri — pakete ve ayara göre
   const specialPool = [...(SPECIAL_BY_PACKAGE[pkg] ?? SPECIAL_BY_PACKAGE.all)].filter(
     (r) => !disabled.has(r),
   );
-  for (let i = 0; i < dist.specialCount && specialPool.length > 0; i++) {
-    const idx = Math.floor(Math.random() * specialPool.length);
-    pool.push(specialPool.splice(idx, 1)[0]);
+  const shuffledSpecial = specialPool.sort(() => Math.random() - 0.5);
+  pool.push(...shuffledSpecial.slice(0, dist.specialMahalleMax));
+
+  // 3. Kaos rolleri
+  if (dist.kaosMax > 0) {
+    const kaosPool = [...(KAOS_BY_PACKAGE[pkg] ?? [])].filter((r) => !disabled.has(r));
+    const shuffledKaos = kaosPool.sort(() => Math.random() - 0.5);
+    pool.push(...shuffledKaos.slice(0, dist.kaosMax));
   }
 
-  // Kaos rolleri (pakete + disabledRoles göre filtreli)
-  const kaosPool = [...(KAOS_BY_PACKAGE[pkg] ?? [])].filter((r) => !disabled.has(r));
-  for (let i = 0; i < dist.kaosCount && kaosPool.length > 0; i++) {
-    const idx = Math.floor(Math.random() * kaosPool.length);
-    pool.push(kaosPool.splice(idx, 1)[0]);
+  // 4. Tarafsız roller
+  if (dist.tarafsizMax > 0) {
+    const tarafsizPool = [...(TARAFSIZ_BY_PACKAGE[pkg] ?? [])].filter((r) => !disabled.has(r));
+    const shuffledTarafsiz = tarafsizPool.sort(() => Math.random() - 0.5);
+    pool.push(...shuffledTarafsiz.slice(0, dist.tarafsizMax));
   }
 
-  // Yalnız Kurt rolleri (pakete + disabledRoles göre filtreli)
-  const tarafsizPool = [...(TARAFSIZ_BY_PACKAGE[pkg] ?? [])].filter((r) => !disabled.has(r));
-  for (let i = 0; i < dist.tarafsizCount && tarafsizPool.length > 0; i++) {
-    const idx = Math.floor(Math.random() * tarafsizPool.length);
-    pool.push(tarafsizPool.splice(idx, 1)[0]);
-  }
+  // 5. Kalan slotları Komşu ile doldur
+  while (pool.length < playerCount) pool.push("komsu");
 
-  // Kalan slotları köylü ile doldur
-  while (pool.length < playerCount) pool.push("koylu");
-
-  // Pool oyuncu sayısından büyükse güvence truncation
+  // 6. Güvenlik kontrolü — pool tam olmalı
   while (pool.length > playerCount) pool.pop();
+
+  // 7. Denge doğrulama — çete < iyi olmalı
+  const evilCount = pool.filter((r) => EVIL_ROLE_IDS.has(r)).length;
+  const goodCount = pool.filter((r) => GOOD_ROLE_IDS.has(r)).length;
+  if (evilCount >= goodCount) {
+    console.error(`BALANCE ERROR: evil ${evilCount} >= good ${goodCount} for ${playerCount} players`);
+    let excess = evilCount - goodCount + 1;
+    for (let i = pool.length - 1; i >= 0 && excess > 0; i--) {
+      if (["tahsildar", "icten_pazarlikli"].includes(pool[i])) {
+        pool[i] = "komsu";
+        excess--;
+      }
+    }
+  }
 
   return pool;
 }
