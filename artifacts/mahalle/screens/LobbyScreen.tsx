@@ -450,7 +450,7 @@ const KAOS_ROLES = [
 ];
 const TARAFSIZ_ROLES = [
   { id: "anonim", name: "Anonim", emoji: "🎭" },
-  { id: "kahraman_dede", name: "Savaş Gazisi Dede", emoji: "🪬" },
+  { id: "savas_gazisi_dede", name: "Savaş Gazisi Dede", emoji: "🪬" },
 ];
 
 // Paket içerikleri — paket değişince disabledRoles otomatik hesaplanır
@@ -471,7 +471,7 @@ const PACKAGE_ROLES = {
     mahalle: ["bekci", "otaci", "kapici", "falci", "muhtar", "muhabir", "hoca", "tiyatrocu"],
     cete: ["sahte_dernek", "icten_pazarlikli"],
     kaos: ["kumarbaz", "kiskanc_komsu", "kirik_kalp", "dedikoducu"],
-    tarafsiz: ["anonim", "kahraman_dede"],
+    tarafsiz: ["anonim", "savas_gazisi_dede"],
   },
 } as const;
 

@@ -13,14 +13,14 @@ const WINNER_LABEL: Record<string, string> = {
   iyi: "MAHALLE KAZANDI",
   kotu: "DAVETSİZ MİSAFİR KAZANDI",
   kumarbaz: "KUMARBAZ KAZANDI",
-  kahraman_dede: "SAVAŞ GAZİSİ DEDE KAZANDI",
+  savas_gazisi_dede: "SAVAŞ GAZİSİ DEDE KAZANDI",
   kirik_kalp: "KIRIK KALP KAZANDI",
   anonim: "ANONİM KAZANDI",
 };
 
 const WINNER_COLOR: Record<string, string> = {
   kumarbaz: "#F5A623",
-  kahraman_dede: "#9B7FD4",
+  savas_gazisi_dede: "#9B7FD4",
   kirik_kalp: "#9B7FD4",
   anonim: "#9B7FD4",
 };

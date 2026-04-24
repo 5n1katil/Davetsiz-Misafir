@@ -348,8 +348,8 @@ export const ROLES: Record<string, RoleDef> = {
     voteWeight: 1,
   },
 
-  kahraman_dede: {
-    id: "kahraman_dede",
+  savas_gazisi_dede: {
+    id: "savas_gazisi_dede",
     name: "Savaş Gazisi Dede",
     emoji: "🪬",
     team: "tarafsiz",
@@ -430,7 +430,7 @@ const KAOS_BY_PACKAGE: Record<string, string[]> = {
 const TARAFSIZ_BY_PACKAGE: Record<string, string[]> = {
   standard: [],
   advanced: [],
-  all:      ["anonim", "kahraman_dede"],
+  all:      ["anonim", "savas_gazisi_dede"],
 };
 
 const EVIL_ROLE_IDS = new Set(["tefeci_basi", "tahsildar", "sahte_dernek", "icten_pazarlikli"]);

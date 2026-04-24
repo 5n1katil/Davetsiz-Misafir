@@ -941,7 +941,7 @@ function startNight(room: Room) {
   }
 
   // 9: Savaş Gazisi Dede
-  for (const rid of ["kahraman_dede"]) {
+  for (const rid of ["savas_gazisi_dede"]) {
     const actors = room.players.filter((p) => p.isAlive && p.roleId === rid);
     if (actors.length > 0) queue.push({ roleId: rid, actorIds: actors.map((a) => a.id) });
   }
@@ -1813,8 +1813,8 @@ function checkWin(room: Room): boolean {
   }
 
   // ── Savaş Gazisi Dede kazanma: hayatta kalan tek kişi ──────────────────────
-  if (aliveCount === 1 && alivePlayers[0].roleId === "kahraman_dede") {
-    endGame(room, "kahraman_dede", `Savaş Gazisi Dede kazandı! Mahallede tek kişi kaldı.`);
+  if (aliveCount === 1 && alivePlayers[0].roleId === "savas_gazisi_dede") {
+    endGame(room, "savas_gazisi_dede", `Savaş Gazisi Dede kazandı! Mahallede tek kişi kaldı.`);
     return true;
   }
 
@@ -1841,7 +1841,7 @@ function checkWin(room: Room): boolean {
 
   // ── Mahalle kazanma: tüm çete + tehlikeli tarafsızlar elenince ─────────
   const aliveDangerousNeutral = alivePlayers.filter(
-    (p) => p.roleId === "anonim" || p.roleId === "kahraman_dede",
+    (p) => p.roleId === "anonim" || p.roleId === "savas_gazisi_dede",
   ).length;
 
   if (aliveMafia === 0 && aliveDangerousNeutral === 0) {

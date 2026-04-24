@@ -97,7 +97,7 @@ const NAMED_ROLE_IDS = [
   "komsu", "muhtar", "bekci", "otaci", "falci", "kapici", "muhabir", "tiyatrocu", "hoca",
   "tefeci_basi", "tahsildar", "sahte_dernek", "icten_pazarlikli",
   "kumarbaz", "kiskanc_komsu", "kirik_kalp", "dedikoducu",
-  "anonim", "kahraman_dede",
+  "anonim", "savas_gazisi_dede",
 ];
 
 const TEAM_GROUPS: { team: "iyi" | "kotu" | "kaos" | "tarafsiz"; title: string; color: string }[] = [

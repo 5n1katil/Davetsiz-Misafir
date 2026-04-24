@@ -548,7 +548,7 @@ describe("Anonim win condition", () => {
 describe("Savaş Gazisi Dede", () => {
   it("Savaş Gazisi Dede kills independently and is NOT blocked by Kapıcı lock", () => {
     const { room, ids } = makeRoom([
-      "kahraman_dede", "tefeci_basi", "kapici", "komsu", "komsu",
+      "savas_gazisi_dede", "tefeci_basi", "kapici", "komsu", "komsu",
     ]);
     const targetId = ids[3];
     const dedeId = ids[0];
@@ -564,7 +564,7 @@ describe("Savaş Gazisi Dede", () => {
 
   it("Savaş Gazisi Dede kill IS blocked by Şifacı protection", () => {
     const { room, ids } = makeRoom([
-      "kahraman_dede", "otaci", "komsu", "komsu", "tefeci_basi",
+      "savas_gazisi_dede", "otaci", "komsu", "komsu", "tefeci_basi",
     ]);
     const targetId = ids[2];
     const dedeId = ids[0];
@@ -581,7 +581,7 @@ describe("Savaş Gazisi Dede", () => {
 
   it("Savaş Gazisi Dede wins as the sole survivor", () => {
     const { room, ids } = makeRoom([
-      "kahraman_dede", "komsu", "komsu", "tefeci_basi",
+      "savas_gazisi_dede", "komsu", "komsu", "tefeci_basi",
     ]);
 
     room.players[1].isAlive = false;
@@ -596,7 +596,7 @@ describe("Savaş Gazisi Dede", () => {
     });
 
     expect(room.phase).toBe("ENDED");
-    expect(room.winner).toBe("kahraman_dede");
+    expect(room.winner).toBe("savas_gazisi_dede");
   });
 });
 
@@ -744,7 +744,7 @@ describe("18. rolePackage filtresi", () => {
   it("standard pakette kaos/tarafsız rol yok", () => {
     const pool = buildRolePool(8, { rolePackage: "standard" });
     const kaosRoles = ["kumarbaz", "kiskanc_komsu", "kirik_kalp", "dedikoducu"];
-    const tarafsizRoles = ["anonim", "kahraman_dede"];
+    const tarafsizRoles = ["anonim", "savas_gazisi_dede"];
     expect(pool.some((r) => kaosRoles.includes(r))).toBe(false);
     expect(pool.some((r) => tarafsizRoles.includes(r))).toBe(false);
   });

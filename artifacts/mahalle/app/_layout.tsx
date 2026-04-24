@@ -61,6 +61,12 @@ export default function RootLayout() {
   useEffect(() => {
     let cancelled = false;
 
+    // Web'de fontfaceobserver 6s timeout hatası atıyor — sistem fontlarıyla devam et
+    if (Platform.OS === "web") {
+      setFontsReady(true);
+      return;
+    }
+
     Font.loadAsync({
       Inter_400Regular,
       Inter_500Medium,

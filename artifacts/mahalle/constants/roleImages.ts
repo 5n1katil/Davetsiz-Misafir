@@ -21,7 +21,7 @@ const roleImages: Record<string, any> = {
   dedikoducu: require("../assets/images/roles/dedikoducu.png"),
   // YALNIZ KURTLAR
   anonim: require("../assets/images/roles/anonim.png"),
-  kahraman_dede: require("../assets/images/roles/kahraman_dede.png"),
+  savas_gazisi_dede: require("../assets/images/roles/savas_gazisi_dede.png"),
 };
 
 export default roleImages;

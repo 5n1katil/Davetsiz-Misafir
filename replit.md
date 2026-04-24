@@ -20,7 +20,7 @@ Expo mobile app, App Store hedefli.
 Mahalle (9): komsu, muhtar, bekci, otaci, falci, kapici, muhabir, tiyatrocu, hoca
 Çete (4): tefeci_basi, tahsildar, sahte_dernek, icten_pazarlikli
 Kargaşacılar (4): kumarbaz, kiskanc_komsu, kirik_kalp, dedikoducu
-Yalnız Kurtlar (2): anonim, kahraman_dede
+Yalnız Kurtlar (2): anonim, savas_gazisi_dede
 
 Komşu (🏠) — standart masum rol, her zaman havuza dolgu olarak eklenir, oyun evreninin temel karakteridir.
 

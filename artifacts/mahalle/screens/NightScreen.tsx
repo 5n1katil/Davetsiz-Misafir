@@ -50,7 +50,7 @@ function formatResultMsg(msg: string): string {
 const BG = "#060310";
 
 // Roles whose identity must stay hidden from other players during night
-const HIDDEN_ROLES = new Set(["anonim", "kahraman_dede", "kumarbaz"]);
+const HIDDEN_ROLES = new Set(["anonim", "savas_gazisi_dede", "kumarbaz"]);
 
 const ROLE_INSTRUCTIONS: Record<string, string> = {
   _cete: "Hedef seçin. Çoğunluk kazanır.",
@@ -62,7 +62,7 @@ const ROLE_INSTRUCTIONS: Record<string, string> = {
   kumarbaz: "İki kişiyi seç — rolleri kalıcı olarak takas edilecek.",
   kiskanc_komsu: "Bu gece kimin eylemini taklit edeceksin?",
   anonim: "Bu gece gizlice kimi işaretliyorsun?",
-  kahraman_dede: "Bu gece kim mahalleni bozuyor, Savaş Gazisi Dede?",
+  savas_gazisi_dede: "Bu gece kim mahalleni bozuyor, Savaş Gazisi Dede?",
 };
 
 function getRoleAccent(roleId: string): string {

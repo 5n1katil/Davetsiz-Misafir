@@ -380,8 +380,8 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
     nightActionDescription: "Bir kişiyi işaretle. 3 işaretlediğin kişi linç edilirse kazanırsın.",
     shortDesc: "İşaretlediği 3 kişi linç edilirse tek başına kazanır.",
   },
-  kahraman_dede: {
-    id: "kahraman_dede",
+  savas_gazisi_dede: {
+    id: "savas_gazisi_dede",
     name: "Savaş Gazisi Dede",
     emoji: "🪬",
     team: "tarafsiz",
