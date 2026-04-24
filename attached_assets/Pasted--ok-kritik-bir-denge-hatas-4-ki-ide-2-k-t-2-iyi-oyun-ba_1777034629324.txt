@@ -1,0 +1,336 @@
+Çok kritik bir denge hatası. 4 kişide 2 kötü 2 iyi = oyun başlamadan çete kazanıyor. Replit'e ver:
+
+---
+
+> Critical balance fix for Davetsiz Misafir. The game is broken at small player counts — 4 players getting 2 evil roles means evil wins before the game starts. Fix everything below:
+>
+> ---
+>
+> **PROBLEM 1 — Rol dağılım tablosu tamamen yeniden yazılmalı**
+>
+> Mevcut tablo yanlış. Kural: Çete sayısı asla oyuncuların 1/3'ünü geçemez ve başlangıçta çete sayısı < iyi oyuncu sayısı olmalı.
+>
+> `gameEngine.ts` ve `roles.ts` içindeki dağılım tablosunu şununla değiştir:
+>
+> ```typescript
+> // KURAL: Çete her zaman azınlıkta başlar.
+> // Formül: Math.floor(playerCount / 4) çete üyesi
+> // Minimum: 1 çete (Davetsiz Misafir)
+> // Maksimum: 5 çete (30 kişide)
+>
+> function getEvilCount(playerCount: number): number {
+>   return Math.max(1, Math.floor(playerCount / 4));
+> }
+>
+> // Tam tablo:
+> const ROLE_DISTRIBUTION: Record<number, {
+>   davetsizMisafir: number;  // Tefeci Başı sayısı
+>   tahsildar: number;
+>   politikaci: boolean;      // Sahte Dernek Başkanı
+>   icten: boolean;           // İçten Pazarlıklı
+>   kaosMax: number;          // Max kaos rol sayısı
+>   tarafsizMax: number;      // Max tarafsız rol sayısı
+>   specialMahalleMax: number; // Max özel mahalle rol sayısı
+> }> = {
+>   4:  { davetsizMisafir: 1, tahsildar: 0, politikaci: false, icten: false, kaosMax: 0, tarafsizMax: 0, specialMahalleMax: 1 },
+>   5:  { davetsizMisafir: 1, tahsildar: 0, politikaci: false, icten: false, kaosMax: 0, tarafsizMax: 0, specialMahalleMax: 1 },
+>   6:  { davetsizMisafir: 1, tahsildar: 1, politikaci: false, icten: false, kaosMax: 0, tarafsizMax: 0, specialMahalleMax: 2 },
+>   7:  { davetsizMisafir: 1, tahsildar: 1, politikaci: false, icten: false, kaosMax: 1, tarafsizMax: 0, specialMahalleMax: 2 },
+>   8:  { davetsizMisafir: 1, tahsildar: 1, politikaci: true,  icten: false, kaosMax: 1, tarafsizMax: 0, specialMahalleMax: 2 },
+>   9:  { davetsizMisafir: 1, tahsildar: 1, politikaci: true,  icten: false, kaosMax: 1, tarafsizMax: 0, specialMahalleMax: 3 },
+>   10: { davetsizMisafir: 2, tahsildar: 1, politikaci: true,  icten: false, kaosMax: 1, tarafsizMax: 0, specialMahalleMax: 3 },
+>   11: { davetsizMisafir: 2, tahsildar: 1, politikaci: true,  icten: false, kaosMax: 1, tarafsizMax: 0, specialMahalleMax: 3 },
+>   12: { davetsizMisafir: 2, tahsildar: 1, politikaci: true,  icten: false, kaosMax: 2, tarafsizMax: 0, specialMahalleMax: 3 },
+>   13: { davetsizMisafir: 2, tahsildar: 1, politikaci: true,  icten: false, kaosMax: 2, tarafsizMax: 0, specialMahalleMax: 4 },
+>   14: { davetsizMisafir: 2, tahsildar: 2, politikaci: true,  icten: false, kaosMax: 2, tarafsizMax: 1, specialMahalleMax: 4 },
+>   15: { davetsizMisafir: 2, tahsildar: 2, politikaci: true,  icten: false, kaosMax: 2, tarafsizMax: 1, specialMahalleMax: 4 },
+>   16: { davetsizMisafir: 3, tahsildar: 2, politikaci: true,  icten: true,  kaosMax: 2, tarafsizMax: 1, specialMahalleMax: 4 },
+>   17: { davetsizMisafir: 3, tahsildar: 2, politikaci: true,  icten: true,  kaosMax: 2, tarafsizMax: 1, specialMahalleMax: 5 },
+>   18: { davetsizMisafir: 3, tahsildar: 2, politikaci: true,  icten: true,  kaosMax: 3, tarafsizMax: 1, specialMahalleMax: 5 },
+>   19: { davetsizMisafir: 3, tahsildar: 2, politikaci: true,  icten: true,  kaosMax: 3, tarafsizMax: 1, specialMahalleMax: 5 },
+>   20: { davetsizMisafir: 3, tahsildar: 2, politikaci: true,  icten: true,  kaosMax: 3, tarafsizMax: 2, specialMahalleMax: 5 },
+>   22: { davetsizMisafir: 4, tahsildar: 2, politikaci: true,  icten: true,  kaosMax: 3, tarafsizMax: 2, specialMahalleMax: 6 },
+>   25: { davetsizMisafir: 4, tahsildar: 3, politikaci: true,  icten: true,  kaosMax: 4, tarafsizMax: 2, specialMahalleMax: 6 },
+>   28: { davetsizMisafir: 5, tahsildar: 3, politikaci: true,  icten: true,  kaosMax: 4, tarafsizMax: 2, specialMahalleMax: 7 },
+>   30: { davetsizMisafir: 5, tahsildar: 3, politikaci: true,  icten: true,  kaosMax: 4, tarafsizMax: 2, specialMahalleMax: 7 },
+> };
+>
+> // Tam sayı için interpolasyon:
+> function getDistribution(playerCount: number) {
+>   const keys = Object.keys(ROLE_DISTRIBUTION).map(Number).sort((a,b) => a-b);
+>   const key = keys.find(k => k >= playerCount) ?? keys[keys.length - 1];
+>   return ROLE_DISTRIBUTION[key];
+> }
+> ```
+>
+> ---
+>
+> **PROBLEM 2 — buildRolePool() dağılım tablosunu kullanmalı**
+>
+> ```typescript
+> export function buildRolePool(playerCount: number, settings: RoomSettings): string[] {
+>   const dist = getDistribution(playerCount);
+>   const pkg = settings.rolePackage ?? 'all';
+>   const disabled = settings.disabledRoles ?? [];
+>   const pool: string[] = [];
+>
+>   // 1. Çete rolleri — zorunlu
+>   pool.push('tefeci_basi'); // Her zaman 1 Davetsiz Misafir
+>   for (let i = 1; i < dist.davetsizMisafir; i++) pool.push('tefeci_basi');
+>   for (let i = 0; i < dist.tahsildar; i++) pool.push('tahsildar');
+>   if (dist.politikaci && !disabled.includes('sahte_dernek')) pool.push('sahte_dernek');
+>   if (dist.icten && !disabled.includes('icten_pazarlikli')) pool.push('icten_pazarlikli');
+>
+>   // 2. Özel mahalle rolleri — pakete ve ayara göre
+>   const mahallePool = PACKAGE_ROLES[pkg].mahalle.filter(r => !disabled.includes(r));
+>   const shuffledMahalle = [...mahallePool].sort(() => Math.random() - 0.5);
+>   const mahalleToAdd = shuffledMahalle.slice(0, dist.specialMahalleMax);
+>   pool.push(...mahalleToAdd);
+>
+>   // 3. Kaos rolleri
+>   if (dist.kaosMax > 0) {
+>     const kaosPool = PACKAGE_ROLES[pkg].kaos.filter(r => !disabled.includes(r));
+>     const shuffledKaos = [...kaosPool].sort(() => Math.random() - 0.5);
+>     pool.push(...shuffledKaos.slice(0, dist.kaosMax));
+>   }
+>
+>   // 4. Tarafsız roller
+>   if (dist.tarafsizMax > 0) {
+>     const tarafsizPool = PACKAGE_ROLES[pkg].tarafsiz.filter(r => !disabled.includes(r));
+>     const shuffledTarafsiz = [...tarafsizPool].sort(() => Math.random() - 0.5);
+>     pool.push(...shuffledTarafsiz.slice(0, dist.tarafsizMax));
+>   }
+>
+>   // 5. Kalan slotları Komşu ile doldur
+>   while (pool.length < playerCount) pool.push('komsu');
+>
+>   // 6. Güvenlik kontrolü — pool tam olmalı
+>   if (pool.length !== playerCount) {
+>     console.error(`Pool size mismatch: ${pool.length} vs ${playerCount}`);
+>     // Düzelt
+>     while (pool.length > playerCount) pool.pop();
+>     while (pool.length < playerCount) pool.push('komsu');
+>   }
+>
+>   // 7. Denge doğrulama
+>   const evilCount = pool.filter(r => ['tefeci_basi','tahsildar','sahte_dernek','icten_pazarlikli'].includes(r)).length;
+>   const goodCount = pool.length - evilCount; // kaos ve tarafsız bu hesabın dışında
+>   if (evilCount >= goodCount) {
+>     console.error(`BALANCE ERROR: evil ${evilCount} >= good ${goodCount} for ${playerCount} players`);
+>     // Acil düzeltme: fazla kötü rolleri komşuya çevir
+>     let excess = evilCount - goodCount + 1;
+>     for (let i = pool.length - 1; i >= 0 && excess > 0; i--) {
+>       if (['tahsildar', 'icten_pazarlikli'].includes(pool[i])) {
+>         pool[i] = 'komsu';
+>         excess--;
+>       }
+>     }
+>   }
+>
+>   return pool;
+> }
+> ```
+>
+> ---
+>
+> **PROBLEM 3 — "koylu" rolü → "komsu" olarak yeniden adlandır**
+>
+> `roles.ts` içinde:
+>
+> ```typescript
+> // ESKİ:
+> { id: 'koylu', name: 'Mahalle Sakini', emoji: '🏘️', ... }
+>
+> // YENİ:
+> {
+>   id: 'komsu',
+>   name: 'Komşu',
+>   emoji: '🏠',
+>   team: 'iyi',
+>   nightOrder: 99,
+>   nightAction: null,
+>   shortDesc: 'Sıradan bir komşu. Özel yeteneği yok ama oyu her zaman değerlidir.',
+>   ability: 'Gece eylemi yoktur. Gündüz tartışması ve oylaması tek silahıdır.',
+>   winCondition: 'Tüm çete etkisiz hale getirilmeli.',
+>   tips: [
+>     'Sessiz kalmak şüphe çeker — konuş, tartış.',
+>     'Dikkatli gözlem yapan Komşu oyunun kaderini belirler.',
+>     'Kimin nasıl davrandığını takip et.'
+>   ]
+> }
+> ```
+>
+> Tüm kod tabanında `'koylu'` → `'komsu'` yap:
+> ```bash
+> # gameEngine.ts, roles.ts, socket.ts, test dosyaları
+> # Tüm string literal 'koylu' → 'komsu'
+> # buildRolePool içinde pool.push('koylu') → pool.push('komsu')
+> ```
+>
+> ---
+>
+> **PROBLEM 4 — Kazanma koşulu düzeltmesi**
+>
+> Mevcut kural: `evilAlive >= goodAlive` → çete kazanır.
+> Bu yanlış çünkü kaos ve tarafsız oyuncular ne iyiye ne kötüye sayılıyor.
+>
+> Doğru kural:
+>
+> ```typescript
+> function checkWin(room: Room): string | null {
+>   const alive = room.players.filter(p => p.isAlive);
+>
+>   // Sayılar
+>   const evilAlive = alive.filter(p =>
+>     ['tefeci_basi','tahsildar','sahte_dernek','icten_pazarlikli'].includes(p.roleId)
+>   ).length;
+>
+>   const goodAlive = alive.filter(p =>
+>     ['bekci','otaci','falci','kapici','muhtar','muhabir','tiyatrocu','hoca','komsu'].includes(p.roleId)
+>   ).length;
+>
+>   // Kaos ve tarafsız: ne iyiye ne kötüye sayılmaz
+>   // ama kazanma koşullarını etkileyebilir
+>
+>   // ... (özel kazanma koşulları — Anonim, Kumarbaz vs. değişmedi) ...
+>
+>   // Çete kazanma — GÜNCELLENDİ:
+>   // Kural: evilAlive > 0 VE evilAlive >= goodAlive
+>   // Yani: iyi oyuncu kalmadıysa veya eşit/fazlaysa çete kazanır
+>   // Kaos ve tarafsız oyuncular bu hesaba GİRMEZ
+>   if (evilAlive > 0 && evilAlive >= goodAlive) {
+>     return 'kotu';
+>   }
+>
+>   // Mahalle kazanma:
+>   // Tüm kötüler yok VE tehlikeli tarafsızlar yok
+>   const dangerousNeutrals = alive.filter(p =>
+>     ['anonim', 'kahraman_dede'].includes(p.roleId)
+>   ).length;
+>   if (evilAlive === 0 && dangerousNeutrals === 0) {
+>     return 'iyi';
+>   }
+>
+>   return null; // oyun devam eder
+> }
+> ```
+>
+> ---
+>
+> **PROBLEM 5 — LobbyScreen ayarlar: dağılım önizlemesi**
+>
+> Host ayarlar panelinde oyuncu sayısına göre kaç iyi/kötü olacağını göster:
+>
+> ```tsx
+> {/* Ayarlar panelinin üstüne, oyuncu sayısı bilgisi altına ekle */}
+> <View style={styles.distributionPreview}>
+>   <Text style={styles.distributionPreviewTitle}>
+>     {connectedCount} kişiyle tahmini dağılım:
+>   </Text>
+>   <View style={styles.distributionPreviewRow}>
+>     {(() => {
+>       const dist = getDistribution(connectedCount);
+>       const evilTotal = dist.davetsizMisafir + dist.tahsildar +
+>         (dist.politikaci ? 1 : 0) + (dist.icten ? 1 : 0);
+>       const goodTotal = connectedCount - evilTotal; // kaos dahil
+>       return (
+>         <>
+>           <View style={styles.distChip}>
+>             <Text style={styles.distChipNum}>{goodTotal}</Text>
+>             <Text style={styles.distChipLabel}>İyi</Text>
+>           </View>
+>           <Text style={styles.distVs}>vs</Text>
+>           <View style={[styles.distChip, styles.distChipEvil]}>
+>             <Text style={[styles.distChipNum, {color:'#C8102E'}]}>{evilTotal}</Text>
+>             <Text style={styles.distChipLabel}>Kötü</Text>
+>           </View>
+>         </>
+>       );
+>     })()}
+>   </View>
+>   <Text style={styles.distributionNote}>
+>     * Kaos ve Yalnız Kurt rolleri ayrı kazanma koşullarıyla oynar
+>   </Text>
+> </View>
+> ```
+>
+> Style:
+> ```typescript
+> distributionPreview: {
+>   backgroundColor: '#130830', borderRadius: 10,
+>   padding: 12, marginBottom: 16,
+>   borderLeftWidth: 3, borderLeftColor: '#F5C842'
+> }
+> distributionPreviewTitle: { fontSize: 12, color: '#9B7FD4', marginBottom: 8 }
+> distributionPreviewRow: { flexDirection: 'row', alignItems: 'center', gap: 16 }
+> distChip: {
+>   backgroundColor: '#1A0A3E', borderRadius: 8, borderWidth: 1,
+>   borderColor: '#F5C842', padding: 10, alignItems: 'center', minWidth: 60
+> }
+> distChipEvil: { borderColor: '#C8102E' }
+> distChipNum: { fontSize: 24, fontWeight: '800', color: '#F5C842' }
+> distChipLabel: { fontSize: 10, color: '#9B7FD4', marginTop: 2 }
+> distVs: { fontSize: 14, color: '#4A2E7A', fontWeight: '700' }
+> distributionNote: { fontSize: 10, color: '#4A2E7A', marginTop: 8, fontStyle: 'italic' }
+> ```
+>
+> ---
+>
+> **PROBLEM 6 — Test güncellemeleri**
+>
+> Tüm testlerde `'koylu'` → `'komsu'` değiştir. Yeni denge testi ekle:
+>
+> ```typescript
+> describe('19. Rol dağılım dengesi', () => {
+>   it('4 oyuncuda çete iyi oyuncudan az', () => {
+>     const pool = buildRolePool(4, { rolePackage: 'all' });
+>     const evil = pool.filter(r => ['tefeci_basi','tahsildar','sahte_dernek','icten_pazarlikli'].includes(r));
+>     const good = pool.filter(r => ['bekci','otaci','falci','kapici','muhtar','muhabir','tiyatrocu','hoca','komsu'].includes(r));
+>     expect(evil.length).toBeLessThan(good.length);
+>     expect(pool.length).toBe(4);
+>   });
+>
+>   it('4 oyuncuda sadece 1 kötü rol var', () => {
+>     const pool = buildRolePool(4, { rolePackage: 'all' });
+>     const evil = pool.filter(r => ['tefeci_basi','tahsildar','sahte_dernek','icten_pazarlikli'].includes(r));
+>     expect(evil.length).toBe(1);
+>   });
+>
+>   it('8 oyuncuda çete < toplam/3', () => {
+>     const pool = buildRolePool(8, { rolePackage: 'all' });
+>     const evil = pool.filter(r => ['tefeci_basi','tahsildar','sahte_dernek','icten_pazarlikli'].includes(r));
+>     expect(evil.length).toBeLessThanOrEqual(Math.floor(8/3));
+>   });
+>
+>   it('her oyuncu sayısında pool.length === playerCount', () => {
+>     [4,5,6,7,8,9,10,12,14,16,18,20,25,30].forEach(n => {
+>       const pool = buildRolePool(n, { rolePackage: 'all' });
+>       expect(pool.length).toBe(n);
+>     });
+>   });
+>
+>   it('4 oyuncuda koylu artık komsu adını taşıyor', () => {
+>     const pool = buildRolePool(4, { rolePackage: 'all' });
+>     expect(pool.includes('koylu')).toBe(false);
+>     expect(pool.some(r => r === 'komsu')).toBe(true);
+>   });
+>
+>   it('checkWin kaos oyuncuları iyi/kötü sayısına dahil etmez', () => {
+>     const room = makeRoom(['tefeci_basi', 'komsu', 'kumarbaz']);
+>     // 1 kötü, 1 iyi, 1 kaos — çete kazanmamalı (1 < 1 değil)
+>     const result = checkWin(room);
+>     expect(result).not.toBe('kotu');
+>   });
+> });
+> ```
+>
+> ---
+>
+> **ÖZET — değişen dosyalar:**
+> - `gameEngine.ts`: ROLE_DISTRIBUTION tablosu, getDistribution(), buildRolePool(), checkWin(), tüm 'koylu' → 'komsu'
+> - `roles.ts`: koylu → komsu rolü yeniden adlandırma, shortDesc güncelleme
+> - `LobbyScreen.tsx`: dağılım önizleme kartı
+> - `gameEngine.test.ts`: 'koylu' → 'komsu', 6 yeni denge testi
+> - `multiplayer.test.ts`: 'koylu' → 'komsu'
+>
+> **pnpm test çalıştır — hedef: 46 mevcut + 6 yeni = 52 test geçmeli.**

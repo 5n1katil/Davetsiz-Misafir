@@ -179,13 +179,7 @@ function PlayerRow({
           style={[styles.playerName, isMe && styles.playerNameMe]}
           numberOfLines={1}
         >
-          {isNarrow
-            ? player.nickname.length > 7
-              ? player.nickname.slice(0, 7) + "…"
-              : player.nickname
-            : player.nickname.length > 11
-            ? player.nickname.slice(0, 11) + "…"
-            : player.nickname}
+          {`OYUNCU${player.roleSelectPosition ?? "?"}`}
         </Text>
 
         {isDone && role ? (
