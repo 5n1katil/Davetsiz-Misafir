@@ -197,7 +197,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       haptic(Haptics.ImpactFeedbackStyle.Heavy);
       if (state.winner && myPlayerId) {
         const myGraveEntry = state.graveyard.find((g) => g.playerId === myPlayerId);
-        const myRoleId = state.myRole ?? myGraveEntry?.roleId ?? "koylu";
+        const myRoleId = state.myRole ?? myGraveEntry?.roleId ?? "komsu";
         const myRoleDef = ROLE_DEFS[myRoleId];
         const myTeam = myRoleDef?.team ?? "iyi";
         const won = myTeam === state.winner;

@@ -34,6 +34,23 @@ export interface RoleDef {
 export const ROLES: Record<string, RoleDef> = {
   // ── MAHALLE TAKIMI ──────────────────────────────────────────────────────────
 
+  komsu: {
+    id: "komsu",
+    name: "Komşu",
+    emoji: "🏠",
+    team: "iyi",
+    isMafia: false,
+    description: "Sıradan bir komşu. Özel yeteneği yok ama oyu her zaman değerlidir.",
+    story: "Sabah simit alır, akşam çay içer. Geceleri evden çıkmaz ama kulağı kirişte.",
+    ability: "Gece eylemi yoktur. Gündüz tartışması ve oylaması tek silahıdır.",
+    winCondition: "Tüm çete etkisiz hale getirilmeli.",
+    tips: ["Sessiz kalmak şüphe çeker — konuş, tartış.", "Dikkatli gözlem yapan Komşu oyunun kaderini belirler.", "Kimin nasıl davrandığını takip et."],
+    nightAction: null,
+    nightOrder: 99,
+    voiceCallTr: "",
+    voteWeight: 1,
+  },
+
   muhtar: {
     id: "muhtar",
     name: "Muhtar",
@@ -171,22 +188,6 @@ export const ROLES: Record<string, RoleDef> = {
     isOneTimeUse: true,
   },
 
-  komsu: {
-    id: "komsu",
-    name: "Komşu",
-    emoji: "🏠",
-    team: "iyi",
-    isMafia: false,
-    description: "Sıradan bir komşu. Özel yeteneği yok ama oyu her zaman değerlidir.",
-    story: "Sabah simit alır, akşam çay içer. Geceleri evden çıkmaz ama kulağı kirişte.",
-    ability: "Gece eylemi yoktur. Gündüz tartışması ve oylaması tek silahıdır.",
-    winCondition: "Tüm çete etkisiz hale getirilmeli.",
-    tips: ["Sessiz kalmak şüphe çeker — konuş, tartış.", "Dikkatli gözlem yapan Komşu oyunun kaderini belirler.", "Kimin nasıl davrandığını takip et."],
-    nightAction: null,
-    nightOrder: 99,
-    voiceCallTr: "",
-    voteWeight: 1,
-  },
 
   // ── DAVETSİZ MİSAFİR ÇETESİ ────────────────────────────────────────────────
 

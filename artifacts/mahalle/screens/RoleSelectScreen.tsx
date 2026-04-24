@@ -104,8 +104,8 @@ function PlayerPanel({
         <Text style={styles.panelTitle}>OYUNCULAR</Text>
       </View>
       <ScrollView showsVerticalScrollIndicator={false} style={styles.panelScroll}>
-        {players.map((p) => (
-          <PlayerRow key={p.id} player={p} myId={myId} panelWidth={panelWidth} />
+        {players.map((p, idx) => (
+          <PlayerRow key={p.id} player={p} myId={myId} panelWidth={panelWidth} displayIndex={idx + 1} />
         ))}
       </ScrollView>
     </View>
@@ -117,10 +117,12 @@ function PlayerRow({
   player,
   myId,
   panelWidth,
+  displayIndex,
 }: {
   player: any;
   myId: string | null;
   panelWidth: number;
+  displayIndex: number;
 }) {
   const isMe = player.id === myId;
   const isDone = player.roleSelectStatus === "done";
@@ -169,7 +171,7 @@ function PlayerRow({
       {/* Position badge */}
       <View style={[styles.posBadge, isPicking && styles.posBadgePicking]}>
         <Text style={[styles.posNum, isPicking && styles.posNumPicking]}>
-          {String(player.roleSelectPosition ?? "?").padStart(2, "0")}
+          {String(displayIndex).padStart(2, "0")}
         </Text>
       </View>
 
@@ -179,7 +181,7 @@ function PlayerRow({
           style={[styles.playerName, isMe && styles.playerNameMe]}
           numberOfLines={1}
         >
-          {`OYUNCU${player.roleSelectPosition ?? "?"}`}
+          {`OYUNCU${String(displayIndex).padStart(2, "0")}`}
         </Text>
 
         {isDone && role ? (

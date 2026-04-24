@@ -1,0 +1,43 @@
+Haklısın, ISSUE 4 bunu söylüyor ama yeterince net değil. Replit teknik detay olmadan "ne bekliyoruz" formatında daha iyi anlıyor. Güncellenmiş prompt:
+
+---
+
+> The game "Davetsiz Misafir" has 5 known issues. Fix all of them. Do not change anything else.
+>
+> ---
+>
+> **ISSUE 1 — replit.md is outdated**
+>
+> The file still says "koylu" but the role was renamed to "komsu". It also shows wrong test count. Update replit.md to accurately reflect current state: 52 tests, 19 roles with correct names, current file structure.
+>
+> ---
+>
+> **ISSUE 2 — Distribution preview ignores disabled roles**
+>
+> In LobbyScreen the distribution preview card shows "X İyi vs Y Kötü" but the numbers are static. Expected: the numbers update live whenever the host changes any setting — disabling a role, changing role package, or when players join/leave. The preview must always show exactly what the actual game would look like if started right now with the current settings and current player count.
+>
+> ---
+>
+> **ISSUE 3 — Unavailable role categories should be hidden, not shown as locked**
+>
+> In the host settings panel, kaos and tarafsız role toggles appear greyed out with a lock icon when player count is too low. Expected: when a role category is not available at the current player count, hide the entire category and show a single informational line instead:
+> - Kaos roles: hidden when fewer than 7 players are connected. Show: "Kargaşacı roller 7 veya daha fazla oyuncuyla aktif olur."
+> - Tarafsız roles: hidden when fewer than 14 players are connected. Show: "Yalnız Kurt roller 14 veya daha fazla oyuncuyla aktif olur."
+>
+> When enough players join and the threshold is met, the category reappears automatically with its toggles.
+>
+> ---
+>
+> **ISSUE 4 — Players can see and pick roles that will never exist in their game**
+>
+> During role selection, each player is shown 3 role cards to choose from. Currently a player with 4 total players in the game might see a Kumarbaz card even though with 4 players there are zero kaos slots — Kumarbaz cannot exist in this game. Expected behavior: the role cards shown to each player during their turn must only contain roles that are actually in this game's role pool. If Kumarbaz has no slot in a 4-player game, Kumarbaz must never appear as a card option. If only 2 unique roles remain in the pool, show 2 cards. If only 1 remains, show 1 card. The available cards must always reflect reality.
+>
+> ---
+>
+> **ISSUE 5 — Player numbering skips in the role selection screen**
+>
+> In RoleSelectScreen the left panel shows OYUNCU01, OYUNCU02 etc. but numbers sometimes skip (01 then 03). Expected: players are always displayed in the exact order they will take their turn, numbered 01 through N with no gaps. The player currently picking is highlighted. The number shown is always that player's position in the selection queue, nothing else.
+>
+> ---
+>
+> After all fixes, run `pnpm --filter @workspace/api-server run test` and confirm all 52 tests pass.

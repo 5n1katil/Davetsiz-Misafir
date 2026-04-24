@@ -561,7 +561,10 @@ function RoleToggle({
 }
 
 // ── HostSettings — accordion ayarlar paneli ───────────────────────────────────
-function getDistributionPreview(playerCount: number): { evil: number; good: number } {
+function getDistributionPreview(
+  playerCount: number,
+  disabledRoles: string[] = [],
+): { evil: number; good: number } {
   const table: Record<number, { dm: number; tahsildar: number; politikaci: boolean; icten: boolean }> = {
     4:  { dm: 1, tahsildar: 0, politikaci: false, icten: false },
     5:  { dm: 1, tahsildar: 0, politikaci: false, icten: false },
@@ -580,10 +583,15 @@ function getDistributionPreview(playerCount: number): { evil: number; good: numb
     28: { dm: 5, tahsildar: 3, politikaci: true,  icten: true  },
     30: { dm: 5, tahsildar: 3, politikaci: true,  icten: true  },
   };
+  const disabled = new Set(disabledRoles);
   const keys = Object.keys(table).map(Number).sort((a, b) => a - b);
   const key = keys.find((k) => k >= playerCount) ?? keys[keys.length - 1];
   const d = table[key];
-  const evil = d.dm + d.tahsildar + (d.politikaci ? 1 : 0) + (d.icten ? 1 : 0);
+  const evil =
+    d.dm +
+    d.tahsildar +
+    (d.politikaci && !disabled.has("sahte_dernek") ? 1 : 0) +
+    (d.icten && !disabled.has("icten_pazarlikli") ? 1 : 0);
   return { evil, good: playerCount - evil };
 }
 
@@ -640,7 +648,7 @@ function HostSettings({ state, emit }: any) {
         <View style={styles.hsBody}>
           {/* Dağılım önizlemesi */}
           {connectedCount >= 4 && (() => {
-            const { evil, good } = getDistributionPreview(connectedCount);
+            const { evil, good } = getDistributionPreview(connectedCount, disabledRoles);
             return (
               <View style={styles.distPreview}>
                 <Text style={styles.distPreviewTitle}>
@@ -826,6 +834,28 @@ function HostSettings({ state, emit }: any) {
                 ].map(({ group, label, color, dot }) => {
                   const groupRoles = PACKAGE_ROLES[pkg][group];
                   if (groupRoles.length === 0) return null;
+
+                  if (group === "kaos" && connectedCount < 7) {
+                    return (
+                      <View key={group} style={styles.roleGroup}>
+                        <Text style={[styles.roleGroupLabel, { color }]}>{dot} {label}</Text>
+                        <Text style={styles.categoryInfoText}>
+                          Kargaşacı roller 7 veya daha fazla oyuncuyla aktif olur.
+                        </Text>
+                      </View>
+                    );
+                  }
+                  if (group === "tarafsiz" && connectedCount < 14) {
+                    return (
+                      <View key={group} style={styles.roleGroup}>
+                        <Text style={[styles.roleGroupLabel, { color }]}>{dot} {label}</Text>
+                        <Text style={styles.categoryInfoText}>
+                          Yalnız Kurt roller 14 veya daha fazla oyuncuyla aktif olur.
+                        </Text>
+                      </View>
+                    );
+                  }
+
                   return (
                     <View key={group} style={styles.roleGroup}>
                       <Text style={[styles.roleGroupLabel, { color }]}>{dot} {label}</Text>
@@ -1635,5 +1665,12 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     fontSize: 11,
     marginLeft: 2,
+  },
+  categoryInfoText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 12,
+    color: "#6B4FA8",
+    fontStyle: "italic",
+    paddingVertical: 4,
   },
 });

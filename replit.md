@@ -10,35 +10,62 @@ Expo mobile app, App Store hedefli.
 
 ## Çalıştırma
 - API server: pnpm --filter @workspace/api-server run dev
-- Mobile: pnpm --filter @workspace/mahalle run web
+- Mobile: pnpm --filter @workspace/mahalle run dev  (expo start --offline)
 - Tests: pnpm --filter @workspace/api-server run test
 
 ## Test Durumu
-46 vitest testi — tamamı geçiyor (41 gameEngine + 5 multiplayer socket).
+52 vitest testi — tamamı geçiyor (46 gameEngine + 6 multiplayer socket).
 
 ## Roller (19 adet)
-Mahalle (9): muhtar, bekci, otaci, falci, kapici, muhabir, tiyatrocu, hoca, koylu
+Mahalle (9): komsu, muhtar, bekci, otaci, falci, kapici, muhabir, tiyatrocu, hoca
 Çete (4): tefeci_basi, tahsildar, sahte_dernek, icten_pazarlikli
 Kargaşacılar (4): kumarbaz, kiskanc_komsu, kirik_kalp, dedikoducu
 Yalnız Kurtlar (2): anonim, kahraman_dede
 
-## Tamamlanan Özellikler (Son Güncelleme: #190-#195)
-- #178 TS uyarıları: gameEngine.ts simulateGame() içindeki 3 tür daraltma uyarısı `(room.phase as Phase)` cast ile düzeltildi
-- #179 Multiplayer socket testleri: 5 yeni vitest testi (oda kurma, disconnect/geçici host, yeniden bağlanma, 4 oyuncuyla oyun başlatma, hata yönetimi) — hepsi geçiyor
-- #180 Host ayarları: RoomSettings'e `voteDurationSec` (30/45/60sn) ve `rolePackage` (standard/advanced/all) eklendi; LobbyScreen'de UI; openVote dinamik süre kullanıyor
-- #181 Çete oylama UI: NightScreen'de gece aksiyonu sırasında her hedef için gerçek zamanlı oy sayısı rozeti gösterilir (yalnızca çete üyelerine görünür)
-- #182 Mezarlık sohbeti iyileştirmeleri: (a) publicView yalnızca ölü oyunculara/oyun sonu sonrasına graveyardChat gönderir; (b) mesaj girişine rol emojisi ve zaman damgası eklendi; (c) canlı oyuncular yalnızca izleyici rozetini görür; (d) graveyardChat entries artık roleId içeriyor
-- #183 Final: 41/41 test geçiyor, TS derleme temiz (mahalle + api-server), e2e klasörü tsconfig exclude'a eklendi
+Komşu (🏠) — standart masum rol, her zaman havuza dolgu olarak eklenir, oyun evreninin temel karakteridir.
 
-## Önceki Özellikler
-- GameEvent arayüzü + Room.eventLog: tüm oyun olayları kaydedilir
-- EndScreen: OLAY GÜNLÜĞÜ emoji+tur ile gösterilir
-- GameContext: socket hata toast bildirimleri
-- LobbyScreen: testID öznitelikleri (room-code, player-list, host-badge)
-- eas.json: EAS Build konfigürasyonu
-- app/join/[code].tsx: QR deeplink route
+## Tamamlanan Özellikler
+- Komşu rolü: `koylu`/`Mahalle Sakini` tamamen kaldırıldı; id=`komsu`, Komşu 🏠 olarak yeniden adlandırıldı. Her iki frontend (constants/roles.ts) ve backend (roles.ts) güncellendi. HowToPlay ve tüm ekranlarda ilk rol olarak gösterilir.
+- Rol dağılım tablosu: 4-30 oyuncu için tam tablo; kötü her zaman iyi'den az başlar.
+- buildRolePool: ROLE_DISTRIBUTION tablosuna göre havuz oluşturur; kalan slotları Komşu ile doldurur.
+- checkWin: kaos/tarafsız roller evil/good sayısına dahil edilmez.
+- LobbyScreen dağılım önizlemesi: disabledRoles ve player count'a göre dinamik güncellenir.
+- Kargaşacı/Yalnız Kurt kategorileri: oyuncu sayısı yetersizse (7/<14) toggle yerine bilgi mesajı gösterir.
+- RoleSelectScreen oyuncu numaraları: OYUNCU01/02... sıralı, boşluksuz (dizi indexi kullanır).
+- RoleSelectScreen anonim isimlendirme: roleSelectPosition yerine displayIndex gösterir.
+- HostSettings: dağılım önizleme kartı, zamanlama, rol paketi, rol toggle accordion.
+- Mezarlık sohbeti: sadece ölü oyunculara/oyun sonu açık.
+- Oylama süresi (voteDurationSec 30/45/60sn) ve rol paketi (standard/advanced/all) ayarları.
+- Çete oylama: gerçek zamanlı oy sayısı rozeti (NightScreen).
+- Socket reconnect / geçici host değişimi.
+- GameEvent arayüzü + eventLog: EndScreen'de OLAY GÜNLÜĞÜ gösterilir.
+- EAS Build konfigürasyonu (eas.json).
+- QR deeplink route (app/join/[code].tsx).
+
+## Dosya Yapısı
+artifacts/api-server/src/game/
+  gameEngine.ts  — 2199 satır (tüm oyun mantığı)
+  roles.ts       — ~515 satır (19 rol + ROLE_DISTRIBUTION + buildRolePool)
+  socket.ts      — 328 satır (Socket.io event handler)
+  __tests__/gameEngine.test.ts   — 46 test
+  __tests__/multiplayer.test.ts  — 6 test
+
+artifacts/mahalle/
+  app/index.tsx              — root, phase routing
+  contexts/GameContext.tsx   — socket bağlantısı, state
+  screens/LobbyScreen.tsx    — lobi + HostSettings accordion
+  screens/RoleSelectScreen.tsx
+  screens/RoleRevealScreen.tsx
+  screens/DayScreen.tsx
+  screens/VoteScreen.tsx
+  screens/NightScreen.tsx
+  screens/EndScreen.tsx
+  screens/SettingsScreen.tsx
+  screens/HowToPlayScreen.tsx
+  screens/StatsScreen.tsx
+  constants/roles.ts         — frontend RoleDef + ROLE_DEFS (19 rol)
 
 ## Bilinen Eksikler
 - EAS eas.projectId doldurulacak (expo account gerektirir)
-- TTS gerçek cihaz testi yapılmadı
+- TTS gerçek cihaz testi yapılmadı (expo-speech web'de çalışmaz)
 - App Store submit bilgileri (Apple ID, ASC App ID, Team ID) eas.json'da doldurulacak
