@@ -44,7 +44,7 @@ export default function EndScreen() {
     if (!state.winner) return;
 
     const myGraveEntry = state.graveyard.find((g) => g.playerId === myPlayerId);
-    const myRoleId = state.myRole ?? myGraveEntry?.roleId ?? "komsu";
+    const myRoleId = state.myRole ?? myGraveEntry?.roleId ?? "mahalle_sakini";
     const myRoleDef = ROLE_DEFS[myRoleId];
     const myTeam = myRoleDef?.team ?? "iyi";
     const won = myTeam === state.winner;

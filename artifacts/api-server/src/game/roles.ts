@@ -34,17 +34,34 @@ export interface RoleDef {
 export const ROLES: Record<string, RoleDef> = {
   // ── MAHALLE TAKIMI ──────────────────────────────────────────────────────────
 
-  komsu: {
-    id: "komsu",
-    name: "Komşu",
+  mahalle_sakini: {
+    id: "mahalle_sakini",
+    name: "Mahalle Sakini",
     emoji: "🏠",
     team: "iyi",
     isMafia: false,
-    description: "Sıradan bir komşu. Özel yeteneği yok ama oyu her zaman değerlidir.",
+    description: "Sıradan bir mahalle sakini. Özel yeteneği yok ama oyu her zaman değerlidir.",
     story: "Sabah simit alır, akşam çay içer. Geceleri evden çıkmaz ama kulağı kirişte.",
     ability: "Gece eylemi yoktur. Gündüz tartışması ve oylaması tek silahıdır.",
     winCondition: "Tüm çete etkisiz hale getirilmeli.",
-    tips: ["Sessiz kalmak şüphe çeker — konuş, tartış.", "Dikkatli gözlem yapan Komşu oyunun kaderini belirler.", "Kimin nasıl davrandığını takip et."],
+    tips: ["Sessiz kalmak şüphe çeker — konuş, tartış.", "Dikkatli gözlem yapan Mahalle Sakini oyunun kaderini belirler.", "Kimin nasıl davrandığını takip et."],
+    nightAction: null,
+    nightOrder: 99,
+    voiceCallTr: "",
+    voteWeight: 1,
+  },
+  // Geriye donuk uyumluluk: eski "komsu" id'si gelen kayitlar kirilmasin.
+  komsu: {
+    id: "mahalle_sakini",
+    name: "Mahalle Sakini",
+    emoji: "🏠",
+    team: "iyi",
+    isMafia: false,
+    description: "Sıradan bir mahalle sakini. Özel yeteneği yok ama oyu her zaman değerlidir.",
+    story: "Sabah simit alır, akşam çay içer. Geceleri evden çıkmaz ama kulağı kirişte.",
+    ability: "Gece eylemi yoktur. Gündüz tartışması ve oylaması tek silahıdır.",
+    winCondition: "Tüm çete etkisiz hale getirilmeli.",
+    tips: ["Sessiz kalmak şüphe çeker — konuş, tartış.", "Dikkatli gözlem yapan Mahalle Sakini oyunun kaderini belirler.", "Kimin nasıl davrandığını takip et."],
     nightAction: null,
     nightOrder: 99,
     voiceCallTr: "",
@@ -434,7 +451,7 @@ const TARAFSIZ_BY_PACKAGE: Record<string, string[]> = {
 };
 
 const EVIL_ROLE_IDS = new Set(["tefeci_basi", "tahsildar", "sahte_dernek", "icten_pazarlikli"]);
-const GOOD_ROLE_IDS = new Set(["bekci", "otaci", "falci", "kapici", "muhtar", "muhabir", "tiyatrocu", "hoca", "komsu"]);
+const GOOD_ROLE_IDS = new Set(["bekci", "otaci", "falci", "kapici", "muhtar", "muhabir", "tiyatrocu", "hoca", "mahalle_sakini", "komsu"]);
 
 export { EVIL_ROLE_IDS, GOOD_ROLE_IDS };
 
@@ -474,8 +491,8 @@ export function buildRolePool(
     pool.push(...shuffledTarafsiz.slice(0, dist.tarafsizMax));
   }
 
-  // 5. Kalan slotları Komşu ile doldur
-  while (pool.length < playerCount) pool.push("komsu");
+  // 5. Kalan slotları Mahalle Sakini ile doldur
+  while (pool.length < playerCount) pool.push("mahalle_sakini");
 
   // 6. Güvenlik kontrolü — pool tam olmalı
   while (pool.length > playerCount) pool.pop();
@@ -488,7 +505,7 @@ export function buildRolePool(
     let excess = evilCount - goodCount + 1;
     for (let i = pool.length - 1; i >= 0 && excess > 0; i--) {
       if (["tahsildar", "icten_pazarlikli"].includes(pool[i])) {
-        pool[i] = "komsu";
+        pool[i] = "mahalle_sakini";
         excess--;
       }
     }

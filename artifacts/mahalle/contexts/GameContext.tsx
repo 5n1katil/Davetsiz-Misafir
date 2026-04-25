@@ -25,7 +25,13 @@ import { haptic, hapticNotification, initVibrationsEnabled, setVibrationsEnabled
 import { useColors } from "@/hooks/useColors";
 
 const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN;
-const SOCKET_URL = DOMAIN ? `https://${DOMAIN}` : "http://localhost";
+const EXPLICIT_SOCKET_URL =
+  process.env.EXPO_PUBLIC_SOCKET_URL ?? process.env.EXPO_PUBLIC_API_URL;
+const SOCKET_URL = EXPLICIT_SOCKET_URL
+  ? EXPLICIT_SOCKET_URL
+  : DOMAIN
+    ? `https://${DOMAIN}`
+    : "http://localhost";
 
 export interface PlayerView {
   id: string;
@@ -197,7 +203,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       haptic(Haptics.ImpactFeedbackStyle.Heavy);
       if (state.winner && myPlayerId) {
         const myGraveEntry = state.graveyard.find((g) => g.playerId === myPlayerId);
-        const myRoleId = state.myRole ?? myGraveEntry?.roleId ?? "komsu";
+        const myRoleId = state.myRole ?? myGraveEntry?.roleId ?? "mahalle_sakini";
         const myRoleDef = ROLE_DEFS[myRoleId];
         const myTeam = myRoleDef?.team ?? "iyi";
         const won = myTeam === state.winner;

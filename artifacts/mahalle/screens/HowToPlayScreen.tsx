@@ -94,7 +94,7 @@ const WIN_CONDITIONS = [
 ];
 
 const NAMED_ROLE_IDS = [
-  "komsu", "muhtar", "bekci", "otaci", "falci", "kapici", "muhabir", "tiyatrocu", "hoca",
+  "mahalle_sakini", "muhtar", "bekci", "otaci", "falci", "kapici", "muhabir", "tiyatrocu", "hoca",
   "tefeci_basi", "tahsildar", "sahte_dernek", "icten_pazarlikli",
   "kumarbaz", "kiskanc_komsu", "kirik_kalp", "dedikoducu",
   "anonim", "savas_gazisi_dede",

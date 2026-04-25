@@ -1,5 +1,6 @@
 const roleImages: Record<string, any> = {
   // MAHALLE
+  mahalle_sakini: require("../assets/images/roles/komsu.png"),
   komsu: require("../assets/images/roles/komsu.png"),
   muhtar: require("../assets/images/roles/muhtar.png"),
   bekci: require("../assets/images/roles/bekci.png"),

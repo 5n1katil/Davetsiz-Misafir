@@ -15,12 +15,33 @@ export interface RoleDef {
 
 export const ROLE_DEFS: Record<string, RoleDef> = {
   // ── MAHALLE TAKIMI ─────────────────────────────────────────────────────────
-  komsu: {
-    id: "komsu",
-    name: "Komşu",
+  mahalle_sakini: {
+    id: "mahalle_sakini",
+    name: "Mahalle Sakini",
     emoji: "🏠",
     team: "iyi",
-    description: "Sıradan bir komşu. Özel gece eylemi yoktur; gündüz oylaması tek silahıdır.",
+    description: "Sıradan bir mahalle sakini. Özel gece eylemi yoktur; gündüz oylaması tek silahıdır.",
+    story: "Sabah simit alır, akşam balkonda muhabbet. Dedikodu çoğu zaman gerçeği taşır — doğru soruyu soran kişi farkı yaratır.",
+    ability:
+      "Özel bir gece eylemin yoktur. Tüm gücün gündüz tartışmasında ve oylamadadır. Söz al, soru sor, şüphelilerini öne çıkar.",
+    winCondition:
+      "Tüm çete üyeleri elenirse ve tehlikeli tarafsızlar (Anonim, Savaş Gazisi Dede) temizlenirse mahalle kazanır.",
+    tips: [
+      "Konuş, dinle, soru sor — sessiz kalmak şüphe çeker.",
+      "Çelişkili açıklama yapan oyuncuları not al, gündüz öne çıkar.",
+      "Bekçi ve Falcı'yı destekle; bilgilerini doğrulamak için oy gücünü kullan.",
+    ],
+    voteWeight: 1,
+    nightActionDescription: "Bu gece yapacak bir eylemin yok. Gündüz tartışması ve oylaması senin en güçlü silahın.",
+    shortDesc: "Özel yeteneği yok ama oylaması hayat kurtarır.",
+  },
+  // Geriye donuk uyumluluk: eski "komsu" id'si gelen kayitlar kirilmasin.
+  komsu: {
+    id: "mahalle_sakini",
+    name: "Mahalle Sakini",
+    emoji: "🏠",
+    team: "iyi",
+    description: "Sıradan bir mahalle sakini. Özel gece eylemi yoktur; gündüz oylaması tek silahıdır.",
     story: "Sabah simit alır, akşam balkonda muhabbet. Dedikodu çoğu zaman gerçeği taşır — doğru soruyu soran kişi farkı yaratır.",
     ability:
       "Özel bir gece eylemin yoktur. Tüm gücün gündüz tartışmasında ve oylamadadır. Söz al, soru sor, şüphelilerini öne çıkar.",

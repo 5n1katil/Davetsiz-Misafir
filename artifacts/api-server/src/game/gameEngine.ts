@@ -528,7 +528,9 @@ function enterDayPhase(room: Room, firstDay: boolean) {
     }
 
     // Tiyatrocu sahte rolünü ata
-    const allRoleIds = Object.keys(ROLES).filter((id) => id !== "tiyatrocu" && id !== "komsu");
+    const allRoleIds = Object.keys(ROLES).filter(
+      (id) => id !== "tiyatrocu" && id !== "mahalle_sakini" && id !== "komsu",
+    );
     const tiyatrocuPlayers = room.players.filter((p) => p.roleId === "tiyatrocu");
     for (const t of tiyatrocuPlayers) {
       const fakeId = allRoleIds[Math.floor(Math.random() * allRoleIds.length)];
