@@ -12,6 +12,7 @@ import React, {
 } from "react";
 import {
   Modal,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -27,11 +28,15 @@ import { useColors } from "@/hooks/useColors";
 const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN;
 const EXPLICIT_SOCKET_URL =
   process.env.EXPO_PUBLIC_SOCKET_URL ?? process.env.EXPO_PUBLIC_API_URL;
+const WEB_FALLBACK_SOCKET_URL =
+  "https://davetsiz-misafir-staging-production.up.railway.app";
 const SOCKET_URL = EXPLICIT_SOCKET_URL
   ? EXPLICIT_SOCKET_URL
   : DOMAIN
     ? `https://${DOMAIN}`
-    : "http://localhost";
+    : Platform.OS === "web"
+      ? WEB_FALLBACK_SOCKET_URL
+      : "http://localhost";
 
 export interface PlayerView {
   id: string;
