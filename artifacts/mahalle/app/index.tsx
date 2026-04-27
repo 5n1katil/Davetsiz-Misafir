@@ -69,24 +69,22 @@ export default function Index() {
 
   useEffect(() => {
     if (Platform.OS !== "web") return;
-    const inLobby = !state || state.phase === "LOBBY";
-    const inDiscussion = !!state && state.phase === "DAY";
-    const shouldPlayMusic = backgroundMusicEnabled && (inLobby || inDiscussion);
-    if (!shouldPlayMusic) return;
+    if (!backgroundMusicEnabled) return;
     const unlock = () => {
       retryBackgroundMusicAfterUserGesture();
     };
-    window.addEventListener("pointerdown", unlock, { passive: true });
-    window.addEventListener("touchstart", unlock, { passive: true });
-    window.addEventListener("click", unlock, { passive: true });
-    window.addEventListener("keydown", unlock, { passive: true });
+    // Capture phase avoids missing the first interaction on nested elements.
+    window.addEventListener("pointerdown", unlock, { passive: true, capture: true });
+    window.addEventListener("touchstart", unlock, { passive: true, capture: true });
+    window.addEventListener("click", unlock, { passive: true, capture: true });
+    window.addEventListener("keydown", unlock, { passive: true, capture: true });
     return () => {
-      window.removeEventListener("pointerdown", unlock);
-      window.removeEventListener("touchstart", unlock);
-      window.removeEventListener("click", unlock);
-      window.removeEventListener("keydown", unlock);
+      window.removeEventListener("pointerdown", unlock, true);
+      window.removeEventListener("touchstart", unlock, true);
+      window.removeEventListener("click", unlock, true);
+      window.removeEventListener("keydown", unlock, true);
     };
-  }, [state?.phase, backgroundMusicEnabled]);
+  }, [backgroundMusicEnabled]);
 
   useEffect(() => {
     return () => {
