@@ -39,10 +39,12 @@ export function HeaderBar({
   title,
   subtitle,
   onOpenSettings,
+  onLeaveGame,
 }: {
   title: string;
   subtitle?: string;
   onOpenSettings: () => void;
+  onLeaveGame: () => void;
 }) {
   const c = useColors();
   const { connected, voiceMuted, toggleVoice, vibrationsEnabled, toggleVibrations, state, myPlayerId } = useGame();
@@ -104,6 +106,13 @@ export function HeaderBar({
           accessibilityLabel="Ayarlar"
         >
           <Feather name="settings" size={18} color={c.mutedForeground} />
+        </Pressable>
+        <Pressable
+          onPress={onLeaveGame}
+          style={[styles.iconBtn, { borderColor: c.border }]}
+          accessibilityLabel="Oyundan çık"
+        >
+          <Feather name="log-out" size={18} color={c.destructive} />
         </Pressable>
         <View
           style={[

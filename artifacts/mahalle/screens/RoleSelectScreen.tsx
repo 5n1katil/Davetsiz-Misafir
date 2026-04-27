@@ -34,8 +34,8 @@ export default function RoleSelectScreen() {
   const { state, myPlayerId, emit } = useGame();
   const { width } = useWindowDimensions();
   const isMobile = width < 768;
-  // Narrow screens get a slimmer panel to give cards more breathing room
-  const panelWidth = width < 360 ? 120 : isMobile ? 148 : 200;
+  // Mobilde paneli bir tik buyutuyoruz ki secilen roller tam okunabilsin.
+  const panelWidth = width < 360 ? 150 : isMobile ? 184 : 220;
   const remaining = useCountdown(state?.roleSelectDeadline ?? null);
 
   if (!state) return null;
@@ -47,6 +47,9 @@ export default function RoleSelectScreen() {
   const isMyTurn =
     !!(state.currentChoice && state.currentChoice.playerId === myPlayerId);
   const choices = isMyTurn ? state.currentChoice!.options : [];
+  const inPrep = state.roleSelectPrep === true;
+  const stage = state.roleSelectStage ?? "prep";
+  const readyCount = state.roleSelectReadyCount ?? 0;
   const selectedCount = sortedPlayers.filter((p) => p.hasSelectedRole).length;
   const totalCount = sortedPlayers.length;
 
@@ -69,13 +72,23 @@ export default function RoleSelectScreen() {
 
       {/* Right content */}
       <View style={styles.mainArea}>
-        {isMyTurn ? (
+        {inPrep ? (
+          <RoleSelectPrepArea
+            players={sortedPlayers}
+            myId={myPlayerId}
+            readyCount={readyCount}
+            totalCount={totalCount}
+            stage={stage}
+            onReady={() => emit("setRoleSelectReady")}
+          />
+        ) : isMyTurn ? (
           <PickingArea
             choices={choices}
             timeLeft={remaining}
             onSelect={handleSelect}
             mainWidth={mainWidth}
             isMobile={isMobile}
+          packageName={state.settings.rolePackage ?? "all"}
           />
         ) : (
           <WaitingArea
@@ -84,6 +97,66 @@ export default function RoleSelectScreen() {
           />
         )}
       </View>
+    </View>
+  );
+}
+
+function RoleSelectPrepArea({
+  players,
+  myId,
+  readyCount,
+  totalCount,
+  stage,
+  onReady,
+}: {
+  players: any[];
+  myId: string | null;
+  readyCount: number;
+  totalCount: number;
+  stage: "prep" | "close_eyes" | "wake_player" | "choosing" | "open_eyes";
+  onReady: () => void;
+}) {
+  const me = players.find((p) => p.id === myId);
+  const order = me?.roleSelectPosition ?? null;
+  const isReady = me?.roleSelectReady === true;
+  const canPressReady = stage === "prep" && !isReady;
+  const pct = totalCount > 0 ? (readyCount / totalCount) * 100 : 0;
+  const stageInfo =
+    stage === "prep"
+      ? "Herkes hazır olunca host sesli yönlendirme ile sırayla seçim başlatacak."
+      : stage === "close_eyes"
+      ? "Gözlerinizi kapatın. Host, sıradaki oyuncuyu sesli yönlendirecek."
+      : stage === "wake_player"
+      ? "Sıradaki oyuncu sesli çağrılıyor. Diğerleri gözlerini kapalı tutmalı."
+      : stage === "open_eyes"
+      ? "Sıralı seçim tamamlandı. Herkes gözlerini açmak için bekliyor."
+      : "Sıralı seçim devam ediyor.";
+  return (
+    <View style={styles.waitingRoot}>
+      <Text style={styles.waitingLabel}>SIRALI SEÇİM BAŞLIYOR</Text>
+      <Text style={styles.prepOrderText}>
+        {order ? `Sen OYUNCU${String(order).padStart(2, "0")}'sün — ${order}. sıradasın.` : "Sıran hazırlanıyor..."}
+      </Text>
+      <Text style={styles.prepInfoText}>
+        {stageInfo}
+      </Text>
+      <View style={styles.waitBarBg}>
+        <View style={[styles.waitBarFill, { width: `${pct}%` as any }]} />
+      </View>
+      <Text style={styles.fractionSub}>{readyCount}/{totalCount} kişi hazır</Text>
+      <Pressable
+        style={[styles.confirmBtn, !canPressReady && styles.confirmBtnDisabled]}
+        onPress={onReady}
+        disabled={!canPressReady}
+      >
+        <Text style={[styles.confirmBtnText, !canPressReady && styles.confirmBtnTextDisabled]}>
+          {!isReady
+            ? stage === "prep"
+              ? "Anladım, Hazırım"
+              : "Hazırlık tamamlandı"
+            : "Hazırsın, diğerleri bekleniyor"}
+        </Text>
+      </Pressable>
     </View>
   );
 }
@@ -105,7 +178,7 @@ function PlayerPanel({
       </View>
       <ScrollView showsVerticalScrollIndicator={false} style={styles.panelScroll}>
         {players.map((p, idx) => (
-          <PlayerRow key={p.id} player={p} myId={myId} panelWidth={panelWidth} displayIndex={idx + 1} />
+          <PlayerRow key={p.id} player={p} myId={myId} displayIndex={idx + 1} />
         ))}
       </ScrollView>
     </View>
@@ -116,18 +189,15 @@ function PlayerPanel({
 function PlayerRow({
   player,
   myId,
-  panelWidth,
   displayIndex,
 }: {
   player: any;
   myId: string | null;
-  panelWidth: number;
   displayIndex: number;
 }) {
   const isMe = player.id === myId;
   const isDone = player.roleSelectStatus === "done";
   const isPicking = player.roleSelectStatus === "picking";
-  const isNarrow = panelWidth < 160;
 
   const role = isDone && player.selectedRoleId ? ROLE_DEFS[player.selectedRoleId] : null;
   const teamColor = role ? (TEAM_COLOR[role.team] ?? "#4A2E7A") : "#4A2E7A";
@@ -185,7 +255,7 @@ function PlayerRow({
         </Text>
 
         {isDone && role ? (
-          <Text style={[styles.statusDone, { color: teamColor }]} numberOfLines={1}>
+          <Text style={[styles.statusDone, { color: teamColor }]}>
             ✓ {role.name}
           </Text>
         ) : isPicking ? (
@@ -217,12 +287,14 @@ function PickingArea({
   onSelect,
   mainWidth,
   isMobile,
+  packageName,
 }: {
   choices: string[];
   timeLeft: number;
   onSelect: (roleId: string | null) => void;
   mainWidth: number;
   isMobile: boolean;
+  packageName: "standard" | "advanced" | "all";
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const urgentTime = timeLeft <= 5;
@@ -251,6 +323,9 @@ function PickingArea({
         <Text style={styles.pickingTitle}>ROL SEÇ!</Text>
         <Text style={[styles.pickingSubtitle, isMobile && styles.pickingSubtitleMobile]}>
           Kaderini belirle
+        </Text>
+        <Text style={styles.pickingPackage}>
+          Paket: {packageName === "standard" ? "Standart" : packageName === "advanced" ? "Gelişmiş" : "Tümü"}
         </Text>
 
         {/* Timer */}
@@ -529,7 +604,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: "transparent",
     gap: 6,
-    minHeight: 52,
+    minHeight: 62,
   },
   playerRowPicking: {
     backgroundColor: "#160935",
@@ -576,8 +651,10 @@ const styles = StyleSheet.create({
   },
   statusDone: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 9,
+    fontSize: 10,
     letterSpacing: 0.1,
+    flexWrap: "wrap",
+    lineHeight: 14,
   },
   statusPicking: {
     fontFamily: "Inter_600SemiBold",
@@ -653,6 +730,13 @@ const styles = StyleSheet.create({
   },
   pickingSubtitleMobile: {
     fontSize: 10,
+  },
+  pickingPackage: {
+    fontFamily: "Inter_600SemiBold",
+    fontSize: 11,
+    color: "#9B7FD4",
+    textAlign: "center",
+    letterSpacing: 0.6,
   },
 
   // Random button (full-width, below cards)
@@ -862,5 +946,21 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     fontSize: 32,
     color: "#3B1F8C",
+  },
+  prepOrderText: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 16,
+    color: "#F5C842",
+    textAlign: "center",
+    lineHeight: 24,
+    maxWidth: 360,
+  },
+  prepInfoText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 13,
+    color: "#9B7FD4",
+    textAlign: "center",
+    lineHeight: 20,
+    maxWidth: 380,
   },
 });

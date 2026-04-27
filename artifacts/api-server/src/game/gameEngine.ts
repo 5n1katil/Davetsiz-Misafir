@@ -20,6 +20,7 @@ export interface Player {
   isConnected: boolean;
   roleId: string | null;
   isReady: boolean;
+  roleSelectReady: boolean;
   hasSelectedRole: boolean;
 }
 
@@ -34,6 +35,7 @@ export interface RoomSettings {
   disabledRoles: string[];
   roleSelectShowNames: "hidden" | "visible";
   roleDistribution: "random" | "pick";
+  roleRevealOnLynch: boolean;
 }
 
 export interface RoleChoice {
@@ -76,6 +78,9 @@ export interface Room {
   rolePool: string[];
   roleSelectQueue: string[]; // playerId order
   roleSelectIndex: number;
+  roleSelectStage: "prep" | "close_eyes" | "wake_player" | "choosing" | "open_eyes";
+  roleSelectStageDeadline: number | null;
+  roleSelectPendingPlayerId: string | null;
   currentChoice: RoleChoice | null;
   roleSelectDeadline: number | null;
   phaseDeadline: number | null;
@@ -168,6 +173,7 @@ export function createRoom(socketId: string, nickname: string): Room {
         isConnected: true,
         roleId: null,
         isReady: false,
+        roleSelectReady: false,
         hasSelectedRole: false,
       },
     ],
@@ -182,10 +188,14 @@ export function createRoom(socketId: string, nickname: string): Room {
       disabledRoles: [],
       roleSelectShowNames: "hidden",
       roleDistribution: "pick",
+      roleRevealOnLynch: true,
     },
     rolePool: [],
     roleSelectQueue: [],
     roleSelectIndex: 0,
+    roleSelectStage: "prep",
+    roleSelectStageDeadline: null,
+    roleSelectPendingPlayerId: null,
     currentChoice: null,
     roleSelectDeadline: null,
     phaseDeadline: null,
@@ -280,6 +290,7 @@ export function joinRoom(
     isConnected: true,
     roleId: null,
     isReady: false,
+    roleSelectReady: false,
     hasSelectedRole: false,
   };
   room.players.push(player);
@@ -348,6 +359,35 @@ export function leaveRoom(
   return { room: null };
 }
 
+export function quitRoomByPlayer(
+  code: string,
+  playerId: string,
+): { room: Room | null; newHost?: { id: string; nickname: string } } | { error: string } {
+  const room = rooms.get(code);
+  if (!room) return { error: "Oda bulunamadı" };
+  const idx = room.players.findIndex((p) => p.id === playerId);
+  if (idx === -1) return { error: "Oyuncu bulunamadı" };
+  const p = room.players[idx];
+
+  const wasHost = p.isHost;
+  room.players.splice(idx, 1);
+
+  // Bilinçli host çıkışı: oda tamamen kapanır.
+  if (wasHost) {
+    rooms.delete(room.code);
+    privateMessages.delete(room.code);
+    return { room: null };
+  }
+
+  if (room.players.length === 0) {
+    rooms.delete(room.code);
+    privateMessages.delete(room.code);
+    return { room: null };
+  }
+
+  return { room };
+}
+
 export function updateSettings(
   code: string,
   playerId: string,
@@ -370,6 +410,20 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+function toPlayerLabel(room: Room, playerId: string): string {
+  const queueIndex = room.roleSelectQueue.indexOf(playerId);
+  return `OYUNCU${String(queueIndex + 1).padStart(2, "0")}`;
+}
+
+function beginChoosingStage(room: Room, playerId: string) {
+  const unique = [...new Set(room.rolePool)];
+  const opts = shuffle(unique).slice(0, Math.min(3, unique.length));
+  room.roleSelectPendingPlayerId = null;
+  room.currentChoice = { playerId, options: opts };
+  room.roleSelectStage = "choosing";
+  room.roleSelectDeadline = Date.now() + 25_000;
+}
+
 export function startGame(
   code: string,
   playerId: string,
@@ -381,6 +435,11 @@ export function startGame(
   if (connectedCount < 4) return { error: "En az 4 bağlı oyuncu gerek" };
 
   room.rolePool = shuffle(buildRolePool(room.players.length, room.settings));
+  room.players.forEach((p) => {
+    p.isReady = false;
+    p.roleSelectReady = false;
+    p.hasSelectedRole = false;
+  });
 
   // Reset 18-rol state
   room.hocaUsed = false;
@@ -415,31 +474,46 @@ export function startGame(
     room.rolePool = [];
     room.roleSelectQueue = [];
     room.roleSelectIndex = 0;
+    room.roleSelectStage = "prep";
+    room.roleSelectStageDeadline = null;
+    room.roleSelectPendingPlayerId = null;
     room.currentChoice = null;
     room.phase = "ROLE_REVEAL";
     room.phaseDeadline = Date.now() + 60_000;
   } else {
-    // Mevcut sıralı seçim akışı
+    // Hazırım -> sesli yönlendirme -> sıralı seçim akışı
     room.roleSelectQueue = shuffle(room.players).map((p) => p.id);
     room.roleSelectIndex = 0;
     room.phase = "ROLE_SELECT";
-    startNextRoleChoice(room);
+    room.roleSelectStage = "prep";
+    room.roleSelectStageDeadline = null;
+    room.roleSelectPendingPlayerId = null;
+    room.currentChoice = null;
+    room.roleSelectDeadline = null;
   }
   return room;
 }
 
-function startNextRoleChoice(room: Room) {
-  if (room.roleSelectIndex >= room.roleSelectQueue.length) {
+export function setRoleSelectReady(
+  code: string,
+  playerId: string,
+): Room | { error: string } {
+  const room = rooms.get(code);
+  if (!room) return { error: "Oda yok" };
+  if (room.phase !== "ROLE_SELECT") return { error: "Faz uygun değil" };
+  if (room.roleSelectStage !== "prep") return { error: "Sıralı seçim zaten başladı" };
+  const p = room.players.find((x) => x.id === playerId);
+  if (!p) return { error: "Oyuncu yok" };
+  p.roleSelectReady = true;
+  if (room.players.every((x) => x.roleSelectReady)) {
+    room.voiceQueue.push("Şimdi herkes gözlerini kapatarak uyusun.");
     room.currentChoice = null;
-    room.phase = "ROLE_REVEAL";
-    room.phaseDeadline = Date.now() + 60_000;
-    return;
+    room.roleSelectDeadline = null;
+    room.roleSelectPendingPlayerId = null;
+    room.roleSelectStage = "close_eyes";
+    room.roleSelectStageDeadline = Date.now() + 5_000;
   }
-  const playerId = room.roleSelectQueue[room.roleSelectIndex];
-  const unique = [...new Set(room.rolePool)];
-  const opts = shuffle(unique).slice(0, Math.min(3, unique.length));
-  room.currentChoice = { playerId, options: opts };
-  room.roleSelectDeadline = Date.now() + 25_000;
+  return room;
 }
 
 export function chooseRole(
@@ -450,6 +524,7 @@ export function chooseRole(
   const room = rooms.get(code);
   if (!room) return { error: "Oda yok" };
   if (room.phase !== "ROLE_SELECT") return { error: "Sıra geçti" };
+  if (room.roleSelectStage !== "choosing") return { error: "Henüz seçim zamanı değil" };
   if (!room.currentChoice || room.currentChoice.playerId !== playerId)
     return { error: "Sıran değil" };
 
@@ -473,7 +548,19 @@ export function chooseRole(
   if (idx >= 0) room.rolePool.splice(idx, 1);
 
   room.roleSelectIndex++;
-  startNextRoleChoice(room);
+  room.currentChoice = null;
+  room.roleSelectDeadline = null;
+
+  if (room.roleSelectIndex >= room.roleSelectQueue.length) {
+    room.roleSelectStage = "open_eyes";
+    room.roleSelectStageDeadline = Date.now() + 5_000;
+    room.voiceQueue.push("Sıralı seçim tamamlandı. Şimdi herkes gözlerini açabilir.");
+  } else {
+    room.roleSelectStage = "close_eyes";
+    room.roleSelectStageDeadline = Date.now() + 5_000;
+    room.roleSelectPendingPlayerId = null;
+    room.voiceQueue.push("Herkes yeniden gözlerini kapatsın.");
+  }
   return room;
 }
 
@@ -482,9 +569,44 @@ export function tickRoleSelectTimeout(code: string): Room | null {
   if (!room) return null;
   if (room.paused) return null;
   if (room.phase !== "ROLE_SELECT") return null;
+  const now = Date.now();
+
+  if (room.roleSelectStage === "close_eyes") {
+    if (!room.roleSelectStageDeadline || now < room.roleSelectStageDeadline) return null;
+    if (room.roleSelectIndex >= room.roleSelectQueue.length) {
+      room.roleSelectStage = "open_eyes";
+      room.roleSelectStageDeadline = now + 5_000;
+      room.voiceQueue.push("Sıralı seçim tamamlandı. Şimdi herkes gözlerini açabilir.");
+      return room;
+    }
+    const nextPlayerId = room.roleSelectQueue[room.roleSelectIndex];
+    room.roleSelectPendingPlayerId = nextPlayerId;
+    room.roleSelectStage = "wake_player";
+    room.roleSelectStageDeadline = now + 5_000;
+    room.voiceQueue.push(`${toPlayerLabel(room, nextPlayerId)} gözlerini açsın ve seçimini yapsın.`);
+    return room;
+  }
+
+  if (room.roleSelectStage === "wake_player") {
+    if (!room.roleSelectStageDeadline || now < room.roleSelectStageDeadline) return null;
+    if (!room.roleSelectPendingPlayerId) return null;
+    beginChoosingStage(room, room.roleSelectPendingPlayerId);
+    room.roleSelectStageDeadline = null;
+    return room;
+  }
+
+  if (room.roleSelectStage === "open_eyes") {
+    if (!room.roleSelectStageDeadline || now < room.roleSelectStageDeadline) return null;
+    room.roleSelectStage = "prep";
+    room.roleSelectStageDeadline = null;
+    room.phase = "ROLE_REVEAL";
+    room.phaseDeadline = now + 60_000;
+    return room;
+  }
+
+  if (room.roleSelectStage !== "choosing") return null;
   if (!room.currentChoice || !room.roleSelectDeadline) return null;
-  if (Date.now() < room.roleSelectDeadline) return null;
-  // Otomatik rastgele seç
+  if (now < room.roleSelectDeadline) return null;
   const res = chooseRole(code, room.currentChoice.playerId, "__random__");
   if ("error" in res) return null;
   return room;
@@ -591,12 +713,20 @@ export function proposeVote(
   const room = rooms.get(code);
   if (!room) return { error: "Oda yok" };
   if (room.phase !== "DAY") return { error: "Faz uygun değil" };
+  const proposer = room.players.find((p) => p.id === playerId);
+  if (!proposer || !proposer.isAlive || !proposer.isConnected) {
+    return { error: "Sadece hayatta ve bağlı oyuncular oylama önerebilir" };
+  }
   if (!room.voteOpenBy.includes(playerId)) room.voteOpenBy.push(playerId);
   const alive = room.players.filter((p) => p.isAlive && p.isConnected);
-  if (room.voteOpenBy.length >= Math.ceil(alive.length / 2)) {
+  if (room.voteOpenBy.length >= getMajorityThreshold(alive.length)) {
     openVote(room, alive.map((p) => p.id));
   }
   return room;
+}
+
+function getMajorityThreshold(count: number): number {
+  return Math.floor(count / 2) + 1;
 }
 
 function openVote(room: Room, candidateIds: string[]) {
@@ -807,13 +937,23 @@ function resolveVote(room: Room, isRunoff: boolean) {
         }
       }
 
-      room.morningEvents.push({
-        kind: "info",
-        message: `${target.nickname} mahalleden uzaklaştırıldı. Rolü: ${displayRole?.name ?? "?"}`,
-      });
-      room.voiceQueue.push(
-        `Mahalle kararını verdi. ${target.nickname} uzaklaştırılıyor. Rolü: ${displayRole?.name ?? "bilinmiyor"}.`,
-      );
+      if (room.settings.roleRevealOnLynch) {
+        room.morningEvents.push({
+          kind: "info",
+          message: `${target.nickname} mahalleden uzaklaştırıldı. Rolü: ${displayRole?.name ?? "?"}`,
+        });
+        room.voiceQueue.push(
+          `Mahalle kararını verdi. ${target.nickname} uzaklaştırılıyor. Rolü: ${displayRole?.name ?? "bilinmiyor"}.`,
+        );
+      } else {
+        room.morningEvents.push({
+          kind: "info",
+          message: `${target.nickname} mahalleden uzaklaştırıldı. Rolü gizli tutuluyor.`,
+        });
+        room.voiceQueue.push(
+          `Mahalle kararını verdi. ${target.nickname} uzaklaştırılıyor. Rol bilgisi bu oyunda gizli.`,
+        );
+      }
 
       // Masum linç sayacı (Dedikoducu kişisel başarısı için)
       const victimRole = target.roleId ? ROLES[target.roleId] : null;
@@ -2062,6 +2202,7 @@ export function restartGame(
     p.isAlive = true;
     p.roleId = null;
     p.isReady = false;
+    p.roleSelectReady = false;
     p.hasSelectedRole = false;
   });
   room.graveyard = [];
@@ -2098,6 +2239,16 @@ export function publicView(room: Room, viewerPlayerId: string | null) {
   const isViewerMafia = viewerRole ? ROLES[viewerRole]?.isMafia : false;
   const isViewerIcten = viewerRole === "icten_pazarlikli";
 
+  const voteTally = room.votes.reduce((acc, v) => {
+    const voter = room.players.find((p) => p.id === v.voterId);
+    if (!voter || !voter.isAlive) return acc;
+    const role = voter.roleId ? ROLES[voter.roleId] : null;
+    const weight = role?.voteWeight ?? 1;
+    acc[v.targetId] = (acc[v.targetId] ?? 0) + weight;
+    return acc;
+  }, {} as Record<string, number>);
+  const aliveConnectedCount = room.players.filter((p) => p.isAlive && p.isConnected).length;
+
   return {
     code: room.code,
     hostId: room.hostId,
@@ -2122,6 +2273,7 @@ export function publicView(room: Room, viewerPlayerId: string | null) {
         isAlive: p.isAlive,
         isConnected: p.isConnected,
         isReady: p.isReady,
+        roleSelectReady: p.roleSelectReady,
         hasSelectedRole: p.hasSelectedRole,
         selectedRoleId: p.hasSelectedRole ? p.roleId : null,
         roleSelectPosition,
@@ -2134,6 +2286,9 @@ export function publicView(room: Room, viewerPlayerId: string | null) {
         : room.currentChoice
         ? { playerId: room.currentChoice.playerId, options: [] }
         : null,
+    roleSelectPrep: room.phase === "ROLE_SELECT" && room.roleSelectStage !== "choosing",
+    roleSelectStage: room.phase === "ROLE_SELECT" ? room.roleSelectStage : null,
+    roleSelectReadyCount: room.players.filter((p) => p.roleSelectReady).length,
     myRole: viewerPlayerId
       ? room.players.find((p) => p.id === viewerPlayerId)?.roleId ?? null
       : null,
@@ -2157,6 +2312,8 @@ export function publicView(room: Room, viewerPlayerId: string | null) {
     winnerLabel: room.winnerLabel,
     voteCount: room.votes.length,
     voteOpenBy: room.voteOpenBy.length,
+    voteOpenRequired: getMajorityThreshold(aliveConnectedCount),
+    voteTally,
     privateMessages: viewerPlayerId
       ? getPrivateMessagesFor(room.code, viewerPlayerId)
       : [],

@@ -300,7 +300,7 @@ export default function DayScreen() {
 
   const me = state.players.find((p) => p.id === myPlayerId);
   const alive = state.players.filter((p) => p.isAlive && p.isConnected);
-  const need = Math.ceil(alive.length / 2);
+  const need = state.voteOpenRequired ?? Math.floor(alive.length / 2) + 1;
   const isDead = !me?.isAlive;
 
   const mins = Math.floor(remaining / 60);

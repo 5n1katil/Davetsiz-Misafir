@@ -78,14 +78,14 @@ const WIN_CONDITIONS = [
       "Çete, hayatta kalan mahallelilerle sayıca eşitlenirse veya geçerse kazanır. Politikacı linç edilirse çete ANINDA kazanır.",
   },
   {
-    team: "KARGAŞACILAR",
+    team: "KARGAŞACILAR (KAOS ROLLERİ)",
     color: "#F5A623",
     icon: "shuffle" as const,
     condition:
       "Kumarbaz son 3'e kalırsa kazanır. Kırık Kalp, aşığıyla ikisi birlikte oyun sonuna ulaşırsa kazanır. Dedikoducu, 2 masum linç edilirse kişisel puan alır.",
   },
   {
-    team: "YALNIZ KURTLAR",
+    team: "YALNIZ KURTLAR (TARAFSIZ ROLLER)",
     color: "#9B7FD4",
     icon: "target" as const,
     condition:
@@ -103,8 +103,8 @@ const NAMED_ROLE_IDS = [
 const TEAM_GROUPS: { team: "iyi" | "kotu" | "kaos" | "tarafsiz"; title: string; color: string }[] = [
   { team: "iyi", title: "MAHALLE — İYİ TARAF", color: "#1ECBE1" },
   { team: "kotu", title: "ÇETE — KÖTÜ TARAF", color: "#FF4D6D" },
-  { team: "kaos", title: "KARGAŞACILAR", color: "#F5A623" },
-  { team: "tarafsiz", title: "YALNIZ KURTLAR", color: "#9B7FD4" },
+  { team: "kaos", title: "KARGAŞACILAR (KAOS ROLLERİ)", color: "#F5A623" },
+  { team: "tarafsiz", title: "YALNIZ KURTLAR (TARAFSIZ ROLLER)", color: "#9B7FD4" },
 ];
 
 export default function HowToPlayScreen({ visible, onClose }: Props) {
@@ -176,7 +176,7 @@ export default function HowToPlayScreen({ visible, onClose }: Props) {
                   sakinleri arasına sızmış{" "}
                   <Text style={{ color: "#FF4D6D" }}>Davetsiz Misafir</Text>'i
                   bulup idam etmek için gece ile gündüz arasında gidip
-                  gelirsiniz. Kargaşacılar ve yalnız kurtlar kendi
+                  gelirsiniz. Kargaşacılar (Kaos rolleri) ve yalnız kurtlar (Tarafsız roller) kendi
                   gündemlerini takip eder.
                 </Text>
               </View>

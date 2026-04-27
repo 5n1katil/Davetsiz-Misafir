@@ -1,7 +1,7 @@
 import { Feather } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import React, { useEffect, useRef } from "react";
-import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import React from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { GraveyardChat } from "@/components/GraveyardChat";
 import { GhostActivityBadge } from "@/components/GhostActivityBadge";
@@ -10,13 +10,11 @@ import { useColors } from "@/hooks/useColors";
 import { haptic } from "@/lib/haptics";
 import { useCountdown } from "@/hooks/useCountdown";
 import { useGhostActivity } from "@/hooks/useGhostActivity";
-import { useReduceMotion } from "@/hooks/useReduceMotion";
 
 export default function VoteScreen() {
   const c = useColors();
   const { state, myPlayerId, emit } = useGame();
   const remaining = useCountdown(state?.phaseDeadline ?? null, state?.paused ?? false);
-  const reduceMotion = useReduceMotion();
   if (!state) return null;
   const me = state.players.find((p) => p.id === myPlayerId);
   const candidates = state.players.filter((p) => state.runoffCandidates.includes(p.id));
@@ -27,7 +25,8 @@ export default function VoteScreen() {
 
   const timerColor = isCritical ? c.destructive : c.primary;
 
-  const totalVotes = state.voteCount || 1;
+  const voteTally = state.voteTally ?? {};
+  const maxVotes = Math.max(1, ...candidates.map((p) => voteTally[p.id] ?? 0));
   const alivePlayers = state.players.filter((p) => p.isAlive).length;
 
   return (
@@ -58,15 +57,8 @@ export default function VoteScreen() {
         <GraveyardChat />
       ) : (
         candidates.map((p) => {
-          const voteShare = alivePlayers > 0 ? (state.voteCount / alivePlayers) : 0;
-          const barAnim = useRef(new Animated.Value(0)).current;
-          useEffect(() => {
-            Animated.timing(barAnim, {
-              toValue: voteShare,
-              duration: reduceMotion ? 0 : 300,
-              useNativeDriver: false,
-            }).start();
-          }, [state.voteCount, reduceMotion]);
+          const candidateVotes = voteTally[p.id] ?? 0;
+          const voteShare = candidateVotes / maxVotes;
 
           return (
             <Pressable
@@ -94,16 +86,16 @@ export default function VoteScreen() {
                   {p.nickname}
                   {p.id === myPlayerId ? "  •  sen" : ""}
                 </Text>
+                <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 12 }}>
+                  {candidateVotes} oy
+                </Text>
                 <View style={styles.barTrack}>
-                  <Animated.View
+                  <View
                     style={[
                       styles.barFill,
                       {
                         backgroundColor: c.destructive,
-                        width: barAnim.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ["0%", "100%"],
-                        }),
+                        width: `${Math.max(0, Math.min(1, voteShare)) * 100}%` as any,
                       },
                     ]}
                   />

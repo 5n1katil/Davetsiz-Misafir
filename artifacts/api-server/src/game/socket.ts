@@ -13,6 +13,7 @@ import {
   joinRoom,
   kickPlayer,
   leaveRoom,
+  quitRoomByPlayer,
   listRooms,
   pauseGame,
   proposeVote,
@@ -20,6 +21,7 @@ import {
   restartGame,
   resumeGame,
   sendGraveyardChat,
+  setRoleSelectReady,
   setReady,
   startGame,
   submitNightAction,
@@ -163,6 +165,15 @@ export function attachSocketServer(http: HTTPServer) {
       broadcast(s.roomCode);
     });
 
+    socket.on("setRoleSelectReady", (_p, cb) => {
+      const s = sessions.get(socket.id);
+      if (!s) return cb?.({ ok: false, error: "session yok" });
+      const res = setRoleSelectReady(s.roomCode, s.playerId);
+      if ("error" in res) return cb?.({ ok: false, error: res.error });
+      cb?.({ ok: true });
+      broadcast(s.roomCode);
+    });
+
     socket.on("proposeVote", (_p, cb) => {
       const s = sessions.get(socket.id);
       if (!s) return cb?.({ ok: false, error: "session yok" });
@@ -285,6 +296,34 @@ export function attachSocketServer(http: HTTPServer) {
       }
       cb?.({ ok: true });
       broadcast(s.roomCode);
+    });
+
+    socket.on("quitRoom", (_p, cb) => {
+      const s = sessions.get(socket.id);
+      if (!s) return cb?.({ ok: false, error: "session yok" });
+      const roomBefore = getRoom(s.roomCode);
+      const isHostQuit = roomBefore?.hostId === s.playerId;
+      if (isHostQuit) {
+        for (const [sid, sess] of sessions.entries()) {
+          if (sess.roomCode !== s.roomCode || sid === socket.id) continue;
+          io.to(sid).emit("kicked", { reason: "Host odadan çıktı. Oyun kapatıldı." });
+        }
+      }
+      const res = quitRoomByPlayer(s.roomCode, s.playerId);
+      if ("error" in res) return cb?.({ ok: false, error: res.error });
+      sessions.delete(socket.id);
+      socket.leave(s.roomCode);
+      cb?.({ ok: true });
+      if (res.room) {
+        if (res.newHost) {
+          io.to(res.room.code).emit("hostTransferred", {
+            newHostId: res.newHost.id,
+            nickname: res.newHost.nickname,
+            message: `${res.newHost.nickname} oyun yöneticisi oldu`,
+          });
+        }
+        broadcast(res.room.code);
+      }
     });
 
     socket.on("disconnect", () => {

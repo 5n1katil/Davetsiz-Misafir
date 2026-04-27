@@ -426,8 +426,8 @@ export const ROLE_DEFS: Record<string, RoleDef> = {
 export const ROLE_TEAM_LABEL: Record<string, string> = {
   iyi: "MAHALLE",
   kotu: "ÇETE",
-  kaos: "KARGAŞACILAR",
-  tarafsiz: "YALNIZ KURT",
+  kaos: "KARGAŞACILAR (KAOS ROLLERİ)",
+  tarafsiz: "YALNIZ KURTLAR (TARAFSIZ ROLLER)",
 };
 
 export const ROLE_TEAM_COLOR: Record<string, string> = {

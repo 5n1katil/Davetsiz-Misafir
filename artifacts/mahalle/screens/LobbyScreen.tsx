@@ -9,6 +9,7 @@ import {
   Animated,
   Dimensions,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -58,6 +59,8 @@ export default function LobbyScreen() {
   const [helpVisible, setHelpVisible] = useState(false);
   const [settingsVisible, setSettingsVisible] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const homeScrollRef = useRef<ScrollView | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
@@ -111,6 +114,17 @@ export default function LobbyScreen() {
     });
     const sub = Linking.addEventListener("url", ({ url }) => handleDeepLink(url));
     return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+    const showSub = Keyboard.addListener(showEvent, () => setKeyboardOpen(true));
+    const hideSub = Keyboard.addListener(hideEvent, () => setKeyboardOpen(false));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
   }, []);
 
   function handleDeepLink(url: string) {
@@ -185,7 +199,12 @@ export default function LobbyScreen() {
             keyboardVerticalOffset={0}
           >
             <ScrollView
-              contentContainerStyle={[styles.homeScroll, { paddingBottom: insets.bottom + 32 }]}
+              ref={homeScrollRef}
+              contentContainerStyle={[
+                styles.homeScroll,
+                keyboardOpen && styles.homeScrollWhenKeyboardOpen,
+                { paddingBottom: insets.bottom + 32 },
+              ]}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
               showsVerticalScrollIndicator={false}
@@ -234,6 +253,14 @@ export default function LobbyScreen() {
                   <TextInput
                     value={myNickname}
                     onChangeText={setNickname}
+                    onFocus={() => {
+                      setTimeout(() => {
+                        homeScrollRef.current?.scrollTo({
+                          y: 240,
+                          animated: true,
+                        });
+                      }, 80);
+                    }}
                     placeholder="Ör: Selim Abi"
                     placeholderTextColor="#4A3570"
                     maxLength={20}
@@ -561,10 +588,11 @@ function RoleToggle({
 }
 
 // ── HostSettings — accordion ayarlar paneli ───────────────────────────────────
-function getDistributionPreview(
+function getRoleMixPreview(
   playerCount: number,
+  rolePackage: "standard" | "advanced" | "all",
   disabledRoles: string[] = [],
-): { evil: number; good: number } {
+): { evil: number; good: number; kaos: number; tarafsiz: number } {
   const table: Record<number, { dm: number; tahsildar: number; politikaci: boolean; icten: boolean }> = {
     4:  { dm: 1, tahsildar: 0, politikaci: false, icten: false },
     5:  { dm: 1, tahsildar: 0, politikaci: false, icten: false },
@@ -587,12 +615,24 @@ function getDistributionPreview(
   const keys = Object.keys(table).map(Number).sort((a, b) => a - b);
   const key = keys.find((k) => k >= playerCount) ?? keys[keys.length - 1];
   const d = table[key];
-  const evil =
+  const evilBase =
     d.dm +
     d.tahsildar +
     (d.politikaci && !disabled.has("sahte_dernek") ? 1 : 0) +
     (d.icten && !disabled.has("icten_pazarlikli") ? 1 : 0);
-  return { evil, good: playerCount - evil };
+
+  const packagePools = PACKAGE_ROLES[rolePackage];
+  const enabledKaos = packagePools.kaos.filter((id) => !disabled.has(id)).length;
+  const enabledTarafsiz = packagePools.tarafsiz.filter((id) => !disabled.has(id)).length;
+
+  const kaosCap = playerCount >= 7 ? Math.min(Math.floor(playerCount / 6), 4) : 0;
+  const tarafsizCap = playerCount >= 14 ? Math.min(Math.floor(playerCount / 10), 2) : 0;
+  const kaos = Math.min(kaosCap, enabledKaos);
+  const tarafsiz = Math.min(tarafsizCap, enabledTarafsiz);
+
+  const evil = evilBase;
+  const good = Math.max(0, playerCount - evil - kaos - tarafsiz);
+  return { evil, good, kaos, tarafsiz };
 }
 
 function HostSettings({ state, emit }: any) {
@@ -629,9 +669,27 @@ function HostSettings({ state, emit }: any) {
   };
 
   const pkgInfo = {
-    standard: { label: "Standart", desc: "Bekçi, Şifacı, Kapıcı — Yeni oyuncular için ideal.", tag: "YENİ OYUNCULAR" },
-    advanced: { label: "Gelişmiş", desc: "Tüm mahalle rolleri + Kırık Kalp, Dedikoducu.", tag: "ÖNERİLEN" },
-    all: { label: "Tümü", desc: "Kumarbaz, Anonim, Savaş Gazisi Dede dahil 19 rol.", tag: "KAOTİK" },
+    standard: { label: "Standart", desc: "Temel çete + temel mahalle özel rolleri. Öğrenmesi en kolay paket.", tag: "YENİ OYUNCULAR" },
+    advanced: { label: "Gelişmiş", desc: "Temel çete + geniş mahalle rolleri + sınırlı kaos.", tag: "ÖNERİLEN" },
+    all: { label: "Tümü", desc: "Temel çete + tüm özel roller (kaos ve tarafsız dahil).", tag: "KAOTİK" },
+  };
+
+  const getEnabledRoleGroups = (
+    rolePackage: "standard" | "advanced" | "all",
+    disabledForPreview: string[],
+  ) => {
+    const hidden = new Set(disabledForPreview);
+    const source = PACKAGE_ROLES[rolePackage];
+    const toReadable = (ids: readonly string[]) =>
+      ids
+        .filter((id) => !hidden.has(id))
+        .map((id) => ROLE_LOOKUP[id]?.name ?? id);
+    return {
+      mahalle: toReadable(source.mahalle),
+      cete: toReadable(source.cete),
+      kaos: toReadable(source.kaos),
+      tarafsiz: toReadable(source.tarafsiz),
+    };
   };
 
   return (
@@ -646,32 +704,6 @@ function HostSettings({ state, emit }: any) {
 
       {settingsOpen && (
         <View style={styles.hsBody}>
-          {/* Dağılım önizlemesi */}
-          {connectedCount >= 4 && (() => {
-            const { evil, good } = getDistributionPreview(connectedCount, disabledRoles);
-            return (
-              <View style={styles.distPreview}>
-                <Text style={styles.distPreviewTitle}>
-                  {connectedCount} kişiyle tahmini dağılım:
-                </Text>
-                <View style={styles.distPreviewRow}>
-                  <View style={styles.distChip}>
-                    <Text style={styles.distChipNum}>{good}</Text>
-                    <Text style={styles.distChipLabel}>İyi</Text>
-                  </View>
-                  <Text style={styles.distVs}>vs</Text>
-                  <View style={[styles.distChip, styles.distChipEvil]}>
-                    <Text style={[styles.distChipNum, { color: "#C8102E" }]}>{evil}</Text>
-                    <Text style={styles.distChipLabel}>Kötü</Text>
-                  </View>
-                </View>
-                <Text style={styles.distPreviewNote}>
-                  * Kaos ve Yalnız Kurt rolleri ayrı kazanma koşullarıyla oynar
-                </Text>
-              </View>
-            );
-          })()}
-
           {/* Zamanlama ayarları */}
           <SettingRow
             label="Gündüz Süresi"
@@ -710,12 +742,12 @@ function HostSettings({ state, emit }: any) {
           />
 
           <SettingRow
-            label="Rol Seçiminde İsimler"
-            tooltip="Gizli: oyuncular sırayla sadece numara görür, kim hangi rolü aldı belli olmaz. Görünür: herkes adını görür."
-            options={["hidden", "visible"]}
-            labels={["Gizli", "Görünür"]}
-            value={settings.roleSelectShowNames ?? "hidden"}
-            onChange={(v) => update("roleSelectShowNames", v)}
+            label="Linçte Rol Açıklansın mı?"
+            tooltip="Açık: Linç edilen oyuncunun rolü anında açıklanır. Kapalı: Oylama sonrası rol bilgisi gizli kalır."
+            options={["on", "off"]}
+            labels={["Açık", "Kapalı"]}
+            value={settings.roleRevealOnLynch !== false ? "on" : "off"}
+            onChange={(v) => update("roleRevealOnLynch", v === "on")}
           />
 
           <View style={styles.hsDivider} />
@@ -766,36 +798,101 @@ function HostSettings({ state, emit }: any) {
             {showRoleTip && (
               <View style={styles.srTipBox}>
                 <Text style={styles.srTipText}>
-                  Oyunda hangi roller havuzuna dahil olsun? Paketi seçince roller otomatik ayarlanır. İstersen aşağıdan tek tek özelleştirebilirsin.
+                  Rol paketleri özel rolleri belirler. Temel çete (Davetsiz Misafir + Tahsildar) her oyunda vardır.
+                  Paketi seçince özel roller otomatik ayarlanır; istersen aşağıdan tek tek özelleştirebilirsin.
                 </Text>
               </View>
             )}
             {(["standard", "advanced", "all"] as const).map((p) => {
               const isActive = pkg === p;
               const info = pkgInfo[p];
+              const isExpanded = isActive;
+              const preview = getRoleMixPreview(
+                Math.max(connectedCount, 4),
+                p,
+                isActive ? disabledRoles : ALL_SPECIAL_ROLE_IDS.filter((id) => ![
+                  ...PACKAGE_ROLES[p].mahalle,
+                  ...PACKAGE_ROLES[p].cete,
+                  ...PACKAGE_ROLES[p].kaos,
+                  ...PACKAGE_ROLES[p].tarafsiz,
+                ].includes(id)),
+              );
+              const previewDisabled = isActive
+                ? disabledRoles
+                : ALL_SPECIAL_ROLE_IDS.filter((id) => ![
+                  ...PACKAGE_ROLES[p].mahalle,
+                  ...PACKAGE_ROLES[p].cete,
+                  ...PACKAGE_ROLES[p].kaos,
+                  ...PACKAGE_ROLES[p].tarafsiz,
+                ].includes(id));
+              const roleGroups = getEnabledRoleGroups(p, previewDisabled);
               return (
-                <Pressable
-                  key={p}
-                  style={[styles.packageCard, isActive && styles.packageCardActive]}
-                  onPress={() => handlePackageChange(p)}
-                >
-                  <View style={styles.packageCardLeft}>
-                    <View style={styles.packageCardRadio}>
-                      {isActive && <View style={styles.packageCardRadioDot} />}
+                <View key={p} style={[styles.packageCardWrap, isActive && styles.packageCardWrapActive]}>
+                  <Pressable
+                    style={[styles.packageCard, isActive && styles.packageCardActive]}
+                    onPress={() => handlePackageChange(p)}
+                  >
+                    <View style={styles.packageCardLeft}>
+                      <View style={styles.packageCardRadio}>
+                        {isActive && <View style={styles.packageCardRadioDot} />}
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.packageCardLabel, isActive && styles.packageCardLabelActive]}>
+                          {info.label}
+                        </Text>
+                      </View>
                     </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.packageCardLabel, isActive && styles.packageCardLabelActive]}>
-                        {info.label}
+                    <View style={[styles.packageCardTag, isActive && styles.packageCardTagActive]}>
+                      <Text style={[styles.packageCardTagText, isActive && styles.packageCardTagTextActive]}>
+                        {info.tag}
                       </Text>
-                      <Text style={styles.packageCardDesc}>{info.desc}</Text>
                     </View>
-                  </View>
-                  <View style={[styles.packageCardTag, isActive && styles.packageCardTagActive]}>
-                    <Text style={[styles.packageCardTagText, isActive && styles.packageCardTagTextActive]}>
-                      {info.tag}
-                    </Text>
-                  </View>
-                </Pressable>
+                  </Pressable>
+                  {isExpanded && (
+                    <View style={styles.packageDetailsBox}>
+                      <Text style={styles.packageCardDesc}>{info.desc}</Text>
+                      <View style={styles.roleDetailsBlock}>
+                        <Text style={styles.roleDetailsTitle}>Açık Roller</Text>
+                        <Text style={styles.roleDetailsText}>
+                          Temel Çete (Her oyunda): Davetsiz Misafir, Tahsildar
+                        </Text>
+                        <Text style={styles.roleDetailsText}>
+                          Mahalle: {roleGroups.mahalle.length > 0 ? roleGroups.mahalle.join(", ") : "Yok"}
+                        </Text>
+                        <Text style={styles.roleDetailsText}>
+                          Özel Çete: {roleGroups.cete.length > 0 ? roleGroups.cete.join(", ") : "Yok"}
+                        </Text>
+                        <Text style={styles.roleDetailsText}>
+                          Kargaşacılar (Kaos rolleri): {roleGroups.kaos.length > 0 ? roleGroups.kaos.join(", ") : "Yok"}
+                        </Text>
+                        <Text style={styles.roleDetailsText}>
+                          Yalnız Kurtlar (Tarafsız roller): {roleGroups.tarafsiz.length > 0 ? roleGroups.tarafsiz.join(", ") : "Yok"}
+                        </Text>
+                      </View>
+                      <Text style={styles.distPreviewTitle}>
+                        Odaya bağlı {connectedCount} kişi (hesaplanan: {Math.max(connectedCount, 4)} oyuncu) için olası taraf dağılımı:
+                      </Text>
+                      <View style={styles.distPreviewRow}>
+                        <View style={styles.distChip}>
+                          <Text style={styles.distChipNum}>{preview.good}</Text>
+                          <Text style={styles.distChipLabel}>Mahalle</Text>
+                        </View>
+                        <View style={[styles.distChip, styles.distChipEvil]}>
+                          <Text style={[styles.distChipNum, { color: "#C8102E" }]}>{preview.evil}</Text>
+                          <Text style={styles.distChipLabel}>Çete</Text>
+                        </View>
+                        <View style={[styles.distChip, styles.distChipKaos]}>
+                          <Text style={[styles.distChipNum, { color: "#1ECBE1" }]}>{preview.kaos}</Text>
+                          <Text style={styles.distChipLabel}>Kargaşacılar (Kaos rolleri)</Text>
+                        </View>
+                        <View style={[styles.distChip, styles.distChipTarafsiz]}>
+                          <Text style={[styles.distChipNum, { color: "#9B7FD4" }]}>{preview.tarafsiz}</Text>
+                          <Text style={styles.distChipLabel}>Yalnız Kurtlar (Tarafsız roller)</Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
+                </View>
               );
             })}
           </View>
@@ -829,8 +926,8 @@ function HostSettings({ state, emit }: any) {
                 {[
                   { group: "mahalle" as const, label: "Mahalle", color: "#F5C842", dot: "🟡" },
                   { group: "cete" as const, label: "Çete", color: "#C8102E", dot: "🔴" },
-                  { group: "kaos" as const, label: "Kargaşacılar", color: "#1ECBE1", dot: "🩵" },
-                  { group: "tarafsiz" as const, label: "Yalnız Kurtlar", color: "#9B7FD4", dot: "🟣" },
+                  { group: "kaos" as const, label: "Kargaşacılar (Kaos rolleri)", color: "#1ECBE1", dot: "🩵" },
+                  { group: "tarafsiz" as const, label: "Yalnız Kurtlar (Tarafsız roller)", color: "#9B7FD4", dot: "🟣" },
                 ].map(({ group, label, color, dot }) => {
                   const groupRoles = PACKAGE_ROLES[pkg][group];
                   if (groupRoles.length === 0) return null;
@@ -840,7 +937,7 @@ function HostSettings({ state, emit }: any) {
                       <View key={group} style={styles.roleGroup}>
                         <Text style={[styles.roleGroupLabel, { color }]}>{dot} {label}</Text>
                         <Text style={styles.categoryInfoText}>
-                          Kargaşacı roller 7 veya daha fazla oyuncuyla aktif olur.
+                          Kargaşacılar (Kaos rolleri) 7 veya daha fazla oyuncuyla aktif olur.
                         </Text>
                       </View>
                     );
@@ -850,7 +947,7 @@ function HostSettings({ state, emit }: any) {
                       <View key={group} style={styles.roleGroup}>
                         <Text style={[styles.roleGroupLabel, { color }]}>{dot} {label}</Text>
                         <Text style={styles.categoryInfoText}>
-                          Yalnız Kurt roller 14 veya daha fazla oyuncuyla aktif olur.
+                          Yalnız Kurtlar (Tarafsız roller) 14 veya daha fazla oyuncuyla aktif olur.
                         </Text>
                       </View>
                     );
@@ -934,6 +1031,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     gap: 14,
     paddingTop: 8,
+  },
+  homeScrollWhenKeyboardOpen: {
+    justifyContent: "flex-start",
+    paddingTop: 12,
   },
 
   // ── Legacy (heroWrap kullanılmıyor artık ama diğer kod referans edebilir) ────
@@ -1351,6 +1452,8 @@ const styles = StyleSheet.create({
     minWidth: 60,
   },
   distChipEvil: { borderColor: "#C8102E" },
+  distChipKaos: { borderColor: "#1ECBE1" },
+  distChipTarafsiz: { borderColor: "#9B7FD4" },
   distChipNum: {
     fontFamily: "Inter_700Bold",
     fontSize: 24,
@@ -1557,6 +1660,17 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 8,
   },
+  packageCardWrap: {
+    borderWidth: 1,
+    borderColor: "#2A1060",
+    borderRadius: 10,
+    marginBottom: 10,
+    overflow: "hidden",
+    backgroundColor: "#130830",
+  },
+  packageCardWrapActive: {
+    borderColor: "#F5C842",
+  },
   packageCardActive: {
     borderColor: "#F5C842",
     backgroundColor: "#2A1060",
@@ -1613,6 +1727,35 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   packageCardTagTextActive: { color: "#F5C842" },
+  packageDetailsBox: {
+    borderTopWidth: 1,
+    borderTopColor: "#2A1060",
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+    paddingTop: 10,
+    gap: 8,
+  },
+  roleDetailsBlock: {
+    backgroundColor: "#1A0A3E",
+    borderWidth: 1,
+    borderColor: "#2A1060",
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    gap: 4,
+  },
+  roleDetailsTitle: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 12,
+    color: "#F5C842",
+    marginBottom: 2,
+  },
+  roleDetailsText: {
+    fontFamily: "Inter_400Regular",
+    fontSize: 11,
+    color: "#9B7FD4",
+    lineHeight: 16,
+  },
 
   // ── Rol toggle accordion ────────────────────────────────────────────────────
   accordionHeader: {
