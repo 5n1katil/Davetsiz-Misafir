@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 import { Feather } from "@expo/vector-icons";
@@ -17,11 +17,30 @@ import RoleRevealScreen from "@/screens/RoleRevealScreen";
 import RoleSelectScreen from "@/screens/RoleSelectScreen";
 import SettingsScreen from "@/screens/SettingsScreen";
 import VoteScreen from "@/screens/VoteScreen";
+import {
+  retryBackgroundMusicAfterUserGesture,
+  setBackgroundMusicEnabled,
+  setBackgroundMusicVolume,
+  unloadBackgroundMusic,
+} from "@/lib/backgroundMusic";
 
 export default function Index() {
   const c = useColors();
   const insets = useSafeAreaInsets();
-  const { connected, state, voiceMuted, toggleVoice } = useGame();
+  const {
+    connected,
+    state,
+    voiceMuted,
+    toggleVoice,
+    leave,
+    backgroundMusicEnabled,
+    backgroundMusicVolume,
+  } = useGame();
+  const handleLeaveGame = () => {
+    setSettingsVisible(false);
+    leave();
+  };
+
   const [settingsVisible, setSettingsVisible] = useState(false);
   const isPaused = state?.paused === true;
 
@@ -30,6 +49,50 @@ export default function Index() {
       setSettingsVisible(false);
     }
   }, [isPaused]);
+
+  useEffect(() => {
+    // "Ana sayfa" (oda dışı lobi) state null iken render edildiği için bunu da dahil ediyoruz.
+    const inLobby = !state || state.phase === "LOBBY";
+    const inDiscussion = !!state && state.phase === "DAY";
+    const shouldPlayMusic = backgroundMusicEnabled && (inLobby || inDiscussion);
+    let cancelled = false;
+    (async () => {
+      await setBackgroundMusicVolume(backgroundMusicVolume);
+      if (!cancelled) {
+        await setBackgroundMusicEnabled(shouldPlayMusic);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [state?.phase, backgroundMusicEnabled, backgroundMusicVolume]);
+
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    const inLobby = !state || state.phase === "LOBBY";
+    const inDiscussion = !!state && state.phase === "DAY";
+    const shouldPlayMusic = backgroundMusicEnabled && (inLobby || inDiscussion);
+    if (!shouldPlayMusic) return;
+    const unlock = () => {
+      retryBackgroundMusicAfterUserGesture();
+    };
+    window.addEventListener("pointerdown", unlock, { passive: true });
+    window.addEventListener("touchstart", unlock, { passive: true });
+    window.addEventListener("click", unlock, { passive: true });
+    window.addEventListener("keydown", unlock, { passive: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("touchstart", unlock);
+      window.removeEventListener("click", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, [state?.phase, backgroundMusicEnabled]);
+
+  useEffect(() => {
+    return () => {
+      unloadBackgroundMusic();
+    };
+  }, []);
 
   if (!connected && !state) {
     return (
@@ -74,7 +137,14 @@ export default function Index() {
 
   return (
     <View style={[styles.root, { backgroundColor: state ? c.background : "#070410", paddingTop: state ? insets.top : 0 }]}>
-      {state && <HeaderBar title={phaseTitle} subtitle={phaseSub} onOpenSettings={() => setSettingsVisible(true)} />}
+      {state && (
+        <HeaderBar
+          title={phaseTitle}
+          subtitle={phaseSub}
+          onOpenSettings={() => setSettingsVisible(true)}
+          onLeaveGame={handleLeaveGame}
+        />
+      )}
       <View style={{ flex: 1 }}>
         {body}
         {isPaused && (
@@ -114,7 +184,11 @@ export default function Index() {
       </View>
       <HostPanel />
       <SystemToast />
-      <SettingsScreen visible={settingsVisible} onClose={() => setSettingsVisible(false)} />
+      <SettingsScreen
+        visible={settingsVisible}
+        onClose={() => setSettingsVisible(false)}
+        onLeaveGame={handleLeaveGame}
+      />
     </View>
   );
 }

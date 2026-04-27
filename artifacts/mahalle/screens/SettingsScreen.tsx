@@ -13,11 +13,13 @@ import {
 import { useGame } from "@/contexts/GameContext";
 import { type ThemePreference, useThemePreference } from "@/contexts/ThemeContext";
 import { useColors } from "@/hooks/useColors";
+import { BG_MUSIC_MAX_VOLUME } from "@/lib/backgroundMusic";
 import { speakTest } from "@/lib/speech";
 
 interface SettingsScreenProps {
   visible: boolean;
   onClose: () => void;
+  onLeaveGame?: () => void;
 }
 
 const THEME_OPTIONS: { value: ThemePreference; label: string; icon: string }[] = [
@@ -26,10 +28,27 @@ const THEME_OPTIONS: { value: ThemePreference; label: string; icon: string }[] =
   { value: "dark", label: "Koyu", icon: "moon" },
 ];
 
-export default function SettingsScreen({ visible, onClose }: SettingsScreenProps) {
+export default function SettingsScreen({ visible, onClose, onLeaveGame }: SettingsScreenProps) {
   const c = useColors();
-  const { voiceMuted, toggleVoice, vibrationsEnabled, toggleVibrations, toastsEnabled, toggleToasts, keepAwake, toggleKeepAwake } = useGame();
+  const {
+    voiceMuted,
+    toggleVoice,
+    backgroundMusicEnabled,
+    toggleBackgroundMusic,
+    backgroundMusicVolume,
+    setBackgroundMusicVolume,
+    vibrationsEnabled,
+    toggleVibrations,
+    toastsEnabled,
+    toggleToasts,
+    keepAwake,
+    toggleKeepAwake,
+  } = useGame();
   const { themePreference, setThemePreference } = useThemePreference();
+  const musicPercent = Math.round((backgroundMusicVolume / BG_MUSIC_MAX_VOLUME) * 100);
+  const decreaseMusic = () => setBackgroundMusicVolume(Math.max(0, backgroundMusicVolume - 0.01));
+  const increaseMusic = () =>
+    setBackgroundMusicVolume(Math.min(BG_MUSIC_MAX_VOLUME, backgroundMusicVolume + 0.01));
 
   return (
     <Modal
@@ -41,9 +60,16 @@ export default function SettingsScreen({ visible, onClose }: SettingsScreenProps
       <View style={[styles.root, { backgroundColor: c.background }]}>
         <View style={[styles.header, { borderBottomColor: c.border }]}>
           <Text style={[styles.title, { color: c.foreground }]}>Cihaz Ayarları</Text>
-          <Pressable onPress={onClose} hitSlop={12} style={{ padding: 4 }}>
-            <Feather name="x" size={22} color={c.mutedForeground} />
-          </Pressable>
+          <View style={styles.headerActions}>
+            {onLeaveGame ? (
+              <Pressable onPress={onLeaveGame} hitSlop={12} style={{ padding: 4 }}>
+                <Feather name="log-out" size={20} color={c.destructive} />
+              </Pressable>
+            ) : null}
+            <Pressable onPress={onClose} hitSlop={12} style={{ padding: 4 }}>
+              <Feather name="x" size={22} color={c.mutedForeground} />
+            </Pressable>
+          </View>
         </View>
 
         <ScrollView contentContainerStyle={styles.content}>
@@ -99,6 +125,80 @@ export default function SettingsScreen({ visible, onClose }: SettingsScreenProps
           </Text>
 
           <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
+            <View style={styles.row}>
+              <View style={styles.rowLeft}>
+                <View style={styles.rowIconWrap}>
+                  <Feather
+                    name={backgroundMusicEnabled ? "music" : "volume-x"}
+                    size={18}
+                    color={backgroundMusicEnabled ? c.primary : c.mutedForeground}
+                  />
+                </View>
+                <View style={styles.rowText}>
+                  <Text style={[styles.rowTitle, { color: c.foreground }]}>Arka Plan Müziği</Text>
+                  <Text style={[styles.rowSub, { color: c.mutedForeground }]}>
+                    Ana sayfa ve tartışma ekranında çalar
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={backgroundMusicEnabled}
+                onValueChange={toggleBackgroundMusic}
+                trackColor={{ false: c.border, true: c.primary }}
+                thumbColor="#fff"
+              />
+            </View>
+
+            <View style={[styles.separator, { backgroundColor: c.border }]} />
+
+            <View style={styles.row}>
+              <View style={styles.rowLeft}>
+                <View style={styles.rowIconWrap}>
+                  <Feather name="sliders" size={18} color={c.primary} />
+                </View>
+                <View style={styles.rowText}>
+                  <Text style={[styles.rowTitle, { color: c.foreground }]}>Müzik Seviyesi</Text>
+                  <Text style={[styles.rowSub, { color: c.mutedForeground }]}>
+                    {musicPercent}% {backgroundMusicEnabled ? "" : "(kapalı)"}
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.volumeControls}>
+                <Pressable
+                  onPress={decreaseMusic}
+                  disabled={!backgroundMusicEnabled}
+                  style={[
+                    styles.volumeBtn,
+                    { borderColor: c.border, backgroundColor: c.muted },
+                    !backgroundMusicEnabled && styles.volumeBtnDisabled,
+                  ]}
+                >
+                  <Text style={[styles.volumeBtnLabel, { color: c.foreground }]}>-</Text>
+                </Pressable>
+                <View style={[styles.volumeTrack, { backgroundColor: c.muted }]}>
+                  <View
+                    style={[
+                      styles.volumeFill,
+                      { width: `${musicPercent}%` as any, backgroundColor: c.primary },
+                    ]}
+                  />
+                </View>
+                <Pressable
+                  onPress={increaseMusic}
+                  disabled={!backgroundMusicEnabled}
+                  style={[
+                    styles.volumeBtn,
+                    { borderColor: c.border, backgroundColor: c.muted },
+                    !backgroundMusicEnabled && styles.volumeBtnDisabled,
+                  ]}
+                >
+                  <Text style={[styles.volumeBtnLabel, { color: c.foreground }]}>+</Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={[styles.separator, { backgroundColor: c.border }]} />
+
             <View style={styles.row}>
               <View style={styles.rowLeft}>
                 <View style={styles.rowIconWrap}>
@@ -259,6 +359,11 @@ const styles = StyleSheet.create({
     fontFamily: "Inter_700Bold",
     fontSize: 18,
   },
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
   content: {
     padding: 20,
     gap: 12,
@@ -350,5 +455,36 @@ const styles = StyleSheet.create({
   testBtnLabel: {
     fontFamily: "Inter_600SemiBold",
     fontSize: 13,
+  },
+  volumeControls: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+  },
+  volumeBtn: {
+    alignItems: "center",
+    borderRadius: 8,
+    borderWidth: 1,
+    height: 30,
+    justifyContent: "center",
+    width: 30,
+  },
+  volumeBtnDisabled: {
+    opacity: 0.45,
+  },
+  volumeBtnLabel: {
+    fontFamily: "Inter_700Bold",
+    fontSize: 18,
+    lineHeight: 19,
+  },
+  volumeTrack: {
+    borderRadius: 5,
+    height: 8,
+    overflow: "hidden",
+    width: 80,
+  },
+  volumeFill: {
+    borderRadius: 5,
+    height: "100%",
   },
 });

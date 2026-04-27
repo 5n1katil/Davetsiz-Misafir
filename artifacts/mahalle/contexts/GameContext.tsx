@@ -24,6 +24,11 @@ import { ROLE_DEFS } from "@/constants/roles";
 import { speak, setMuted, initMuted, isSpeakingAsync } from "@/lib/speech";
 import { haptic, hapticNotification, initVibrationsEnabled, setVibrationsEnabled } from "@/lib/haptics";
 import { useColors } from "@/hooks/useColors";
+import {
+  BG_MUSIC_DEFAULT_VOLUME,
+  BG_MUSIC_MAX_VOLUME,
+  setBackgroundMusicVolume as applyBackgroundMusicVolume,
+} from "@/lib/backgroundMusic";
 
 const DOMAIN = process.env.EXPO_PUBLIC_DOMAIN;
 const EXPLICIT_SOCKET_URL =
@@ -45,6 +50,7 @@ export interface PlayerView {
   isAlive: boolean;
   isConnected: boolean;
   isReady: boolean;
+  roleSelectReady?: boolean;
   hasSelectedRole: boolean;
   selectedRoleId: string | null;
   roleSelectPosition: number | null;
@@ -76,6 +82,7 @@ export interface GameState {
     disabledRoles: string[];
     roleSelectShowNames: "hidden" | "visible";
     roleDistribution: "random" | "pick";
+    roleRevealOnLynch: boolean;
   };
   phaseDeadline: number | null;
   roleSelectDeadline: number | null;
@@ -99,6 +106,11 @@ export interface GameState {
   winnerLabel: string | null;
   voteCount: number;
   voteOpenBy: number;
+  voteOpenRequired: number;
+  voteTally: Record<string, number>;
+  roleSelectPrep?: boolean;
+  roleSelectStage?: "prep" | "close_eyes" | "wake_player" | "choosing" | "open_eyes" | null;
+  roleSelectReadyCount?: number;
   privateMessages: { msg: string; ts: number }[];
   ceteMembers: { id: string; nickname: string; roleId: string | null }[];
   paused: boolean;
@@ -133,9 +145,13 @@ interface GameCtx {
     nickname: string,
   ) => Promise<{ ok: boolean; error?: string }>;
   emit: (event: string, payload?: any) => Promise<{ ok: boolean; error?: string }>;
-  leave: () => void;
+  leave: () => Promise<void>;
   voiceMuted: boolean;
   toggleVoice: () => void;
+  backgroundMusicEnabled: boolean;
+  toggleBackgroundMusic: () => void;
+  backgroundMusicVolume: number;
+  setBackgroundMusicVolume: (value: number) => void;
   vibrationsEnabled: boolean;
   toggleVibrations: () => void;
   toastsEnabled: boolean;
@@ -152,6 +168,7 @@ interface GameCtx {
 }
 
 const Ctx = createContext<GameCtx | null>(null);
+const LAST_ROOM_CODE_KEY = "mahalle:lastRoomCode";
 
 export function useGame() {
   const v = useContext(Ctx);
@@ -168,6 +185,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const myPlayerIdRef = useRef<string | null>(null);
   const [myNickname, setMyNickname] = useState<string | null>(null);
   const [voiceMuted, setVoiceMutedState] = useState(false);
+  const [backgroundMusicEnabled, setBackgroundMusicEnabledState] = useState(true);
+  const [backgroundMusicVolume, setBackgroundMusicVolumeState] = useState(BG_MUSIC_DEFAULT_VOLUME);
   const [vibrationsEnabled, setVibrationsEnabledState] = useState(true);
   const [toastsEnabled, setToastsEnabledState] = useState(true);
   const [keepAwake, setKeepAwakeState] = useState(false);
@@ -184,6 +203,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   stateRef.current = state;
   const [nightResultMessages, setNightResultMessages] = useState<{ msg: string; ts: number }[]>([]);
   const lastSeenTsRef = useRef<number>(0);
+  const autoJoinTriedRef = useRef(false);
 
   useEffect(() => {
     if (!state || !myPlayerId) return;
@@ -251,10 +271,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       AsyncStorage.getItem("mahalle:nickname"),
       AsyncStorage.getItem("mahalle:vibrationsEnabled"),
       AsyncStorage.getItem("mahalle:voiceMuted"),
+      AsyncStorage.getItem("mahalle:bgMusicEnabled"),
+      AsyncStorage.getItem("mahalle:bgMusicVolume"),
       AsyncStorage.getItem("mahalle:toastsEnabled"),
       AsyncStorage.getItem("mahalle:keepAwake"),
     ])
-      .then(([n, vib, mute, toasts, ka]) => {
+      .then(([n, vib, mute, bgEnabled, bgVolume, toasts, ka]) => {
         setMyNickname(n ?? "");
         const enabled = vib !== "false";
         initVibrationsEnabled(enabled);
@@ -262,6 +284,23 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         if (mute === "true") {
           setVoiceMutedState(true);
           setMuted(true);
+        }
+        setBackgroundMusicEnabledState(bgEnabled !== "false");
+        if (bgVolume == null) {
+          setBackgroundMusicVolumeState(BG_MUSIC_DEFAULT_VOLUME);
+          applyBackgroundMusicVolume(BG_MUSIC_DEFAULT_VOLUME);
+          AsyncStorage.setItem("mahalle:bgMusicVolume", String(BG_MUSIC_DEFAULT_VOLUME));
+        } else {
+          const parsedVolume = Number(bgVolume);
+          if (Number.isFinite(parsedVolume)) {
+            const clamped = Math.max(0, Math.min(BG_MUSIC_MAX_VOLUME, parsedVolume));
+            setBackgroundMusicVolumeState(clamped);
+            applyBackgroundMusicVolume(clamped);
+          } else {
+            setBackgroundMusicVolumeState(BG_MUSIC_DEFAULT_VOLUME);
+            applyBackgroundMusicVolume(BG_MUSIC_DEFAULT_VOLUME);
+            AsyncStorage.setItem("mahalle:bgMusicVolume", String(BG_MUSIC_DEFAULT_VOLUME));
+          }
         }
         setToastsEnabledState(toasts !== "false");
         setKeepAwakeState(ka === "true");
@@ -345,6 +384,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     });
     s.on("state", (st: GameState) => {
       setState(st);
+      AsyncStorage.setItem(LAST_ROOM_CODE_KEY, st.code).catch(() => {});
     });
     s.on("voice", (lines: string[]) => {
       for (const line of lines) speak(line);
@@ -352,10 +392,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         setSystemToast({ message: "Anlatım başladı", id: Date.now(), icon: "volume-2" });
       }
     });
-    s.on("kicked", () => {
+    s.on("kicked", (payload?: { reason?: string }) => {
       setState(null);
       myPlayerIdRef.current = null;
       setMyPlayerId(null);
+      autoJoinTriedRef.current = true;
+      AsyncStorage.removeItem(LAST_ROOM_CODE_KEY).catch(() => {});
+      if (payload?.reason) {
+        setSystemToast({ message: payload.reason, id: Date.now(), icon: "log-out" });
+      }
       setHostJustReceived(false);
       if (hostNotifyTimerRef.current) {
         clearTimeout(hostNotifyTimerRef.current);
@@ -398,6 +443,36 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
   }, [prefsLoaded]);
 
+  useEffect(() => {
+    if (!prefsLoaded || !connected || !socket) return;
+    if (state) return;
+    if (autoJoinTriedRef.current) return;
+    if (!myNickname || !myNickname.trim()) return;
+    autoJoinTriedRef.current = true;
+    AsyncStorage.getItem(LAST_ROOM_CODE_KEY)
+      .then((roomCode) => {
+        if (!roomCode) return;
+        socket.emit(
+          "joinRoom",
+          { code: roomCode.trim().toUpperCase(), nickname: myNickname.trim() },
+          (res: any) => {
+            if (res?.ok && res.playerId) {
+              myPlayerIdRef.current = res.playerId;
+              setMyPlayerId(res.playerId);
+              setSystemToast({
+                message: `Oyuna geri bağlandın (${roomCode.toUpperCase()})`,
+                id: Date.now(),
+                icon: "refresh-cw",
+              });
+            } else {
+              AsyncStorage.removeItem(LAST_ROOM_CODE_KEY).catch(() => {});
+            }
+          },
+        );
+      })
+      .catch(() => {});
+  }, [prefsLoaded, connected, socket, state, myNickname]);
+
   const emit = useCallback(
     (event: string, payload: any = {}) =>
       new Promise<{ ok: boolean; error?: string }>((resolve) => {
@@ -417,7 +492,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   const createRoom = useCallback(
     async (nickname: string) => {
       const res = await emit("createRoom", { nickname });
-      if (res.ok && (res as any).playerId) setMyPlayerIdAndRef((res as any).playerId);
+      if (res.ok && (res as any).playerId) {
+        setMyPlayerIdAndRef((res as any).playerId);
+        const code = (res as any).code;
+        if (code) await AsyncStorage.setItem(LAST_ROOM_CODE_KEY, String(code).toUpperCase());
+      }
       return res;
     },
     [emit, setMyPlayerIdAndRef],
@@ -429,21 +508,39 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
         code: code.trim().toUpperCase(),
         nickname,
       });
-      if (res.ok && (res as any).playerId) setMyPlayerIdAndRef((res as any).playerId);
+      if (res.ok && (res as any).playerId) {
+        setMyPlayerIdAndRef((res as any).playerId);
+        await AsyncStorage.setItem(LAST_ROOM_CODE_KEY, code.trim().toUpperCase());
+      }
       return res;
     },
     [emit, setMyPlayerIdAndRef],
   );
 
-  const leave = useCallback(() => {
+  const leave = useCallback(async () => {
+    await AsyncStorage.removeItem(LAST_ROOM_CODE_KEY);
     setState(null);
     setMyPlayerIdAndRef(null);
+    autoJoinTriedRef.current = true;
     setHostJustReceived(false);
     if (hostNotifyTimerRef.current) {
       clearTimeout(hostNotifyTimerRef.current);
       hostNotifyTimerRef.current = null;
     }
     if (socket) {
+      await new Promise<void>((resolve) => {
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          resolve();
+        };
+        const t = setTimeout(finish, 1200);
+        socket.emit("quitRoom", {}, () => {
+          clearTimeout(t);
+          finish();
+        });
+      });
       socket.disconnect();
       socket.connect();
     }
@@ -475,6 +572,29 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       return next;
     });
   }, [isMidGame]);
+
+  const toggleBackgroundMusic = useCallback(() => {
+    setBackgroundMusicEnabledState((prev) => {
+      const next = !prev;
+      AsyncStorage.setItem("mahalle:bgMusicEnabled", String(next));
+      if (isMidGame()) {
+        setSystemToast({
+          message: next ? "Arka Plan Müziği açıldı" : "Arka Plan Müziği kapatıldı",
+          id: Date.now(),
+          icon: next ? "music" : "volume-x",
+          alwaysShow: true,
+        });
+      }
+      return next;
+    });
+  }, [isMidGame]);
+
+  const setBackgroundMusicVolume = useCallback((value: number) => {
+    const next = Math.max(0, Math.min(BG_MUSIC_MAX_VOLUME, value));
+    setBackgroundMusicVolumeState(next);
+    applyBackgroundMusicVolume(next);
+    AsyncStorage.setItem("mahalle:bgMusicVolume", String(next));
+  }, []);
 
   const toggleVibrations = useCallback(() => {
     setVibrationsEnabledState((prev) => {
@@ -551,6 +671,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       leave,
       voiceMuted,
       toggleVoice,
+      backgroundMusicEnabled,
+      toggleBackgroundMusic,
+      backgroundMusicVolume,
+      setBackgroundMusicVolume,
       vibrationsEnabled,
       toggleVibrations,
       toastsEnabled,
@@ -577,6 +701,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       leave,
       voiceMuted,
       toggleVoice,
+      backgroundMusicEnabled,
+      toggleBackgroundMusic,
+      backgroundMusicVolume,
+      setBackgroundMusicVolume,
       vibrationsEnabled,
       toggleVibrations,
       toastsEnabled,
