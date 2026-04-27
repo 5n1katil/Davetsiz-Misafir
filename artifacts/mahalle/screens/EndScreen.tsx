@@ -99,7 +99,7 @@ export default function EndScreen() {
 
       <View style={{ alignItems: "center", paddingTop: 44, paddingBottom: 22 }}>
         <Feather name="award" size={60} color={winnerColor} />
-        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", letterSpacing: 2, marginTop: 14, fontSize: 11 }}>
+        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", letterSpacing: 2, marginTop: 14, fontSize: 14 }}>
           OYUN BİTTİ
         </Text>
         <Text style={{ color: winnerColor, fontFamily: "Cinzel_900Black", fontSize: 26, marginTop: 6, textAlign: "center", letterSpacing: 3 }}>
@@ -112,7 +112,7 @@ export default function EndScreen() {
 
       {personalAchievements.length > 0 && (
         <>
-          <Text style={{ color: "#1ECBE1", fontFamily: "Inter_600SemiBold", letterSpacing: 1.5, fontSize: 10 }}>
+          <Text style={{ color: "#1ECBE1", fontFamily: "Inter_600SemiBold", letterSpacing: 1.5, fontSize: 13 }}>
             KİŞİSEL BAŞARILAR
           </Text>
           <View style={[styles.card, { backgroundColor: c.card, borderColor: "#1ECBE1" + "40", borderWidth: 1 }]}>
@@ -137,14 +137,14 @@ export default function EndScreen() {
                   }}
                 >
                   <View style={[styles.achieveBadge, { backgroundColor: accent + "20" }]}>
-                    <Text style={{ fontSize: 20 }}>{isCoWinner ? "🏆" : (ROLE_DEFS[a.roleId]?.emoji ?? "🏅")}</Text>
+                    <Text style={{ fontSize: 21 }}>{isCoWinner ? "🏆" : (ROLE_DEFS[a.roleId]?.emoji ?? "🏅")}</Text>
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={{ color: accent, fontFamily: "Inter_600SemiBold", fontSize: isCoWinner ? 13 : 12, letterSpacing: 0.5 }}>
                       {ROLE_DEFS[a.roleId]?.name ?? a.roleId}
                       {isCoWinner ? " — Ko-Kazanan" : ""}
                     </Text>
-                    <Text style={{ color: accent, fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19, marginTop: 2, opacity: 0.85 }}>
+                    <Text style={{ color: accent, fontFamily: "Inter_400Regular", fontSize: 15, lineHeight: 19, marginTop: 2, opacity: 0.85 }}>
                       {a.label}
                     </Text>
                   </View>
@@ -155,7 +155,7 @@ export default function EndScreen() {
         </>
       )}
 
-      <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", letterSpacing: 1.5, fontSize: 10 }}>
+      <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", letterSpacing: 1.5, fontSize: 13 }}>
         TÜM ROLLER
       </Text>
       <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
@@ -179,7 +179,7 @@ export default function EndScreen() {
                 <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold" }}>
                   {p.nickname}
                 </Text>
-                <Text style={{ fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 2, color: role ? roleTeamColor : c.mutedForeground }}>
+                <Text style={{ fontFamily: "Inter_400Regular", fontSize: 15, marginTop: 2, color: role ? roleTeamColor : c.mutedForeground }}>
                   {role?.name ?? "Bilinmiyor"} • {p.isAlive ? "Hayatta" : grave?.cause ?? "Öldü"}
                 </Text>
               </View>
@@ -191,7 +191,7 @@ export default function EndScreen() {
         })}
       </View>
 
-      <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", letterSpacing: 1.5, fontSize: 10, marginTop: 6 }}>
+      <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", letterSpacing: 1.5, fontSize: 13, marginTop: 6 }}>
         OLAY GÜNLÜĞÜ
       </Text>
       <View style={[styles.card, { backgroundColor: c.card, borderColor: c.border }]}>
@@ -205,13 +205,13 @@ export default function EndScreen() {
               gap: 10,
               alignItems: "flex-start",
             }}>
-              <Text style={{ fontSize: 16, lineHeight: 22 }}>{ev.emoji}</Text>
+              <Text style={{ fontSize: 18, lineHeight: 22 }}>{ev.emoji}</Text>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: c.foreground, fontFamily: "Inter_500Medium", fontSize: 13, lineHeight: 19 }}>
+                <Text style={{ color: c.foreground, fontFamily: "Inter_500Medium", fontSize: 15, lineHeight: 19 }}>
                   {ev.message}
                 </Text>
                 {ev.round > 0 && (
-                  <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 11, marginTop: 1 }}>
+                  <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 14, marginTop: 1 }}>
                     Tur {ev.round}
                   </Text>
                 )}
@@ -229,7 +229,7 @@ export default function EndScreen() {
                 {g.nickname}{" "}
                 <Text style={{ color: c.mutedForeground }}>({ROLE_DEFS[g.roleId]?.name ?? g.roleId})</Text>
               </Text>
-              <Text style={{ color: c.mutedForeground, fontSize: 12, fontFamily: "Inter_400Regular" }}>
+              <Text style={{ color: c.mutedForeground, fontSize: 15, fontFamily: "Inter_400Regular" }}>
                 {g.cause}
               </Text>
             </View>

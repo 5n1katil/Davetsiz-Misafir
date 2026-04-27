@@ -323,7 +323,7 @@ export default function DayScreen() {
       >
         <View style={[styles.timerCard, { backgroundColor: c.card, borderColor: c.border }]}>
           <Feather name="sun" size={18} color={c.primary} />
-          <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 11, letterSpacing: 1.5, marginTop: 4 }}>
+          <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 14, letterSpacing: 1.5, marginTop: 4 }}>
             GÜN {state.round}
           </Text>
           <Animated.Text
@@ -359,11 +359,11 @@ export default function DayScreen() {
 
         {state.privateMessages.length > 0 ? (
           <View style={[styles.eventCard, { backgroundColor: "#0D1F3A", borderColor: "#1ECBE155" }]}>
-            <Text style={{ color: "#1ECBE1", fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 1.5 }}>
+            <Text style={{ color: "#1ECBE1", fontFamily: "Inter_700Bold", fontSize: 14, letterSpacing: 1.5 }}>
               SANA ÖZEL BİLGİ
             </Text>
             {state.privateMessages.map((m, i) => (
-              <Text key={i} style={{ color: c.foreground, marginTop: 6, fontFamily: "Inter_500Medium", fontSize: 14 }}>
+              <Text key={i} style={{ color: c.foreground, marginTop: 6, fontFamily: "Inter_500Medium", fontSize: 16 }}>
                 {m.msg}
               </Text>
             ))}
@@ -373,15 +373,15 @@ export default function DayScreen() {
         {state.myRole === "anonim" && state.anonimMarks !== undefined ? (
           <View style={[styles.eventCard, { backgroundColor: "#1A0D2E", borderColor: "#A855F755" }]}>
             <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
-              <Text style={{ color: "#A855F7", fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 1.5 }}>
+              <Text style={{ color: "#A855F7", fontFamily: "Inter_700Bold", fontSize: 14, letterSpacing: 1.5 }}>
                 İŞARETLENEN KİŞİLER
               </Text>
-              <Text style={{ color: "#A855F7", fontFamily: "Inter_700Bold", fontSize: 13 }}>
+              <Text style={{ color: "#A855F7", fontFamily: "Inter_700Bold", fontSize: 15 }}>
                 {state.anonimLynchedCount ?? 0}/3 linç edildi
               </Text>
             </View>
             {state.anonimMarks.length === 0 ? (
-              <Text style={{ color: c.mutedForeground, marginTop: 8, fontFamily: "Inter_500Medium", fontSize: 13 }}>
+              <Text style={{ color: c.mutedForeground, marginTop: 8, fontFamily: "Inter_500Medium", fontSize: 15 }}>
                 Henüz kimseyi işaretlemedin.
               </Text>
             ) : (
@@ -401,7 +401,7 @@ export default function DayScreen() {
                       style={{
                         color: isLynched ? "#22C55E" : isDead ? c.mutedForeground : c.foreground,
                         fontFamily: "Inter_500Medium",
-                        fontSize: 14,
+                        fontSize: 16,
                         textDecorationLine: isDead ? "line-through" : "none",
                       }}
                     >
@@ -416,12 +416,12 @@ export default function DayScreen() {
 
         {state.myRole === "kiskanc_komsu" && state.kiskanKopyaTarget ? (
           <View style={[styles.eventCard, { backgroundColor: "#1A1A0D", borderColor: "#EAB30855" }]}>
-            <Text style={{ color: "#EAB308", fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 1.5 }}>
+            <Text style={{ color: "#EAB308", fontFamily: "Inter_700Bold", fontSize: 14, letterSpacing: 1.5 }}>
               KOPYA HEDEFİN
             </Text>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
               <Feather name="copy" size={14} color="#EAB308" />
-              <Text style={{ color: c.foreground, fontFamily: "Inter_500Medium", fontSize: 14 }}>
+              <Text style={{ color: c.foreground, fontFamily: "Inter_500Medium", fontSize: 16 }}>
                 {state.players.find((p) => p.id === state.kiskanKopyaTarget)?.nickname ?? state.kiskanKopyaTarget}
               </Text>
             </View>
@@ -432,17 +432,17 @@ export default function DayScreen() {
           <View style={[styles.eventCard, { backgroundColor: "#0D1A2E", borderColor: "#60A5FA55" }]}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
               <Feather name="lock" size={12} color="#60A5FA" />
-              <Text style={{ color: "#60A5FA", fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 1.5 }}>
+              <Text style={{ color: "#60A5FA", fontFamily: "Inter_700Bold", fontSize: 14, letterSpacing: 1.5 }}>
                 KİLİTLEDİĞİN EVLER
               </Text>
             </View>
             {state.kapiciLockHistory.map((entry, i) => (
               <View key={i} style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 8 }}>
                 <Feather name="moon" size={13} color="#60A5FA" />
-                <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 13 }}>
+                <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 15 }}>
                   Gece {entry.night}:
                 </Text>
-                <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
+                <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 15 }}>
                   {entry.targetNickname}
                 </Text>
               </View>
@@ -451,7 +451,7 @@ export default function DayScreen() {
         ) : null}
 
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
-          <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", fontSize: 11, letterSpacing: 1.5 }}>
+          <Text style={{ color: c.mutedForeground, fontFamily: "Inter_600SemiBold", fontSize: 14, letterSpacing: 1.5 }}>
             HAYATTA OLAN ({alive.length})
           </Text>
           {ghostActive > 0 ? <GhostActivityBadge count={ghostActive} /> : null}
@@ -470,7 +470,7 @@ export default function DayScreen() {
                   opacity: p.isAlive ? 1 : 0.4,
                 }}
               >
-                <Text style={{ color: p.isAlive ? c.foreground : c.mutedForeground, fontFamily: "Inter_700Bold", fontSize: 13 }}>
+                <Text style={{ color: p.isAlive ? c.foreground : c.mutedForeground, fontFamily: "Inter_700Bold", fontSize: 15 }}>
                   {p.nickname[0]?.toUpperCase()}
                 </Text>
               </View>
@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
   },
   sectionHeading: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 11,
+    fontSize: 14,
     letterSpacing: 1.5,
     marginBottom: 2,
   },
@@ -592,16 +592,16 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   eventIcon: {
-    fontSize: 16,
+    fontSize: 18,
   },
   eventLabel: {
     fontFamily: "Inter_700Bold",
-    fontSize: 10,
+    fontSize: 13,
     letterSpacing: 1.5,
   },
   eventMessage: {
     fontFamily: "Inter_500Medium",
-    fontSize: 14,
+    fontSize: 16,
     lineHeight: 20,
     flexShrink: 1,
     flexWrap: "wrap",
@@ -619,13 +619,13 @@ const styles = StyleSheet.create({
   },
   causeText: {
     fontFamily: "Inter_400Regular",
-    fontSize: 12,
+    fontSize: 15,
     marginTop: 3,
     opacity: 0.65,
   },
   savedNickname: {
     fontFamily: "Inter_700Bold",
-    fontSize: 18,
+    fontSize: 19,
     lineHeight: 24,
   },
   overlay: {
@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
   },
   resultHeader: {
     fontFamily: "Inter_700Bold",
-    fontSize: 13,
+    fontSize: 15,
     letterSpacing: 1.8,
     color: "#E2E8F0",
     textAlign: "center",
@@ -663,12 +663,12 @@ const styles = StyleSheet.create({
   },
   resultMsgText: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 15,
+    fontSize: 17,
     lineHeight: 22,
   },
   resultDisclaimer: {
     fontFamily: "Inter_400Regular",
-    fontSize: 12,
+    fontSize: 15,
     color: "#94A3B8",
     lineHeight: 17,
   },
@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
   },
   dismissText: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 15,
+    fontSize: 17,
     color: "#E2E8F0",
     letterSpacing: 0.4,
   },

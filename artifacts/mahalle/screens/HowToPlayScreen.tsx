@@ -365,7 +365,7 @@ const s = StyleSheet.create({
     paddingBottom: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  headerTitle: { fontFamily: "Cinzel_900Black", fontSize: 17, letterSpacing: 2, color: "#F5C842" },
+  headerTitle: { fontFamily: "Cinzel_900Black", fontSize: 18, letterSpacing: 2, color: "#F5C842" },
   tabBar: {
     flexDirection: "row",
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -377,7 +377,7 @@ const s = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
   },
-  tabLabel: { fontFamily: "Inter_700Bold", fontSize: 12, letterSpacing: 1 },
+  tabLabel: { fontFamily: "Inter_700Bold", fontSize: 15, letterSpacing: 1 },
   scroll: { padding: 16, gap: 12 },
 
   introCard: {
@@ -386,8 +386,8 @@ const s = StyleSheet.create({
     borderWidth: 1,
     gap: 8,
   },
-  introTitle: { fontFamily: "Inter_700Bold", fontSize: 15 },
-  introText: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 20 },
+  introTitle: { fontFamily: "Inter_700Bold", fontSize: 17 },
+  introText: { fontFamily: "Inter_400Regular", fontSize: 15, lineHeight: 20 },
 
   phaseCard: {
     padding: 14,
@@ -403,14 +403,14 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  phaseLabel: { fontFamily: "Inter_700Bold", fontSize: 13, letterSpacing: 2 },
+  phaseLabel: { fontFamily: "Inter_700Bold", fontSize: 15, letterSpacing: 2 },
   stepRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   stepDot: { width: 6, height: 6, borderRadius: 3, marginTop: 6 },
-  stepText: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 20, flex: 1 },
+  stepText: { fontFamily: "Inter_400Regular", fontSize: 15, lineHeight: 20, flex: 1 },
 
   sectionTitle: {
     fontFamily: "Inter_700Bold",
-    fontSize: 11,
+    fontSize: 14,
     letterSpacing: 1.5,
     marginTop: 4,
   },
@@ -423,8 +423,8 @@ const s = StyleSheet.create({
     borderWidth: 1,
   },
   winIcon: { width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-  winTeam: { fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 1, marginBottom: 3 },
-  winText: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19 },
+  winTeam: { fontFamily: "Inter_700Bold", fontSize: 14, letterSpacing: 1, marginBottom: 3 },
+  winText: { fontFamily: "Inter_400Regular", fontSize: 15, lineHeight: 19 },
 
   teamHeader: {
     flexDirection: "row",
@@ -436,9 +436,9 @@ const s = StyleSheet.create({
     marginBottom: 8,
   },
   teamDot: { width: 8, height: 8, borderRadius: 4 },
-  teamTitle: { fontFamily: "Inter_700Bold", fontSize: 11, letterSpacing: 1.5, flex: 1 },
+  teamTitle: { fontFamily: "Inter_700Bold", fontSize: 14, letterSpacing: 1.5, flex: 1 },
   teamCount: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
-  teamCountText: { fontFamily: "Inter_700Bold", fontSize: 11 },
+  teamCountText: { fontFamily: "Inter_700Bold", fontSize: 14 },
 
   roleCard: {
     borderRadius: 14,
@@ -463,10 +463,10 @@ const s = StyleSheet.create({
   },
   roleAvatarImg: { width: "100%", height: "100%" },
   roleNameRow: { flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 3 },
-  roleName: { fontFamily: "Inter_700Bold", fontSize: 15 },
+  roleName: { fontFamily: "Inter_700Bold", fontSize: 17 },
   voteBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  voteBadgeText: { fontFamily: "Inter_600SemiBold", fontSize: 10 },
-  roleDesc: { fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 18 },
+  voteBadgeText: { fontFamily: "Inter_600SemiBold", fontSize: 13 },
+  roleDesc: { fontFamily: "Inter_400Regular", fontSize: 15, lineHeight: 18 },
 
   roleDetails: {
     padding: 14,
@@ -475,14 +475,14 @@ const s = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
   },
   storyBox: { padding: 12, borderRadius: 10 },
-  storyText: { fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 18, fontStyle: "italic" },
+  storyText: { fontFamily: "Inter_400Regular", fontSize: 15, lineHeight: 18, fontStyle: "italic" },
   infoRow: { flexDirection: "row", alignItems: "flex-start", gap: 10 },
   infoIconWrap: { width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center", marginTop: 1 },
-  infoLabel: { fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 1, marginBottom: 2 },
-  infoText: { fontFamily: "Inter_400Regular", fontSize: 13, lineHeight: 19 },
+  infoLabel: { fontFamily: "Inter_700Bold", fontSize: 13, letterSpacing: 1, marginBottom: 2 },
+  infoText: { fontFamily: "Inter_400Regular", fontSize: 15, lineHeight: 19 },
   tipsWrap: { gap: 6 },
-  tipsTitle: { fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 1 },
+  tipsTitle: { fontFamily: "Inter_700Bold", fontSize: 13, letterSpacing: 1 },
   tipRow: { flexDirection: "row", gap: 8, alignItems: "flex-start" },
-  tipBullet: { fontFamily: "Inter_700Bold", fontSize: 14, lineHeight: 20 },
-  tipText: { fontFamily: "Inter_400Regular", fontSize: 12, lineHeight: 18, flex: 1 },
+  tipBullet: { fontFamily: "Inter_700Bold", fontSize: 16, lineHeight: 20 },
+  tipText: { fontFamily: "Inter_400Regular", fontSize: 15, lineHeight: 18, flex: 1 },
 });

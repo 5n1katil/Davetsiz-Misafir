@@ -37,13 +37,13 @@ export default function VoteScreen() {
       <View style={{ position: "absolute", top: 0, left: 0, right: 0, height: 300, opacity: 0.07, backgroundColor: c.destructive }} />
 
       <View style={{ alignItems: "center", paddingVertical: 10 }}>
-        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", letterSpacing: 1.5, fontSize: 11 }}>
+        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", letterSpacing: 1.5, fontSize: 14 }}>
           {isRunoff ? "İKİNCİ TUR — BERABERLİK" : "OYLAMA"}
         </Text>
         <Text style={{ color: timerColor, fontFamily: "Inter_700Bold", fontSize: 52, marginTop: 4, fontVariant: ["tabular-nums"] }}>
           {remaining}s
         </Text>
-        <Text style={{ color: c.mutedForeground, marginTop: 4, fontFamily: "Inter_400Regular", fontSize: 13 }}>
+        <Text style={{ color: c.mutedForeground, marginTop: 4, fontFamily: "Inter_400Regular", fontSize: 15 }}>
           {state.voteCount} oy verildi
         </Text>
         {ghostActive > 0 ? (
@@ -82,11 +82,11 @@ export default function VoteScreen() {
                 </Text>
               </View>
               <View style={{ flex: 1, gap: 6 }}>
-                <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 16 }}>
+                <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 18 }}>
                   {p.nickname}
                   {p.id === myPlayerId ? "  •  sen" : ""}
                 </Text>
-                <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 12 }}>
+                <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", fontSize: 15 }}>
                   {candidateVotes} oy
                 </Text>
                 <View style={styles.barTrack}>

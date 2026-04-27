@@ -12,6 +12,7 @@ import { haptic } from "@/lib/haptics";
 import * as Haptics from "expo-haptics";
 
 import { useColors } from "@/hooks/useColors";
+import { scaleText } from "@/constants/typography";
 
 interface Props {
   label: string;
@@ -60,9 +61,9 @@ export function Btn({
       ? c.destructive
       : c.border;
 
-  const padV = size === "lg" ? 16 : size === "md" ? 13 : 9;
-  const minH = size === "lg" ? 52 : size === "md" ? 44 : 34;
-  const fontSize = size === "lg" ? 16 : size === "md" ? 14 : 13;
+  const padV = size === "lg" ? scaleText(16) : size === "md" ? scaleText(13) : scaleText(10);
+  const minH = size === "lg" ? scaleText(52) : size === "md" ? scaleText(44) : scaleText(36);
+  const fontSize = size === "lg" ? scaleText(17) : size === "md" ? scaleText(15) : scaleText(14);
 
   function handlePress() {
     if (disabled || loading) return;

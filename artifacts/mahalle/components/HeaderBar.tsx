@@ -5,6 +5,7 @@ import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { useColors } from "@/hooks/useColors";
 import { useGame } from "@/contexts/GameContext";
 import { useReduceMotion } from "@/hooks/useReduceMotion";
+import { scaleText, textRole } from "@/constants/typography";
 
 function PausedBadge() {
   const c = useColors();
@@ -28,7 +29,7 @@ function PausedBadge() {
 
   return (
     <Animated.View style={[styles.pausedBadge, { borderColor: c.primary, opacity }]}>
-      <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1.2 }}>
+      <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: textRole("micro"), letterSpacing: 1.2 }}>
         ⏸ DURAKLATILDI
       </Text>
     </Animated.View>
@@ -74,7 +75,7 @@ export function HeaderBar({
         {isHost ? (
           <>
             <View style={[styles.hostBadge, { borderColor: c.primary }]}>
-              <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: 9, letterSpacing: 1.5 }}>
+              <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: textRole("micro"), letterSpacing: 1.5 }}>
                 HOST
               </Text>
             </View>
@@ -136,12 +137,12 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: "Inter_700Bold",
-    fontSize: 17,
+    fontSize: textRole("bodyStrong"),
     letterSpacing: 0.5,
   },
   sub: {
     fontFamily: "Inter_400Regular",
-    fontSize: 12,
+    fontSize: textRole("caption"),
     marginTop: 2,
   },
   right: {
@@ -170,8 +171,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   dot: {
-    width: 8,
-    height: 8,
+    width: scaleText(8),
+    height: scaleText(8),
     borderRadius: 4,
   },
 });

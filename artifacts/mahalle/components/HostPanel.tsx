@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useGame } from "@/contexts/GameContext";
 import { useColors } from "@/hooks/useColors";
 import { ROLE_DEFS } from "@/constants/roles";
+import { scaleText, textRole } from "@/constants/typography";
 
 const PHASE_LABELS: Record<string, string> = {
   ROLE_SELECT: "Rol Seçimi",
@@ -315,10 +316,10 @@ export default function HostPanel() {
           {gs.phase === "NIGHT_ROLE" && nightTotal > 0 && (
             <View style={styles.progressWrap}>
               <View style={styles.progressRow}>
-                <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12 }}>
+                <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: textRole("caption") }}>
                   Gece sırası
                 </Text>
-                <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 12 }}>
+                <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: textRole("caption") }}>
                   {nightDone}/{nightTotal}
                 </Text>
               </View>
@@ -352,17 +353,17 @@ export default function HostPanel() {
                   ]}
                 >
                   <View style={styles.playerAvatar}>
-                    <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: 13 }}>
+                    <Text style={{ color: c.foreground, fontFamily: "Inter_600SemiBold", fontSize: textRole("label") }}>
                       {p.nickname[0]?.toUpperCase()}
                     </Text>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ color: c.foreground, fontFamily: "Inter_500Medium", fontSize: 14 }}>
+                    <Text style={{ color: c.foreground, fontFamily: "Inter_500Medium", fontSize: textRole("body") }}>
                       {p.nickname}
                       {dead ? "  💀" : ""}
                     </Text>
                     {role && (
-                      <Text style={{ color: "#9B7FD4", fontFamily: "Inter_400Regular", fontSize: 11, marginTop: 1 }}>
+                      <Text style={{ color: "#9B7FD4", fontFamily: "Inter_400Regular", fontSize: textRole("caption"), marginTop: 1 }}>
                         {role.emoji} {role.name}
                       </Text>
                     )}
@@ -452,13 +453,13 @@ const styles = StyleSheet.create({
   },
   phaseLabel: {
     fontFamily: "Inter_500Medium",
-    fontSize: 10,
+    fontSize: textRole("micro"),
     letterSpacing: 1,
     textTransform: "uppercase",
   },
   phaseName: {
     fontFamily: "Inter_700Bold",
-    fontSize: 18,
+    fontSize: textRole("title"),
     marginTop: 2,
   },
   timerBadge: {
@@ -468,7 +469,7 @@ const styles = StyleSheet.create({
   },
   timerText: {
     fontFamily: "Inter_700Bold",
-    fontSize: 15,
+    fontSize: textRole("label"),
   },
   pauseBtn: {
     flexDirection: "row",
@@ -500,7 +501,7 @@ const styles = StyleSheet.create({
   divider: { height: StyleSheet.hairlineWidth, marginVertical: 4 },
   playersTitle: {
     fontFamily: "Inter_500Medium",
-    fontSize: 11,
+    fontSize: textRole("caption"),
     letterSpacing: 1,
     textTransform: "uppercase",
   },
@@ -512,9 +513,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   playerAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: scaleText(32),
+    height: scaleText(32),
+    borderRadius: scaleText(16),
     backgroundColor: "#2A1060",
     alignItems: "center",
     justifyContent: "center",

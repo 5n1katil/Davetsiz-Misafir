@@ -1115,7 +1115,7 @@ const styles = StyleSheet.create({
   },
   tag: {
     fontFamily: "Inter_400Regular",
-    fontSize: 13,
+    fontSize: 15,
     marginTop: 2,
     marginBottom: 6,
     textAlign: "center",
@@ -1139,7 +1139,7 @@ const styles = StyleSheet.create({
   },
   entryLabel: {
     fontFamily: "Inter_500Medium",
-    fontSize: 11,
+    fontSize: 14,
     letterSpacing: 1.5,
     color: "#6B4FA8",
     textTransform: "uppercase",
@@ -1151,7 +1151,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 15,
     fontFamily: "Inter_500Medium",
-    fontSize: 16,
+    fontSize: 18,
     color: "#E8DEFF",
     backgroundColor: "#160535",
   },
@@ -1159,7 +1159,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     letterSpacing: 4,
     fontFamily: "Inter_700Bold",
-    fontSize: 16,
+    fontSize: 18,
     color: "#F5C842",
   },
   actionRow: { flexDirection: "row", gap: 10 },
@@ -1182,16 +1182,16 @@ const styles = StyleSheet.create({
   actionBtnLabelPrimary: {
     color: "#0A0614",
     fontFamily: "Inter_700Bold",
-    fontSize: 14,
+    fontSize: 16,
   },
   actionBtnLabelSecondary: {
     color: "#C3AEFF",
     fontFamily: "Inter_600SemiBold",
-    fontSize: 14,
+    fontSize: 16,
   },
   footer: {
     fontFamily: "Inter_400Regular",
-    fontSize: 11,
+    fontSize: 14,
     color: "#3A2560",
     letterSpacing: 0.5,
   },
@@ -1211,7 +1211,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     fontFamily: "Inter_500Medium",
-    fontSize: 13,
+    fontSize: 15,
     color: "#FF6B6B",
     flex: 1,
   },
@@ -1221,7 +1221,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
     fontFamily: "Inter_500Medium",
-    fontSize: 16,
+    fontSize: 18,
   },
 
   // ── In-room sections ──────────────────────────────────────────────────────────
@@ -1235,7 +1235,7 @@ const styles = StyleSheet.create({
   },
   inSectionLabel: {
     fontFamily: "Inter_700Bold",
-    fontSize: 11,
+    fontSize: 14,
     letterSpacing: 2,
     color: "#9B7FD4",
     textTransform: "uppercase",
@@ -1251,7 +1251,7 @@ const styles = StyleSheet.create({
   },
   inCodeHint: {
     fontFamily: "Inter_400Regular",
-    fontSize: 13,
+    fontSize: 15,
     color: "#9B7FD4",
     marginBottom: 10,
   },
@@ -1267,7 +1267,7 @@ const styles = StyleSheet.create({
   },
   qrToggleText: {
     fontFamily: "Inter_500Medium",
-    fontSize: 13,
+    fontSize: 15,
     color: "#9B7FD4",
   },
   qrWrapper: { alignItems: "center", marginTop: 12 },
@@ -1281,14 +1281,14 @@ const styles = StyleSheet.create({
   },
   inSectionHeading: {
     fontFamily: "Inter_700Bold",
-    fontSize: 13,
+    fontSize: 15,
     letterSpacing: 1.5,
     color: "#9B7FD4",
     textTransform: "uppercase",
   },
   inPlayerCount: {
     fontFamily: "Inter_500Medium",
-    fontSize: 13,
+    fontSize: 15,
     color: "#9B7FD4",
   },
   inPlayerCountWarn: {
@@ -1318,12 +1318,12 @@ const styles = StyleSheet.create({
   },
   inAvatarText: {
     fontFamily: "Inter_700Bold",
-    fontSize: 15,
+    fontSize: 17,
     color: "#E8DEFF",
   },
   inPlayerName: {
     fontFamily: "Inter_500Medium",
-    fontSize: 14,
+    fontSize: 16,
     color: "#E8DEFF",
     flex: 1,
   },
@@ -1344,7 +1344,7 @@ const styles = StyleSheet.create({
   },
   inHostBadgeText: {
     fontFamily: "Inter_700Bold",
-    fontSize: 10,
+    fontSize: 13,
     color: "#0A0614",
     letterSpacing: 0.5,
   },
@@ -1353,7 +1353,7 @@ const styles = StyleSheet.create({
   inConnDotGray: { backgroundColor: "#3B1F8C" },
   inKickBtn: {
     fontFamily: "Inter_700Bold",
-    fontSize: 13,
+    fontSize: 15,
     color: "#C8102E",
     paddingHorizontal: 4,
   },
@@ -1370,7 +1370,7 @@ const styles = StyleSheet.create({
   },
   inGuestNoteText: {
     fontFamily: "Inter_500Medium",
-    fontSize: 13,
+    fontSize: 15,
     color: "#4A2E7A",
   },
 
@@ -1390,7 +1390,7 @@ const styles = StyleSheet.create({
   },
   inStartBtnText: {
     fontFamily: "Inter_700Bold",
-    fontSize: 15,
+    fontSize: 17,
     color: "#0A0614",
     letterSpacing: 1,
   },
@@ -1406,7 +1406,7 @@ const styles = StyleSheet.create({
   },
   inWaitingText: {
     fontFamily: "Inter_500Medium",
-    fontSize: 14,
+    fontSize: 16,
     color: "#9B7FD4",
   },
 
@@ -1418,7 +1418,7 @@ const styles = StyleSheet.create({
   },
   hsChevron: {
     fontFamily: "Inter_500Medium",
-    fontSize: 14,
+    fontSize: 16,
     color: "#9B7FD4",
   },
   hsBody: { marginTop: 16, gap: 16 },
@@ -1433,7 +1433,7 @@ const styles = StyleSheet.create({
   },
   distPreviewTitle: {
     fontFamily: "Inter_400Regular",
-    fontSize: 12,
+    fontSize: 15,
     color: "#9B7FD4",
     marginBottom: 8,
   },
@@ -1461,18 +1461,18 @@ const styles = StyleSheet.create({
   },
   distChipLabel: {
     fontFamily: "Inter_400Regular",
-    fontSize: 10,
+    fontSize: 13,
     color: "#9B7FD4",
     marginTop: 2,
   },
   distVs: {
     fontFamily: "Inter_700Bold",
-    fontSize: 14,
+    fontSize: 16,
     color: "#4A2E7A",
   },
   distPreviewNote: {
     fontFamily: "Inter_400Regular",
-    fontSize: 10,
+    fontSize: 13,
     color: "#4A2E7A",
     marginTop: 8,
     fontStyle: "italic",
@@ -1496,20 +1496,20 @@ const styles = StyleSheet.create({
   },
   hsRolePkgBtnText: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 14,
+    fontSize: 16,
     color: "#9B7FD4",
   },
   hsRolePkgBtnTextActive: { color: "#F5C842" },
   hsRolePkgDesc: {
     fontFamily: "Inter_400Regular",
-    fontSize: 11,
+    fontSize: 14,
     color: "#4A2E7A",
     marginTop: 3,
     fontStyle: "italic",
   },
   hsRoleGroupLabel: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 12,
+    fontSize: 15,
     color: "#9B7FD4",
     marginTop: 10,
     marginBottom: 6,
@@ -1531,7 +1531,7 @@ const styles = StyleSheet.create({
   },
   srLabel: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 13,
+    fontSize: 15,
     color: "#E8DEFF",
   },
   srTipBtn: {
@@ -1545,7 +1545,7 @@ const styles = StyleSheet.create({
   },
   srTipBtnText: {
     fontFamily: "Inter_700Bold",
-    fontSize: 11,
+    fontSize: 14,
     color: "#9B7FD4",
   },
   srTipBox: {
@@ -1558,7 +1558,7 @@ const styles = StyleSheet.create({
   },
   srTipText: {
     fontFamily: "Inter_400Regular",
-    fontSize: 12,
+    fontSize: 15,
     color: "#9B7FD4",
     lineHeight: 18,
   },
@@ -1582,7 +1582,7 @@ const styles = StyleSheet.create({
   },
   srOptionBtnText: {
     fontFamily: "Inter_500Medium",
-    fontSize: 13,
+    fontSize: 15,
     color: "#9B7FD4",
   },
   srOptionBtnTextActive: {
@@ -1608,16 +1608,16 @@ const styles = StyleSheet.create({
     borderColor: "#2A1060",
     opacity: 0.5,
   },
-  rtEmoji: { fontSize: 14 },
+  rtEmoji: { fontSize: 16 },
   rtName: {
     fontFamily: "Inter_500Medium",
-    fontSize: 12,
+    fontSize: 15,
     color: "#E8DEFF",
   },
   rtNameOff: { color: "#4A2E7A" },
   rtStatus: {
     fontFamily: "Inter_700Bold",
-    fontSize: 11,
+    fontSize: 14,
     color: "#F5C842",
     marginLeft: 2,
   },
@@ -1637,13 +1637,13 @@ const styles = StyleSheet.create({
   distributionInfoIcon: { fontSize: 24 },
   distributionInfoTitle: {
     fontFamily: "Inter_700Bold",
-    fontSize: 13,
+    fontSize: 15,
     color: "#E8DEFF",
     marginBottom: 2,
   },
   distributionInfoDesc: {
     fontFamily: "Inter_400Regular",
-    fontSize: 11,
+    fontSize: 14,
     color: "#9B7FD4",
     lineHeight: 16,
   },
@@ -1698,13 +1698,13 @@ const styles = StyleSheet.create({
   },
   packageCardLabel: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 14,
+    fontSize: 16,
     color: "#9B7FD4",
   },
   packageCardLabelActive: { color: "#F5C842" },
   packageCardDesc: {
     fontFamily: "Inter_400Regular",
-    fontSize: 11,
+    fontSize: 14,
     color: "#4A2E7A",
     marginTop: 2,
   },
@@ -1722,7 +1722,7 @@ const styles = StyleSheet.create({
   },
   packageCardTagText: {
     fontFamily: "Inter_700Bold",
-    fontSize: 9,
+    fontSize: 12,
     color: "#4A2E7A",
     letterSpacing: 1,
   },
@@ -1746,13 +1746,13 @@ const styles = StyleSheet.create({
   },
   roleDetailsTitle: {
     fontFamily: "Inter_700Bold",
-    fontSize: 12,
+    fontSize: 15,
     color: "#F5C842",
     marginBottom: 2,
   },
   roleDetailsText: {
     fontFamily: "Inter_400Regular",
-    fontSize: 11,
+    fontSize: 14,
     color: "#9B7FD4",
     lineHeight: 16,
   },
@@ -1766,14 +1766,14 @@ const styles = StyleSheet.create({
   },
   accordionChevron: {
     fontFamily: "Inter_500Medium",
-    fontSize: 12,
+    fontSize: 15,
     color: "#4A2E7A",
   },
   accordionBody: { paddingTop: 8 },
   roleGroup: { marginBottom: 12 },
   roleGroupLabel: {
     fontFamily: "Inter_700Bold",
-    fontSize: 11,
+    fontSize: 14,
     marginBottom: 6,
     letterSpacing: 0.5,
   },
@@ -1797,21 +1797,21 @@ const styles = StyleSheet.create({
     backgroundColor: "#0A0614",
     opacity: 0.5,
   },
-  roleToggleEmoji: { fontSize: 14 },
+  roleToggleEmoji: { fontSize: 16 },
   roleToggleName: {
     fontFamily: "Inter_500Medium",
-    fontSize: 12,
+    fontSize: 15,
     color: "#E8DEFF",
   },
   roleToggleNameOff: { color: "#4A2E7A" },
   roleToggleCheck: {
     fontFamily: "Inter_700Bold",
-    fontSize: 11,
+    fontSize: 14,
     marginLeft: 2,
   },
   categoryInfoText: {
     fontFamily: "Inter_400Regular",
-    fontSize: 12,
+    fontSize: 15,
     color: "#6B4FA8",
     fontStyle: "italic",
     paddingVertical: 4,

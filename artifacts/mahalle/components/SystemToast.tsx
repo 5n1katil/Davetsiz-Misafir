@@ -4,6 +4,7 @@ import { Animated, StyleSheet, Text, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useGame } from "@/contexts/GameContext";
+import { textRole } from "@/constants/typography";
 
 export default function SystemToast() {
   const insets = useSafeAreaInsets();
@@ -131,13 +132,13 @@ const styles = StyleSheet.create({
   text: {
     color: "#F0EAF8",
     fontFamily: "Inter_600SemiBold",
-    fontSize: 14,
+    fontSize: textRole("label"),
     lineHeight: 20,
   },
   tapHint: {
     color: "#9B7FD4",
     fontFamily: "Inter_400Regular",
-    fontSize: 11,
+    fontSize: textRole("caption"),
     marginTop: 2,
   },
   closeBtn: {

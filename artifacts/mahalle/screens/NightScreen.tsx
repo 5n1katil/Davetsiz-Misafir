@@ -146,7 +146,7 @@ export default function NightScreen() {
       <View style={{ flex: 1, backgroundColor: "#05070F" }}>
         <View style={styles.deadHeader}>
           <Feather name="moon" size={18} color="#7E7C92" />
-          <Text style={{ color: "#7E7C92", fontFamily: "Inter_500Medium", fontSize: 12, letterSpacing: 1, marginLeft: 6 }}>
+          <Text style={{ color: "#7E7C92", fontFamily: "Inter_500Medium", fontSize: 15, letterSpacing: 1, marginLeft: 6 }}>
             GECE — SEN MEZARLIKTASIN
           </Text>
         </View>
@@ -170,7 +170,7 @@ export default function NightScreen() {
         >
           🌙
         </Animated.Text>
-        <Text style={{ color: "#E8DEFF", fontFamily: "Cinzel_700Bold", fontSize: 20, marginTop: 16, textAlign: "center", letterSpacing: 2 }}>
+        <Text style={{ color: "#E8DEFF", fontFamily: "Cinzel_700Bold", fontSize: 21, marginTop: 16, textAlign: "center", letterSpacing: 2 }}>
           Mahalle uykuya daldı...
         </Text>
         <Text style={{ color: "#9B7FD4", marginTop: 8, fontFamily: "Inter_400Regular", textAlign: "center" }}>
@@ -215,7 +215,7 @@ export default function NightScreen() {
           <Animated.View style={{ opacity: resultFadeAnim, width: "100%", maxWidth: 380 }}>
             <View style={[styles.resultSubmittedHint]}>
               <Feather name="check-circle" size={16} color="#6EE7B7" />
-              <Text style={{ color: "#6EE7B7", fontFamily: "Inter_600SemiBold", fontSize: 13, marginLeft: 8 }}>
+              <Text style={{ color: "#6EE7B7", fontFamily: "Inter_600SemiBold", fontSize: 15, marginLeft: 8 }}>
                 Aksiyon gönderildi — sonuç aşağıda
               </Text>
             </View>
@@ -226,14 +226,14 @@ export default function NightScreen() {
                 <View key={idx} style={[styles.resultCard, { backgroundColor: bg, borderColor: accent + "55" }]}>
                   <View style={[styles.resultAccentBar, { backgroundColor: accent }]} />
                   <View style={{ flex: 1, paddingLeft: 12 }}>
-                    <Text style={{ color: accent, fontFamily: "Inter_700Bold", fontSize: 13, letterSpacing: 0.5, marginBottom: 4 }}>
+                    <Text style={{ color: accent, fontFamily: "Inter_700Bold", fontSize: 15, letterSpacing: 0.5, marginBottom: 4 }}>
                       {blocked ? "SORGU ENGELLENDİ" : "GECE AKSIYON SONUCU"}
                     </Text>
-                    <Text style={{ color: blocked ? "#9CA3AF" : "#E8DEFF", fontFamily: "Inter_600SemiBold", fontSize: 15, lineHeight: 22 }}>
+                    <Text style={{ color: blocked ? "#9CA3AF" : "#E8DEFF", fontFamily: "Inter_600SemiBold", fontSize: 17, lineHeight: 22 }}>
                       {formatted}
                     </Text>
                     {disclaimer ? (
-                      <Text style={{ color: "#9B7FD4", fontFamily: "Inter_400Regular", fontSize: 12, marginTop: 6 }}>
+                      <Text style={{ color: "#9B7FD4", fontFamily: "Inter_400Regular", fontSize: 15, marginTop: 6 }}>
                         {disclaimer}
                       </Text>
                     ) : null}
@@ -241,7 +241,7 @@ export default function NightScreen() {
                 </View>
               );
             })}
-            <Text style={{ color: "#7E7C92", fontFamily: "Inter_400Regular", fontSize: 12, textAlign: "center", marginTop: 16 }}>
+            <Text style={{ color: "#7E7C92", fontFamily: "Inter_400Regular", fontSize: 15, textAlign: "center", marginTop: 16 }}>
               Diğer rollerin bitmesini bekliyorsun...
             </Text>
           </Animated.View>
@@ -258,7 +258,7 @@ export default function NightScreen() {
     return (
       <View style={[styles.intro, { backgroundColor: BG }]}>
         <Feather name="moon" size={52} color="#F5C842" />
-        <Text style={{ color: "#E8DEFF", fontFamily: "Cinzel_700Bold", fontSize: 20, marginTop: 16, textAlign: "center", letterSpacing: 2 }}>
+        <Text style={{ color: "#E8DEFF", fontFamily: "Cinzel_700Bold", fontSize: 21, marginTop: 16, textAlign: "center", letterSpacing: 2 }}>
           {isHiddenRole ? "Biri uyanıyor..." : `${roleLabel} uyanıyor...`}
         </Text>
         <Text style={{ color: "#9B7FD4", marginTop: 8, fontFamily: "Inter_400Regular", textAlign: "center" }}>
@@ -282,14 +282,14 @@ export default function NightScreen() {
     return (
       <View style={[styles.intro, { backgroundColor: BG }]}>
         <Text style={{ fontSize: 64 }}>📿</Text>
-        <Text style={{ color: "#E8DEFF", fontFamily: "Cinzel_700Bold", fontSize: 20, marginTop: 16, textAlign: "center", letterSpacing: 2 }}>
+        <Text style={{ color: "#E8DEFF", fontFamily: "Cinzel_700Bold", fontSize: 21, marginTop: 16, textAlign: "center", letterSpacing: 2 }}>
           Hoca
         </Text>
         <View style={[styles.infoNote, { borderColor: accent + "55" }]}>
           <Feather name="check-circle" size={18} color={accent} />
-          <Text style={{ color: "#C3AEFF", fontFamily: "Inter_400Regular", fontSize: 14, lineHeight: 20, flex: 1, marginLeft: 10 }}>
+          <Text style={{ color: "#C3AEFF", fontFamily: "Inter_400Regular", fontSize: 16, lineHeight: 20, flex: 1, marginLeft: 10 }}>
             Duan edildi — bu gece eylemsizsin.{"\n"}
-            <Text style={{ color: "#7E7C92", fontSize: 12 }}>Gücünü daha önce kullandın.</Text>
+            <Text style={{ color: "#7E7C92", fontSize: 15 }}>Gücünü daha önce kullandın.</Text>
           </Text>
         </View>
         <Text style={{ color: "#F5C842", fontFamily: "Inter_700Bold", fontSize: 32, marginTop: 20, fontVariant: ["tabular-nums"] }}>
@@ -343,7 +343,7 @@ export default function NightScreen() {
         {/* Role label + team chip */}
         <View style={{ alignItems: "center", marginTop: 10 }}>
           <View style={[styles.teamChip, { backgroundColor: accent + "22", borderColor: accent + "88" }]}>
-            <Text style={{ color: accent, fontFamily: "Inter_600SemiBold", fontSize: 10, letterSpacing: 1.5 }}>
+            <Text style={{ color: accent, fontFamily: "Inter_600SemiBold", fontSize: 13, letterSpacing: 1.5 }}>
               {roleId === "_cete" ? "ÇETE" : (roleDef ? roleDef.team.toUpperCase() : "GECE")}
             </Text>
           </View>
@@ -374,19 +374,19 @@ export default function NightScreen() {
       {/* ── Instruction ── */}
       <View style={[styles.instructionBar, { borderColor: accent + "33" }]}>
         {roleId === "kumarbaz" && kumarbazSecond ? (
-          <Text style={{ color: "#C3AEFF", fontFamily: "Inter_400Regular", textAlign: "center", fontSize: 14, lineHeight: 22 }}>
+          <Text style={{ color: "#C3AEFF", fontFamily: "Inter_400Regular", textAlign: "center", fontSize: 16, lineHeight: 22 }}>
             <Text style={{ color: accent, fontFamily: "Inter_600SemiBold" }}>{firstPlayerNick}</Text>
             {" "}↔️{" "}
             <Text style={{ color: accent, fontFamily: "Inter_600SemiBold" }}>{secondPlayerNick}</Text>
             {"\n"}Onaylamak için "Takas Et" butonuna bas.
           </Text>
         ) : roleId === "kumarbaz" && kumarbazFirst ? (
-          <Text style={{ color: "#C3AEFF", fontFamily: "Inter_400Regular", textAlign: "center", fontSize: 14, lineHeight: 20 }}>
+          <Text style={{ color: "#C3AEFF", fontFamily: "Inter_400Regular", textAlign: "center", fontSize: 16, lineHeight: 20 }}>
             <Text style={{ color: accent, fontFamily: "Inter_600SemiBold" }}>{firstPlayerNick}</Text>
             {" "}seçildi. Şimdi ikinci kişiyi seç.
           </Text>
         ) : (
-          <Text style={{ color: "#9B7FD4", fontFamily: "Inter_400Regular", textAlign: "center", fontSize: 14 }}>
+          <Text style={{ color: "#9B7FD4", fontFamily: "Inter_400Regular", textAlign: "center", fontSize: 16 }}>
             {instruction}
           </Text>
         )}
@@ -426,27 +426,27 @@ export default function NightScreen() {
               ]}
             >
               <View style={[styles.playerAvatar, { backgroundColor: isSelected ? accent + "44" : "#1A0A3E" }]}>
-                <Text style={{ color: "#E8DEFF", fontFamily: "Inter_700Bold", fontSize: 15 }}>
+                <Text style={{ color: "#E8DEFF", fontFamily: "Inter_700Bold", fontSize: 17 }}>
                   {p.nickname[0]?.toUpperCase()}
                 </Text>
               </View>
-              <Text style={{ color: "#E8DEFF", flex: 1, fontFamily: "Inter_600SemiBold", fontSize: 16 }}>
+              <Text style={{ color: "#E8DEFF", flex: 1, fontFamily: "Inter_600SemiBold", fontSize: 18 }}>
                 {p.nickname}
               </Text>
               {isFirstSelected ? (
                 <View style={[styles.firstBadge, { backgroundColor: accent }]}>
-                  <Text style={{ color: "#000", fontFamily: "Inter_700Bold", fontSize: 10 }}>1.</Text>
+                  <Text style={{ color: "#000", fontFamily: "Inter_700Bold", fontSize: 13 }}>1.</Text>
                 </View>
               ) : isSecondSelected ? (
                 <View style={[styles.firstBadge, { backgroundColor: accent }]}>
-                  <Text style={{ color: "#000", fontFamily: "Inter_700Bold", fontSize: 10 }}>2.</Text>
+                  <Text style={{ color: "#000", fontFamily: "Inter_700Bold", fontSize: 13 }}>2.</Text>
                 </View>
               ) : roleId === "_cete" ? (
                 <View style={[styles.voteCountBadge, { backgroundColor: (state.ceteVoteCounts?.[p.id] ?? 0) > 0 ? accent + "33" : "#1A0A3E" }]}>
-                  <Text style={{ color: accent, fontFamily: "Inter_700Bold", fontSize: 12 }}>
+                  <Text style={{ color: accent, fontFamily: "Inter_700Bold", fontSize: 15 }}>
                     {state.ceteVoteCounts?.[p.id] ?? 0}
                   </Text>
-                  <Text style={{ color: accent + "AA", fontFamily: "Inter_400Regular", fontSize: 9, marginLeft: 2 }}>
+                  <Text style={{ color: accent + "AA", fontFamily: "Inter_400Regular", fontSize: 12, marginLeft: 2 }}>
                     OY
                   </Text>
                 </View>
@@ -487,7 +487,7 @@ export default function NightScreen() {
             style={[styles.cancelBtn, { borderColor: "#3B1F8C" }]}
           >
             <Feather name="x" size={14} color="#9B7FD4" />
-            <Text style={{ color: "#9B7FD4", fontFamily: "Inter_500Medium", fontSize: 13, marginLeft: 6 }}>
+            <Text style={{ color: "#9B7FD4", fontFamily: "Inter_500Medium", fontSize: 15, marginLeft: 6 }}>
               {kumarbazSecond ? "İkinci seçimi iptal et" : "İlk seçimi iptal et"}
             </Text>
           </Pressable>
@@ -594,7 +594,7 @@ const styles = StyleSheet.create({
   actionDescText: {
     color: "#9B7FD4",
     fontFamily: "Inter_400Regular",
-    fontSize: 13,
+    fontSize: 15,
     lineHeight: 19,
   },
   infoNote: {

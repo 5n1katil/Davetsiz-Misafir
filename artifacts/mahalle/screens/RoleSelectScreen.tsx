@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
   },
   panelTitle: {
     fontFamily: "Inter_700Bold",
-    fontSize: 9,
+    fontSize: 12,
     color: "#3B1F8C",
     letterSpacing: 2,
     textAlign: "center",
@@ -628,7 +628,7 @@ const styles = StyleSheet.create({
   },
   posNum: {
     fontFamily: "Inter_700Bold",
-    fontSize: 9,
+    fontSize: 12,
     color: "#9B7FD4",
   },
   posNumPicking: {
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
   },
   playerName: {
     fontFamily: "Inter_700Bold",
-    fontSize: 11,
+    fontSize: 14,
     color: "#C8B8FF",
     letterSpacing: 0.2,
   },
@@ -651,19 +651,19 @@ const styles = StyleSheet.create({
   },
   statusDone: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 10,
+    fontSize: 13,
     letterSpacing: 0.1,
     flexWrap: "wrap",
     lineHeight: 14,
   },
   statusPicking: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 9,
+    fontSize: 12,
     color: "#F5C842",
   },
   statusWaiting: {
     fontFamily: "Inter_400Regular",
-    fontSize: 9,
+    fontSize: 12,
     color: "#3B1F8C",
   },
 
@@ -673,15 +673,15 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   doneEmoji: {
-    fontSize: 16,
+    fontSize: 18,
   },
   checkmark: {
     fontFamily: "Inter_700Bold",
-    fontSize: 14,
+    fontSize: 16,
   },
   youBadge: {
     fontFamily: "Inter_700Bold",
-    fontSize: 7,
+    fontSize: 10,
     color: "#F5C842",
     letterSpacing: 0.5,
   },
@@ -717,23 +717,23 @@ const styles = StyleSheet.create({
 
   pickingTitle: {
     fontFamily: "Cinzel_700Bold",
-    fontSize: 20,
+    fontSize: 21,
     color: "#E8DEFF",
     textAlign: "center",
   },
   pickingSubtitle: {
     fontFamily: "Inter_400Regular",
-    fontSize: 12,
+    fontSize: 15,
     color: "#4A2E7A",
     textAlign: "center",
     letterSpacing: 1,
   },
   pickingSubtitleMobile: {
-    fontSize: 10,
+    fontSize: 13,
   },
   pickingPackage: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 11,
+    fontSize: 14,
     color: "#9B7FD4",
     textAlign: "center",
     letterSpacing: 0.6,
@@ -751,10 +751,10 @@ const styles = StyleSheet.create({
     borderColor: "#3B1F8C",
     paddingVertical: 10,
   },
-  randomBtnEmoji: { fontSize: 18 },
+  randomBtnEmoji: { fontSize: 19 },
   randomBtnText: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 12,
+    fontSize: 15,
     color: "#9B7FD4",
   },
 
@@ -773,7 +773,7 @@ const styles = StyleSheet.create({
   },
   timerLabel: {
     fontFamily: "Inter_400Regular",
-    fontSize: 14,
+    fontSize: 16,
     color: "#9B7FD4",
   },
   timerUrgent: { color: "#C8102E" },
@@ -829,7 +829,7 @@ const styles = StyleSheet.create({
   },
   selBadgeText: {
     fontFamily: "Inter_700Bold",
-    fontSize: 10,
+    fontSize: 13,
     color: "#0A0614",
   },
   cardName: {
@@ -859,7 +859,7 @@ const styles = StyleSheet.create({
   },
   descText: {
     fontFamily: "Inter_400Regular",
-    fontSize: 11,
+    fontSize: 14,
     color: "#9B7FD4",
     textAlign: "center",
     lineHeight: 16,
@@ -877,7 +877,7 @@ const styles = StyleSheet.create({
   },
   confirmBtnText: {
     fontFamily: "Inter_700Bold",
-    fontSize: 14,
+    fontSize: 16,
     color: "#0A0614",
   },
   confirmBtnTextDisabled: {
@@ -894,7 +894,7 @@ const styles = StyleSheet.create({
   },
   waitingLabel: {
     fontFamily: "Inter_700Bold",
-    fontSize: 10,
+    fontSize: 13,
     letterSpacing: 3,
     color: "#3B1F8C",
   },
@@ -916,7 +916,7 @@ const styles = StyleSheet.create({
   },
   fractionSub: {
     fontFamily: "Inter_400Regular",
-    fontSize: 14,
+    fontSize: 16,
     color: "#9B7FD4",
   },
   waitBarBg: {
@@ -933,7 +933,7 @@ const styles = StyleSheet.create({
   },
   waitHint: {
     fontFamily: "Inter_400Regular",
-    fontSize: 12,
+    fontSize: 15,
     color: "#3B1F8C",
     marginTop: 6,
   },
@@ -949,7 +949,7 @@ const styles = StyleSheet.create({
   },
   prepOrderText: {
     fontFamily: "Inter_700Bold",
-    fontSize: 16,
+    fontSize: 18,
     color: "#F5C842",
     textAlign: "center",
     lineHeight: 24,
@@ -957,7 +957,7 @@ const styles = StyleSheet.create({
   },
   prepInfoText: {
     fontFamily: "Inter_400Regular",
-    fontSize: 13,
+    fontSize: 15,
     color: "#9B7FD4",
     textAlign: "center",
     lineHeight: 20,

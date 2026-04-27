@@ -24,13 +24,13 @@ export default function RoleRevealScreen() {
     return (
       <View style={[styles.center, { backgroundColor: c.background }]}>
         <Text style={{ fontSize: 52 }}>🔒</Text>
-        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", letterSpacing: 2, fontSize: 11, marginTop: 22 }}>
+        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_500Medium", letterSpacing: 2, fontSize: 14, marginTop: 22 }}>
           {me?.nickname?.toUpperCase()}
         </Text>
         <Text style={{ color: c.foreground, fontFamily: "Cinzel_700Bold", fontSize: 22, marginTop: 10, textAlign: "center", letterSpacing: 2, paddingHorizontal: 20 }}>
           Telefonunu kimseye gösterme
         </Text>
-        <Text style={{ color: c.mutedForeground, marginTop: 12, fontFamily: "Inter_400Regular", textAlign: "center", paddingHorizontal: 32, lineHeight: 21, fontSize: 14 }}>
+        <Text style={{ color: c.mutedForeground, marginTop: 12, fontFamily: "Inter_400Regular", textAlign: "center", paddingHorizontal: 32, lineHeight: 21, fontSize: 16 }}>
           Rolünü görmek için aşağıya bas. Etrafındakilerin görmediğinden emin ol.
         </Text>
         <Btn
@@ -67,12 +67,12 @@ export default function RoleRevealScreen() {
         </Text>
 
         <View style={[styles.teamBadge, { backgroundColor: teamColor + "22", borderColor: teamColor + "66" }]}>
-          <Text style={{ color: teamColor, fontFamily: "Inter_700Bold", letterSpacing: 2, fontSize: 10 }}>
+          <Text style={{ color: teamColor, fontFamily: "Inter_700Bold", letterSpacing: 2, fontSize: 13 }}>
             {ROLE_TEAM_LABEL[role.team]}
           </Text>
         </View>
 
-        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 13, marginTop: 12, textAlign: "center", lineHeight: 20, paddingHorizontal: 8 }}>
+        <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 15, marginTop: 12, textAlign: "center", lineHeight: 20, paddingHorizontal: 8 }}>
           {role.description}
         </Text>
       </View>
@@ -100,11 +100,11 @@ export default function RoleRevealScreen() {
       <View style={[styles.winCard, { backgroundColor: teamColor + "14", borderColor: teamColor + "44" }]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
           <Feather name="award" size={14} color={teamColor} />
-          <Text style={{ color: teamColor, fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 2 }}>
+          <Text style={{ color: teamColor, fontFamily: "Inter_700Bold", fontSize: 13, letterSpacing: 2 }}>
             KAZANMA KOŞULU
           </Text>
         </View>
-        <Text style={{ color: c.foreground, fontFamily: "Inter_500Medium", lineHeight: 22, fontSize: 14 }}>
+        <Text style={{ color: c.foreground, fontFamily: "Inter_500Medium", lineHeight: 22, fontSize: 16 }}>
           {role.winCondition}
         </Text>
       </View>
@@ -113,18 +113,18 @@ export default function RoleRevealScreen() {
       <View style={[styles.tipsCard, { backgroundColor: c.card, borderColor: c.border }]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
           <Feather name="zap" size={14} color={c.primary} />
-          <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 13, letterSpacing: 0.5 }}>
+          <Text style={{ color: c.foreground, fontFamily: "Inter_700Bold", fontSize: 15, letterSpacing: 0.5 }}>
             Taktik İpuçları
           </Text>
         </View>
         {role.tips.map((t: string, i: number) => (
           <View key={i} style={styles.tipRow}>
             <View style={[styles.tipBullet, { backgroundColor: c.primary + "33" }]}>
-              <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: 10 }}>
+              <Text style={{ color: c.primary, fontFamily: "Inter_700Bold", fontSize: 13 }}>
                 {i + 1}
               </Text>
             </View>
-            <Text style={{ color: c.foreground, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 21, fontSize: 14 }}>
+            <Text style={{ color: c.foreground, fontFamily: "Inter_400Regular", flex: 1, lineHeight: 21, fontSize: 16 }}>
               {t}
             </Text>
           </View>
@@ -136,21 +136,21 @@ export default function RoleRevealScreen() {
         <View style={[styles.tipsCard, { backgroundColor: "#1E0510", borderColor: c.destructive + "44" }]}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 10 }}>
             <Feather name="users" size={14} color={c.destructive} />
-            <Text style={{ color: c.destructive, fontFamily: "Inter_700Bold", fontSize: 10, letterSpacing: 2 }}>
+            <Text style={{ color: c.destructive, fontFamily: "Inter_700Bold", fontSize: 13, letterSpacing: 2 }}>
               EKİP ÜYELERİN
             </Text>
           </View>
           {state.ceteMembers.map((m: any) => (
             <View key={m.id} style={styles.memberRow}>
               <View style={[styles.memberInitial, { backgroundColor: c.destructive + "22" }]}>
-                <Text style={{ color: c.destructive, fontFamily: "Inter_700Bold", fontSize: 13 }}>
+                <Text style={{ color: c.destructive, fontFamily: "Inter_700Bold", fontSize: 15 }}>
                   {m.nickname[0]?.toUpperCase()}
                 </Text>
               </View>
               <Text style={{ color: c.foreground, fontFamily: "Inter_500Medium", flex: 1 }}>
                 {m.nickname}
               </Text>
-              <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 12 }}>
+              <Text style={{ color: c.mutedForeground, fontFamily: "Inter_400Regular", fontSize: 15 }}>
                 {ROLE_DEFS[m.roleId ?? ""]?.name ?? "?"}
               </Text>
             </View>
@@ -199,14 +199,14 @@ function Section({
           style={{
             color: highlight ? teamColor : c.mutedForeground,
             fontFamily: "Inter_600SemiBold",
-            fontSize: 10,
+            fontSize: 13,
             letterSpacing: 2,
           }}
         >
           {title.toUpperCase()}
         </Text>
       </View>
-      <Text style={{ color: c.foreground, fontFamily: "Inter_400Regular", lineHeight: 22, fontSize: 14 }}>
+      <Text style={{ color: c.foreground, fontFamily: "Inter_400Regular", lineHeight: 22, fontSize: 16 }}>
         {body}
       </Text>
     </View>

@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: "Inter_700Bold",
-    fontSize: 18,
+    fontSize: 19,
   },
   headerActions: {
     flexDirection: "row",
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 11,
+    fontSize: 14,
     letterSpacing: 1,
     textTransform: "uppercase",
     marginBottom: 4,
@@ -409,11 +409,11 @@ const styles = StyleSheet.create({
   },
   rowTitle: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 15,
+    fontSize: 17,
   },
   rowSub: {
     fontFamily: "Inter_400Regular",
-    fontSize: 12,
+    fontSize: 15,
     marginTop: 2,
   },
   separator: {
@@ -435,11 +435,11 @@ const styles = StyleSheet.create({
   },
   segmentLabel: {
     fontFamily: "Inter_500Medium",
-    fontSize: 12,
+    fontSize: 15,
   },
   hint: {
     fontFamily: "Inter_400Regular",
-    fontSize: 12,
+    fontSize: 15,
     textAlign: "center",
     marginTop: 8,
     paddingHorizontal: 4,
@@ -454,7 +454,7 @@ const styles = StyleSheet.create({
   },
   testBtnLabel: {
     fontFamily: "Inter_600SemiBold",
-    fontSize: 13,
+    fontSize: 15,
   },
   volumeControls: {
     alignItems: "center",
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
   },
   volumeBtnLabel: {
     fontFamily: "Inter_700Bold",
-    fontSize: 18,
+    fontSize: 19,
     lineHeight: 19,
   },
   volumeTrack: {
