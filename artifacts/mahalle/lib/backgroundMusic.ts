@@ -10,7 +10,8 @@ let currentPlaying = false;
 let desiredEnabled = false;
 export const BG_MUSIC_MAX_VOLUME = 1;
 export const BG_MUSIC_DEFAULT_VOLUME = BG_MUSIC_MAX_VOLUME / 2;
-const BG_MUSIC_OUTPUT_ATTENUATION = 1;
+// Keep UI at 0-100 while output stays comfortably in background.
+const BG_MUSIC_OUTPUT_ATTENUATION = 0.12;
 let targetVolume = BG_MUSIC_DEFAULT_VOLUME;
 let webAudio: HTMLAudioElement | null = null;
 let musicUri: string | null = null;

@@ -169,6 +169,8 @@ interface GameCtx {
 
 const Ctx = createContext<GameCtx | null>(null);
 const LAST_ROOM_CODE_KEY = "mahalle:lastRoomCode";
+const BG_MUSIC_VOLUME_SCALE_KEY = "mahalle:bgMusicVolumeScale";
+const BG_MUSIC_LEGACY_MAX_VOLUME = 0.12;
 
 export function useGame() {
   const v = useContext(Ctx);
@@ -273,10 +275,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       AsyncStorage.getItem("mahalle:voiceMuted"),
       AsyncStorage.getItem("mahalle:bgMusicEnabled"),
       AsyncStorage.getItem("mahalle:bgMusicVolume"),
+      AsyncStorage.getItem(BG_MUSIC_VOLUME_SCALE_KEY),
       AsyncStorage.getItem("mahalle:toastsEnabled"),
       AsyncStorage.getItem("mahalle:keepAwake"),
     ])
-      .then(([n, vib, mute, bgEnabled, bgVolume, toasts, ka]) => {
+      .then(([n, vib, mute, bgEnabled, bgVolume, bgVolumeScale, toasts, ka]) => {
         setMyNickname(n ?? "");
         const enabled = vib !== "false";
         initVibrationsEnabled(enabled);
@@ -290,16 +293,24 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
           setBackgroundMusicVolumeState(BG_MUSIC_DEFAULT_VOLUME);
           applyBackgroundMusicVolume(BG_MUSIC_DEFAULT_VOLUME);
           AsyncStorage.setItem("mahalle:bgMusicVolume", String(BG_MUSIC_DEFAULT_VOLUME));
+          AsyncStorage.setItem(BG_MUSIC_VOLUME_SCALE_KEY, "v2");
         } else {
           const parsedVolume = Number(bgVolume);
           if (Number.isFinite(parsedVolume)) {
-            const clamped = Math.max(0, Math.min(BG_MUSIC_MAX_VOLUME, parsedVolume));
+            const migrated =
+              bgVolumeScale === "v2" || parsedVolume > BG_MUSIC_LEGACY_MAX_VOLUME
+                ? parsedVolume
+                : (parsedVolume / BG_MUSIC_LEGACY_MAX_VOLUME) * BG_MUSIC_DEFAULT_VOLUME;
+            const clamped = Math.max(0, Math.min(BG_MUSIC_MAX_VOLUME, migrated));
             setBackgroundMusicVolumeState(clamped);
             applyBackgroundMusicVolume(clamped);
+            AsyncStorage.setItem("mahalle:bgMusicVolume", String(clamped));
+            AsyncStorage.setItem(BG_MUSIC_VOLUME_SCALE_KEY, "v2");
           } else {
             setBackgroundMusicVolumeState(BG_MUSIC_DEFAULT_VOLUME);
             applyBackgroundMusicVolume(BG_MUSIC_DEFAULT_VOLUME);
             AsyncStorage.setItem("mahalle:bgMusicVolume", String(BG_MUSIC_DEFAULT_VOLUME));
+            AsyncStorage.setItem(BG_MUSIC_VOLUME_SCALE_KEY, "v2");
           }
         }
         setToastsEnabledState(toasts !== "false");
