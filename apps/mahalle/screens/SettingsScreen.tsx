@@ -321,7 +321,7 @@ export default function SettingsScreen({ visible, onClose, onLeaveGame }: Settin
                 </View>
               </View>
               <Pressable
-                onPress={() => speakTest("Davetsiz Misafir. Mahalle uykuya daldı.")}
+                onPress={() => speakTest("Dikkat mahalleli... Gece başlıyor. Herkes gözlerini kapatsın.")}
                 style={[styles.testBtn, { backgroundColor: c.primary + "22", borderColor: c.primary }]}
               >
                 <Text style={[styles.testBtnLabel, { color: c.primary }]}>🔊 Test</Text>
