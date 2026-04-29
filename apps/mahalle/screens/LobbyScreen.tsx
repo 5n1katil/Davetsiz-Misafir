@@ -51,6 +51,10 @@ export default function LobbyScreen() {
     emit,
     toggleVibrations,
     vibrationsEnabled,
+    lobbyMusicEnabled,
+    toggleLobbyMusic,
+    discussionMusicEnabled,
+    toggleDiscussionMusic,
   } = useGame();
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -222,6 +226,30 @@ export default function LobbyScreen() {
           {/* ── TOP BAR — ayrı panel, atmosferik arka plandan bağımsız ── */}
           <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
             <View style={{ flex: 1 }} />
+            <Pressable
+              onPress={toggleLobbyMusic}
+              hitSlop={12}
+              style={styles.topBarBtn}
+              accessibilityLabel={lobbyMusicEnabled ? "Ana temayı kapat" : "Ana temayı aç"}
+            >
+              <Feather
+                name={lobbyMusicEnabled ? "music" : "volume-x"}
+                size={18}
+                color={lobbyMusicEnabled ? "#F5C842" : "#9B7FD4"}
+              />
+            </Pressable>
+            <Pressable
+              onPress={toggleDiscussionMusic}
+              hitSlop={12}
+              style={styles.topBarBtn}
+              accessibilityLabel={discussionMusicEnabled ? "Tartışma müziğini kapat" : "Tartışma müziğini aç"}
+            >
+              <Feather
+                name={discussionMusicEnabled ? "radio" : "volume-x"}
+                size={18}
+                color={discussionMusicEnabled ? "#F5C842" : "#9B7FD4"}
+              />
+            </Pressable>
             <Pressable onPress={() => setHelpVisible(true)} hitSlop={12} style={styles.topBarBtn} accessibilityLabel="Nasıl oynanır">
               <Feather name="help-circle" size={18} color="#9B7FD4" />
             </Pressable>
