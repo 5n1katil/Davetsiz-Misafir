@@ -3,5 +3,5 @@
   "framework": null,
   "buildCommand": "corepack pnpm --filter @workspace/mahalle run build:web",
   "outputDirectory": "dist",
-  "installCommand": "corepack pnpm install --frozen-lockfile"
+  "installCommand": "corepack pnpm install --frozen-lockfile --filter @workspace/mahalle..."
 }
